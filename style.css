@@ -744,8 +744,8 @@ body.crm-main-page {
   gap: 15px;
 }
 .crmb-att-leave-form label { display: flex; flex-direction: column; align-items: stretch; gap: 8px; font-weight: 750; }
-.crmb-att-leave-fields input,
-.crmb-att-leave-reason textarea {
+.crmb-att .crmb-att-leave-fields input,
+.crmb-att .crmb-att-leave-reason textarea {
   width: 100%;
   min-width: 0;
   height: 52px;
@@ -759,7 +759,7 @@ body.crm-main-page {
   font-size: 14px;
   transition: border-color .2s, box-shadow .2s;
 }
-.crmb-att-leave-reason textarea {
+.crmb-att .crmb-att-leave-reason textarea {
   height: auto;
   min-height: 118px;
   resize: vertical;
