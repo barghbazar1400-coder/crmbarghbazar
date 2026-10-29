@@ -24,10 +24,23 @@ if ( '1' === get_option( 'crmb_leave_schema_v1' ) ) {
          ORDER BY r.reviewed_utc DESC LIMIT 20"
     );
 }
-$users = get_users( array( 'orderby' => 'display_name', 'order' => 'ASC' ) );
-$uid = isset( $_GET['employee'] ) ? absint( $_GET['employee'] ) : 0;
-if ( ! $uid && $users ) { $uid = (int) $users[0]->ID; }
-$user = $uid ? get_userdata( $uid ) : false;
+// Show an employee directory first. A daily report opens only after choosing a user.
+$users = array_values( array_filter(
+    get_users( array( 'orderby' => 'display_name', 'order' => 'ASC' ) ),
+    static function ( $candidate ) {
+        return ! user_can( $candidate, 'manage_options' );
+    }
+) );
+$requested_uid = isset( $_GET['employee'] ) ? absint( $_GET['employee'] ) : 0;
+$uid = 0;
+$user = false;
+foreach ( $users as $candidate ) {
+    if ( $requested_uid && (int) $candidate->ID === $requested_uid ) {
+        $uid = (int) $candidate->ID;
+        $user = $candidate;
+        break;
+    }
+}
 $month_now = crmb_att_current_month();
 $month = isset( $_GET['month'] ) && is_string( $_GET['month'] )
     ? sanitize_text_field( wp_unslash( $_GET['month'] ) ) : $month_now;
@@ -97,6 +110,56 @@ foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval(
         <p class="crmb-att-alert" role="status"><?php echo esc_html( $notice_codes[ $notice ] ); ?></p>
     <?php endif; ?>
 
+    <?php if ( ! $user ) : ?>
+        <section class="crmb-att-card crmb-att-employee-directory" aria-labelledby="crmb-att-directory-title">
+            <h2 id="crmb-att-directory-title">کارکنان ـ گزارش ریز <?php echo esc_html( crmb_att_month_name( $month_now ) ); ?></h2>
+            <p class="crmb-att-hint">برای مشاهده ورود، خروج، ساعت فعالیت، اضافه‌کاری و تأخیر هر کارمند، روی نام او کلیک کنید.</p>
+            <div class="crmb-att-table-wrap">
+                <table class="crmb-att-table crmb-att-employee-table">
+                    <thead><tr><th>نام کارمند</th><th>نقش</th><th>گزارش حضور و غیاب</th></tr></thead>
+                    <tbody>
+                    <?php foreach ( $users as $employee ) : ?>
+                        <?php
+                        $employee_name = trim( (string) $employee->first_name . ' ' . (string) $employee->last_name );
+                        $employee_name = $employee_name ?: (string) $employee->display_name;
+                        $role_slug = ! empty( $employee->roles ) ? reset( $employee->roles ) : '';
+                        $role_name = $role_slug && isset( wp_roles()->roles[ $role_slug ]['name'] )
+                            ? translate_user_role( wp_roles()->roles[ $role_slug ]['name'] ) : 'کارمند';
+                        $employee_url = add_query_arg(
+                            array( 'employee' => $employee->ID, 'month' => $month_now ),
+                            $base
+                        );
+                        ?>
+                        <tr>
+                            <td>
+                                <a class="crmb-att-employee-name" href="<?php echo esc_url( $employee_url ); ?>">
+                                    <?php echo esc_html( $employee_name ); ?>
+                                </a>
+                            </td>
+                            <td><?php echo esc_html( $role_name ); ?></td>
+                            <td>
+                                <a class="crmb-att-employee-open" href="<?php echo esc_url( $employee_url ); ?>">مشاهده ریز ماه جاری ←</a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if ( ! $users ) : ?>
+                        <tr><td colspan="3" class="crmb-att-no-requests">هنوز کارمندی ثبت نشده است. ابتدا از بخش «نقش‌ها / کاربران» کارمند ایجاد کنید.</td></tr>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    <?php else : ?>
+        <div class="crmb-att-selected-employee">
+            <a class="crmb-att-return" href="<?php echo esc_url( $base ); ?>">بازگشت به فهرست کارکنان</a>
+            <h2>ریز ساعات کاری <?php
+                $employee_full_name = trim( (string) $user->first_name . ' ' . (string) $user->last_name );
+                echo esc_html( $employee_full_name ?: $user->display_name );
+            ?> ـ <?php echo esc_html( crmb_att_month_name( $month ) ); ?></h2>
+        </div>
+    <?php endif; ?>
+
+    <?php if ( $user ) : ?>
     <form class="crmb-att-filters" method="get" action="<?php echo esc_url( home_url( '/main/' ) ); ?>">
         <input type="hidden" name="crm_section" value="attendance">
         <label for="crmb-employee">کارمند
@@ -127,6 +190,7 @@ foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval(
         </label>
         <button type="submit" class="crmb-att-primary">نمایش</button>
     </form>
+    <?php endif; ?>
 
     <?php if ( isset( $leave_review_notices[ $leave_review_notice ] ) ) : ?>
         <p class="crmb-att-alert" role="status"><?php echo esc_html( $leave_review_notices[ $leave_review_notice ] ); ?></p>
@@ -192,9 +256,7 @@ foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval(
         <?php endif; ?>
     </section>
 
-    <?php if ( ! $user ) : ?>
-        <p class="crmb-att-alert">هنوز کاربری برای بررسی وجود ندارد.</p>
-    <?php else : ?>
+    <?php if ( $user ) : ?>
         <div class="crmb-att-summary">
             <?php
             $metrics = array(
