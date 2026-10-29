@@ -104,7 +104,9 @@ function crmb_leave_submit() {
         ? sanitize_text_field( wp_unslash( $_POST['time_to'] ) ) : '';
     $reason = isset( $_POST['reason'] ) && is_string( $_POST['reason'] )
         ? trim( sanitize_textarea_field( wp_unslash( $_POST['reason'] ) ) ) : '';
-    $reason = mb_substr( $reason, 0, 1000 );
+    if ( strlen( $reason ) > 4000 ) {
+        crmb_leave_redirect( 'invalid', 'clock' );
+    }
     $start_minutes = crmb_att_is_time( $start ) ? (int) substr( $start, 0, 2 ) * 60 + (int) substr( $start, 3, 2 ) : -1;
     $end_minutes = crmb_att_is_time( $end ) ? (int) substr( $end, 0, 2 ) * 60 + (int) substr( $end, 3, 2 ) : -1;
 
@@ -139,6 +141,9 @@ function crmb_leave_submit() {
         ),
         array( '%d','%s','%s','%s','%d','%s','%s','%s' )
     );
+    if ( $inserted ) {
+        crmb_att_enroll( get_current_user_id(), wp_date( 'Y-m-d' ) );
+    }
     crmb_leave_redirect( $inserted ? 'submitted' : 'error', 'clock' );
 }
 add_action( 'admin_post_crmb_leave_submit', 'crmb_leave_submit' );
