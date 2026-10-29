@@ -146,6 +146,12 @@ function crmb_att_month_name( $month ) {
 function crmb_att_is_time( $value ) {
     return is_string( $value ) && (bool) preg_match( '/^(?:[01][0-9]|2[0-3]):[0-5][0-9]$/', $value );
 }
+function crmb_att_enroll( $user_id, $date ) {
+    $old = get_user_meta( $user_id, 'crmb_att_started_on', true );
+    if ( ! is_string( $old ) || ! preg_match( '/^\\d{4}-\\d{2}-\\d{2}$/', $old ) || $date < $old ) {
+        update_user_meta( $user_id, 'crmb_att_started_on', $date );
+    }
+}
 function crmb_att_settings( $user_id ) {
     $saved = get_user_meta( $user_id, 'crmb_att_schedule', true );
     if ( ! is_array( $saved ) ) {
@@ -225,6 +231,10 @@ function crmb_att_month_metrics( $user_id, $month, $rows ) {
     if ( ! $bounds ) { return $totals; }
     $user = get_userdata( $user_id );
     $created = $user ? substr( (string) $user->user_registered, 0, 10 ) : $bounds[0];
+    // No assumed unpaid shifts before this employee was first enrolled in CRM attendance.
+    $enrolled = get_user_meta( $user_id, 'crmb_att_started_on', true );
+    $created = is_string( $enrolled ) && preg_match( '/^\\d{4}-\\d{2}-\\d{2}$/', $enrolled )
+        ? max( $created, $enrolled ) : $created;
     $today = wp_date( 'Y-m-d' );
     foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval( 'P1D' ), new DateTimeImmutable( $bounds[2] ) ) as $dateobj ) {
         $date = $dateobj->format( 'Y-m-d' );
@@ -294,6 +304,9 @@ function crmb_att_clock_action() {
              VALUES (%d,%s,%s,'present',%d,%s,%s,%s)",
             $uid, $today, $now, crmb_att_expected( $uid, $today ), $schedule['start'], $now, $now
         ) );
+        if ( 1 === $created ) {
+            crmb_att_enroll( $uid, $today );
+        }
         $code = 1 === $created ? 'in' : 'already';
     } elseif ( 'out' === $action ) {
         $row = $wpdb->get_row( $wpdb->prepare(
@@ -341,6 +354,7 @@ function crmb_att_admin_action() {
             ? array_values( array_intersect( range( 0, 6 ), array_map( 'intval', wp_unslash( $_POST['weekdays'] ) ) ) ) : array();
         if ( ! crmb_att_is_time( $start ) || $minutes > 1440 ) { crmb_att_return( 'invalid', $uid, $month ); }
         update_user_meta( $uid, 'crmb_att_schedule', array( 'start' => $start, 'minutes' => $minutes, 'weekdays' => $weekdays ) );
+        crmb_att_enroll( $uid, wp_date( 'Y-m-d' ) );
         crmb_att_return( 'saved', $uid, $month );
     }
     if ( 'day' !== $task ) { crmb_att_return( 'invalid', $uid, $month ); }
@@ -396,6 +410,9 @@ function crmb_att_admin_action() {
         $ok = $wpdb->update( $t['days'], $values, array( 'id' => (int) $existing ) );
     } else {
         $ok = $wpdb->insert( $t['days'], $values );
+    }
+    if ( false !== $ok ) {
+        crmb_att_enroll( $uid, $day );
     }
     crmb_att_return( false === $ok ? 'invalid' : 'saved', $uid, $month );
 }
