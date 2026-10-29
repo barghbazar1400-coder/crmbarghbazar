@@ -93,6 +93,10 @@ if ( ! empty( $crm_user->roles ) ) {
         <?php
         if ( 'access' === $crm_current_section && crmbarghbazar_can_view_section( 'access' ) ) {
             get_template_part( 'template-parts/access-management' );
+        }         elseif ( 'attendance' === $crm_current_section && crmbarghbazar_can_view_section( 'attendance' ) ) {
+            get_template_part( 'template-parts/attendance-admin' );
+        } elseif ( 'clock' === $crm_current_section || '' === $crm_current_section ) {
+            get_template_part( 'template-parts/attendance-clock' );
         }
         // Other sections will be implemented when requested.
         ?>
