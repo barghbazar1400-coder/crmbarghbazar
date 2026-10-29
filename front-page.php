@@ -43,13 +43,17 @@ $login_error = isset( $GLOBALS['crmbarghbazar_login_error'] )
                 <div class="crm-logo-orbit">
                     <span class="crm-orbit-ring" aria-hidden="true"></span>
                     <div class="crm-logo-card">
-                        <img
-                            class="crm-logo-fallback"
-                            src="<?php echo esc_url( get_template_directory_uri() . '/assets/logo-mark.svg' ); ?>"
-                            width="104"
-                            height="104"
-                            alt="لوگوی برق بازار"
-                        >
+                        <?php if ( has_custom_logo() ) : ?>
+                            <?php the_custom_logo(); ?>
+                        <?php else : ?>
+                            <img
+                                class="crm-logo-fallback"
+                                src="<?php echo esc_url( get_template_directory_uri() . '/assets/logo-mark.svg' ); ?>"
+                                width="104"
+                                height="104"
+                                alt="لوگوی برق بازار"
+                            >
+                        <?php endif; ?>
                     </div>
                 </div>
 
