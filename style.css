@@ -635,3 +635,212 @@ body.crm-main-page {
   .crmb-att-filters label,.crmb-att-editor label,.crmb-att-schedule label { flex: 1 1 100%; }
   .crmb-att-filters input,.crmb-att-filters select,.crmb-att-editor input,.crmb-att-editor select,.crmb-att-schedule input { width: 100%; }
 }
+
+
+/* Full-width live attendance clock and leave request workflow */
+.crmb-att-clock-screen {
+  width: 100%;
+  max-width: none;
+  padding: 0 0 65px;
+  margin: 0;
+}
+.crmb-att-clock-screen > .crmb-att-clock-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+  max-width: none;
+  min-height: 340px;
+  margin: 0;
+  padding: clamp(28px, 3.6vw, 55px);
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(ellipse at 5% 10%, rgba(172, 133, 255, .15), transparent 47%),
+    linear-gradient(120deg, #ffffff 25%, #f8f5ff 100%);
+  box-shadow: inset 0 -1px 0 #e8ddf6;
+}
+.crmb-att-live-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px 35px;
+}
+.crmb-att-live-title h1 {
+  margin: 0 0 6px;
+  color: #2e155f;
+  font-weight: 900;
+  font-size: clamp(26px, 3.2vw, 41px);
+  line-height: 1.5;
+}
+.crmb-att-live-title p {
+  margin: 0;
+  color: #82748e;
+  font-size: 13px;
+}
+.crmb-att-live-display {
+  min-width: 220px;
+  padding: 14px 22px;
+  border: 1px solid #e9ddfa;
+  border-radius: 16px;
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 10px 28px rgba(89, 46, 157, .07);
+  text-align: center;
+}
+.crmb-att-live-date {
+  display: block;
+  margin-bottom: 3px;
+  color: #68517c;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.crmb-att-live-time {
+  display: block;
+  font: 800 clamp(30px, 3.6vw, 46px)/1.25 Arial, Tahoma, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 1px;
+  color: #6332cc;
+}
+.crmb-att-clock-actions {
+  margin-top: 38px;
+}
+.crmb-att-clock-screen .crmb-att-clock-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+  max-width: 620px;
+}
+.crmb-att-clock-screen .crmb-att-clock-buttons form { min-width: 0; }
+.crmb-att-clock-screen .crmb-att-clock-buttons button {
+  min-height: 60px;
+  width: 100%;
+  border-radius: 13px;
+  font-size: 15px;
+}
+.crmb-att-clock-screen > .crmb-att-card {
+  margin: 26px clamp(18px, 3.6vw, 55px) 0;
+  padding: clamp(22px, 3vw, 36px);
+  border-radius: 17px;
+}
+.crmb-att-leave-heading {
+  margin-bottom: 24px;
+}
+.crmb-att-leave-heading h2,
+.crmb-att-leave-history h2 {
+  font-size: clamp(18px, 2.2vw, 23px);
+  margin-bottom: 6px;
+}
+.crmb-att-leave-heading p {
+  margin: 0;
+  color: #887b98;
+  font-size: 12px;
+}
+.crmb-att-leave-form { display: grid; gap: 19px; }
+.crmb-att-leave-fields {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 15px;
+}
+.crmb-att-leave-form label { display: flex; flex-direction: column; align-items: stretch; gap: 8px; font-weight: 750; }
+.crmb-att-leave-fields input,
+.crmb-att-leave-reason textarea {
+  width: 100%;
+  min-width: 0;
+  height: 52px;
+  padding: 12px 15px;
+  border: 1px solid #ddd3ee;
+  background: #fefcff;
+  color: #2c2140;
+  border-radius: 11px;
+  outline: none;
+  font: inherit;
+  font-size: 14px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.crmb-att-leave-reason textarea {
+  height: auto;
+  min-height: 118px;
+  resize: vertical;
+}
+.crmb-att-leave-fields input:focus,
+.crmb-att-leave-reason textarea:focus {
+  border-color: #9067e8;
+  box-shadow: 0 0 0 4px rgba(120,78,221,.12);
+}
+.crmb-att-leave-submit {
+  width: fit-content;
+  min-width: 204px;
+  min-height: 49px;
+}
+.crmb-att-no-requests {
+  text-align: center;
+  padding: 26px 12px !important;
+  color: #9789a7 !important;
+}
+.crmb-leave-status {
+  display: inline-block;
+  min-width: 105px;
+  padding: 4px 10px;
+  border-radius: 30px;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 800;
+}
+.crmb-leave-status-pending { background: #fff5e3; color: #a56c19; }
+.crmb-leave-status-approved { background: #e9faf3; color: #22744c; }
+.crmb-leave-status-rejected { background: #fff0f1; color: #b23b50; }
+.crmb-leave-inbox-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.crmb-leave-inbox-title h2 { margin: 0; }
+.crmb-leave-pending-count {
+  display: inline-flex;
+  padding: 6px 13px;
+  border: 1px solid #e7d9ff;
+  border-radius: 40px;
+  background: #f5f0ff;
+  color: #6b39c7;
+  font-size: 12px;
+  font-weight: 800;
+}
+.crmb-leave-reason-text {
+  min-width: 165px;
+  max-width: 350px;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  line-height: 1.95;
+}
+.crmb-leave-review-actions { display: flex; flex-wrap: nowrap; gap: 7px; }
+.crmb-leave-review-actions form { margin: 0; }
+.crmb-leave-review-actions button {
+  min-height: 32px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+.crmb-leave-approve { color: #25734e; background: #e7f9ee; border-color: #c9e9d6 !important; }
+.crmb-leave-reject { color: #b23450; background: #fff0f1; border-color: #f7d7de !important; }
+.crmb-leave-recent-title { margin-top: 28px !important; }
+@media (max-width: 800px) {
+  .crmb-att-live-header { align-items: stretch; }
+  .crmb-att-live-display { flex: 1 1 100%; }
+  .crmb-att-leave-fields { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 480px) {
+  .crmb-att-clock-screen > .crmb-att-clock-card { padding: 25px 18px; min-height: 320px; }
+  .crmb-att-clock-screen .crmb-att-clock-buttons { grid-template-columns: minmax(0, 1fr); }
+  .crmb-att-clock-screen > .crmb-att-card { padding: 20px 15px; margin: 20px 12px 0; }
+  .crmb-att-leave-submit { width: 100%; }
+}
