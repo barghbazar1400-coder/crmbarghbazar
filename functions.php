@@ -33,12 +33,28 @@ add_action( 'wp_enqueue_scripts', 'crmbarghbazar_enqueue_styles' );
  * Keep login processing within WordPress instead of creating a separate user table.
  */
 function crmbarghbazar_process_login() {
-    if ( ! is_front_page() ) {
+    // Handle the site root as the login page even when WordPress front-page
+    // settings do not mark the request as is_front_page().
+    $request_uri  = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
+        ? wp_unslash( $_SERVER['REQUEST_URI'] )
+        : '';
+    $request_path = wp_parse_url( $request_uri, PHP_URL_PATH );
+    $home_path    = wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+    $is_home_root = is_string( $request_path )
+        && is_string( $home_path )
+        && untrailingslashit( $request_path ) === untrailingslashit( $home_path );
+
+    if ( ! is_front_page() && ! $is_home_root ) {
         return;
     }
 
+    // The login response depends on each visitor's authentication cookies.
+    if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+        define( 'DONOTCACHEPAGE', true );
+    }
     nocache_headers();
 
+    // Existing sessions go straight to the CRM without seeing the login form.
     if ( is_user_logged_in() ) {
         wp_safe_redirect( home_url( '/main/' ) );
         exit;
