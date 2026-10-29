@@ -34,7 +34,18 @@ function crmbarghbazar_can_view_section( $section ) {
         return current_user_can( 'manage_options' );
     }
 
-    return current_user_can( 'manage_options' ) || current_user_can( 'crm_menu_' . $section );
+    if ( current_user_can( 'manage_options' ) ) {
+        return true;
+    }
+
+    // An individual user can optionally override their role's menu visibility.
+    $user_id = get_current_user_id();
+    if ( metadata_exists( 'user', $user_id, 'crmbarghbazar_menu_override' ) ) {
+        $allowed = get_user_meta( $user_id, 'crmbarghbazar_menu_override', true );
+        return is_array( $allowed ) && in_array( $section, $allowed, true );
+    }
+
+    return current_user_can( 'crm_menu_' . $section );
 }
 
 /** Sections to which a CRM role may be granted access (not admin-only pages). */
@@ -173,6 +184,11 @@ function crmbarghbazar_handle_access_action() {
             $password = isset( $_POST['crm_password'] ) && is_string( $_POST['crm_password'] )
                 ? (string) wp_unslash( $_POST['crm_password'] )
                 : '';
+            $menu_mode = isset( $_POST['crm_menu_mode'] ) && is_string( $_POST['crm_menu_mode'] )
+                ? sanitize_key( wp_unslash( $_POST['crm_menu_mode'] ) ) : 'role';
+            $requested_menu = isset( $_POST['crm_user_menus'] ) && is_array( $_POST['crm_user_menus'] )
+                ? array_map( 'sanitize_key', wp_unslash( $_POST['crm_user_menus'] ) ) : array();
+            $safe_menu = array_values( array_intersect( $requested_menu, array_keys( crmbarghbazar_assignable_sections() ) ) );
             $duplicate_email_id = email_exists( $email );
             $email_ok = is_email( $email ) && ( ! $duplicate_email_id || (int) $duplicate_email_id === $user_id );
             $role_ok = array_key_exists( $selected_role, crmbarghbazar_allowed_user_roles() );
@@ -198,7 +214,12 @@ function crmbarghbazar_handle_access_action() {
                             'role'         => $selected_role,
                         )
                     );
-                    $notice = is_wp_error( $created ) ? 'invalid' : 'user_created';
+                    if ( ! is_wp_error( $created ) ) {
+                        if ( 'custom' === $menu_mode ) {
+                            update_user_meta( $created, 'crmbarghbazar_menu_override', $safe_menu );
+                        }
+                        $notice = 'user_created';
+                    }
                 }
             } elseif ( 'edit_user' === $task && $existing ) {
                 $changes = array(
@@ -213,7 +234,14 @@ function crmbarghbazar_handle_access_action() {
                     $changes['user_pass'] = $password;
                 }
                 $changed = wp_update_user( $changes );
-                $notice = is_wp_error( $changed ) ? 'invalid' : 'user_updated';
+                if ( ! is_wp_error( $changed ) ) {
+                    if ( 'custom' === $menu_mode ) {
+                        update_user_meta( $user_id, 'crmbarghbazar_menu_override', $safe_menu );
+                    } else {
+                        delete_user_meta( $user_id, 'crmbarghbazar_menu_override' );
+                    }
+                    $notice = 'user_updated';
+                }
             }
         }
     }
