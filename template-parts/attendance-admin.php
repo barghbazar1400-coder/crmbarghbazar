@@ -36,6 +36,7 @@ if ( ! crmb_att_month_bounds( $month ) || $month > $month_now ) { $month = $mont
 $bounds = crmb_att_month_bounds( $month );
 $archived = $user ? crmb_att_month_summary( $uid, $month ) : false;
 $rows = $user && ! $archived ? crmb_att_rows( $uid, $month ) : array();
+$crmb_approved_leave_days = $user && ! $archived ? crmb_leave_approved_day_map( $uid, $month ) : array();
 $totals = $archived ? (array) $archived : ( $user ? crmb_att_month_metrics( $uid, $month, $rows ) : array() );
 $schedule = $user ? crmb_att_settings( $uid ) : array();
 $statuses = array(
@@ -290,6 +291,9 @@ foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval(
                         <?php foreach ( $day_options as $item ) :
                             $r = $rows[ $item[0] ] ?? null;
                             $m = crmb_att_day_metrics( $r );
+                            $daily_plan = $r ? (int) $r->expected_minutes : crmb_att_expected( $uid, $item[0] );
+                            $approved = min( $daily_plan, (int) ( $crmb_approved_leave_days[ $item[0] ] ?? 0 ) );
+                            $m['leave'] = max( $m['leave'], $approved );
                             ?>
                             <tr>
                                 <td dir="ltr"><?php echo esc_html( $item[1] ); ?></td>
