@@ -72,12 +72,30 @@ if ( ! empty( $crm_user->roles ) ) {
         </div>
 
         <nav class="crm-main-navigation" aria-label="گزینه‌های CRM">
-            <?php // Menu items will be added only when specified. ?>
+            <?php
+            $crm_current_section = isset( $_GET['crm_section'] ) && is_string( $_GET['crm_section'] )
+                ? sanitize_key( wp_unslash( $_GET['crm_section'] ) ) : '';
+            foreach ( crmbarghbazar_menu_registry() as $crm_menu_slug => $crm_menu_item ) :
+                if ( ! crmbarghbazar_can_view_section( $crm_menu_slug ) ) {
+                    continue;
+                }
+                ?>
+                <a class="crm-main-nav-link <?php echo $crm_current_section === $crm_menu_slug ? 'is-active' : ''; ?>"
+                   href="<?php echo esc_url( add_query_arg( 'crm_section', $crm_menu_slug, home_url( '/main/' ) ) ); ?>"
+                   <?php echo $crm_current_section === $crm_menu_slug ? 'aria-current="page"' : ''; ?>>
+                    <?php echo esc_html( $crm_menu_item['label'] ); ?>
+                </a>
+            <?php endforeach; ?>
         </nav>
     </aside>
 
     <main class="crm-main-workspace" id="crm-main-content" aria-label="محتوای اصلی CRM">
-        <?php // Content will be added for each requested menu option. ?>
+        <?php
+        if ( 'access' === $crm_current_section && crmbarghbazar_can_view_section( 'access' ) ) {
+            get_template_part( 'template-parts/access-management' );
+        }
+        // Other sections will be implemented when requested.
+        ?>
     </main>
 </div>
 <?php wp_footer(); ?>
