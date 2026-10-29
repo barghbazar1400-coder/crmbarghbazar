@@ -33,6 +33,7 @@ $crm_roles = wp_roles();
 $crm_owned = crmbarghbazar_owned_roles();
 $crm_sections = crmbarghbazar_assignable_sections();
 $crm_user_roles = crmbarghbazar_allowed_user_roles();
+$crm_role_counts = count_users();
 $crm_edit_role = isset( $_GET['edit_role'] ) && is_string( $_GET['edit_role'] )
     ? sanitize_key( wp_unslash( $_GET['edit_role'] ) ) : '';
 if ( ! in_array( $crm_edit_role, $crm_owned, true ) || ! get_role( $crm_edit_role ) ) {
@@ -120,7 +121,8 @@ $crm_base_url = add_query_arg( 'crm_section', 'access', home_url( '/main/' ) );
                             if ( ! get_role( $crm_slug ) ) {
                                 continue;
                             }
-                            $crm_role_users = count( get_users( array( 'role' => $crm_slug, 'fields' => 'ID' ) ) );
+                            $crm_role_users = isset( $crm_role_counts['avail_roles'][ $crm_slug ] )
+                                ? (int) $crm_role_counts['avail_roles'][ $crm_slug ] : 0;
                             ?>
                             <tr>
                                 <td><?php echo esc_html( $crm_roles->roles[ $crm_slug ]['name'] ); ?></td>
@@ -179,6 +181,31 @@ $crm_base_url = add_query_arg( 'crm_section', 'access', home_url( '/main/' ) );
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <?php
+                    $crm_user_custom_menu = $crm_edit_user && metadata_exists( 'user', $crm_edit_user->ID, 'crmbarghbazar_menu_override' );
+                    $crm_user_allowed_menu = $crm_user_custom_menu
+                        ? get_user_meta( $crm_edit_user->ID, 'crmbarghbazar_menu_override', true ) : array();
+                    $crm_user_allowed_menu = is_array( $crm_user_allowed_menu ) ? $crm_user_allowed_menu : array();
+                    ?>
+                    <label for="crm-menu-mode">دسترسی به منوهای سمت راست</label>
+                    <select id="crm-menu-mode" name="crm_menu_mode">
+                        <option value="role" <?php selected( ! $crm_user_custom_menu ); ?>>طبق دسترسی نقش</option>
+                        <option value="custom" <?php selected( (bool) $crm_user_custom_menu ); ?>>دسترسی اختصاصی این کاربر</option>
+                    </select>
+                    <fieldset class="crm-access-permissions">
+                        <legend>گزینه‌های مجاز در حالت دسترسی اختصاصی</legend>
+                        <?php if ( empty( $crm_sections ) ) : ?>
+                            <p class="crm-access-muted">هنوز گزینه دیگری جز مدیریت نقش‌ها و کاربران ساخته نشده است؛ این گزینه فقط برای مدیر کل نمایش داده می‌شود.</p>
+                        <?php else : ?>
+                            <?php foreach ( $crm_sections as $crm_user_section => $crm_user_section_label ) : ?>
+                                <label class="crm-access-check">
+                                    <input type="checkbox" name="crm_user_menus[]" value="<?php echo esc_attr( $crm_user_section ); ?>"
+                                        <?php checked( in_array( $crm_user_section, $crm_user_allowed_menu, true ) ); ?>>
+                                    <span><?php echo esc_html( $crm_user_section_label ); ?></span>
+                                </label>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </fieldset>
                     <label for="crm-user-password"><?php echo $crm_edit_user ? 'رمز عبور جدید (اختیاری)' : 'رمز عبور'; ?></label>
                     <input type="password" id="crm-user-password" name="crm_password" minlength="12" autocomplete="new-password"
                         <?php echo $crm_edit_user ? '' : 'required'; ?>>
