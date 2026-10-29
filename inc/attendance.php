@@ -188,6 +188,8 @@ function crmb_att_day_metrics( $row ) {
         return $result;
     }
     if ( 'present' !== $row->status ) { return $result; }
+    // Partial-day leave may coexist with clocked work; it is not counted as work.
+    $result['leave'] = (int) $row->leave_minutes;
     $result['worked'] = crmb_att_duration( $row );
     if ( ! $row->checkout_utc ) { return $result; }
     $expected = (int) $row->expected_minutes;
@@ -374,7 +376,7 @@ function crmb_att_admin_action() {
             || ( $out && ( strtotime( $out . ' UTC' ) - strtotime( $in . ' UTC' ) ) > DAY_IN_SECONDS ) ) {
             crmb_att_return( 'invalid', $uid, $month );
         }
-        $leave = 0;
+        $leave = min( 1440, $leave );
     } else {
         $leave = in_array( $status, array( 'paid_leave', 'unpaid_leave' ), true ) ? min( 1440, $leave ) : 0;
     }
@@ -473,3 +475,15 @@ function crmb_att_schedule_rollup() {
     }
 }
 add_action( 'init', 'crmb_att_schedule_rollup', 10 );
+
+/**
+ * Fallback for installations where WP-Cron is disabled or delayed.
+ * Run at most once per hour on normal traffic; archives only CLOSED old months.
+ */
+function crmb_att_rollup_on_visit() {
+    $key = 'crmb_att_visit_rollup_' . str_replace( '-', '_', crmb_att_current_month() );
+    if ( get_transient( $key ) ) { return; }
+    set_transient( $key, 1, HOUR_IN_SECONDS );
+    crmb_att_rollup();
+}
+add_action( 'init', 'crmb_att_rollup_on_visit', 30 );
