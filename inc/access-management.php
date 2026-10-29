@@ -19,6 +19,14 @@ function crmbarghbazar_menu_registry() {
                 'label'      => 'نقش‌ها / کاربران',
                 'admin_only' => true,
             ),
+            'attendance' => array(
+                'label'      => 'حضور و غیاب',
+                'admin_only' => true,
+            ),
+            'clock' => array(
+                'label'          => 'ثبت ورود / خروج',
+                'always_visible' => true,
+            ),
         )
     );
 }
@@ -32,6 +40,9 @@ function crmbarghbazar_can_view_section( $section ) {
 
     if ( ! empty( $items[ $section ]['admin_only'] ) ) {
         return current_user_can( 'manage_options' );
+    }
+    if ( ! empty( $items[ $section ]['always_visible'] ) ) {
+        return is_user_logged_in();
     }
 
     if ( current_user_can( 'manage_options' ) ) {
@@ -52,7 +63,7 @@ function crmbarghbazar_can_view_section( $section ) {
 function crmbarghbazar_assignable_sections() {
     $available = array();
     foreach ( crmbarghbazar_menu_registry() as $slug => $item ) {
-        if ( empty( $item['admin_only'] ) && ! empty( $item['label'] ) ) {
+        if ( empty( $item['admin_only'] ) && empty( $item['always_visible'] ) && ! empty( $item['label'] ) ) {
             $available[ $slug ] = $item['label'];
         }
     }
