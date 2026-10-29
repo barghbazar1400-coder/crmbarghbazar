@@ -76,8 +76,8 @@ $leave_notice = isset( $_GET['leave_notice'] ) && is_string( $_GET['leave_notice
                     <span class="crmb-att-field-label" id="crmb-leave-date-label">تاریخ مرخصی (شمسی)</span>
                     <input type="hidden" name="leave_day" id="crmb-leave-day" value="">
                     <div class="crmb-att-date-picker" id="crmb-leave-date-picker"
-                         data-today="<?php echo esc_attr( wp_date( 'Y-m-d' ) ); ?>"
-                         data-last-day="<?php echo esc_attr( wp_date( 'Y-m-d', strtotime( '+1 year' ) ) ); ?>">
+                         data-today="<?php echo esc_attr( crmb_att_today() ); ?>"
+                         data-last-day="<?php echo esc_attr( crmb_att_one_year_from_now() ); ?>">
                         <button type="button" class="crmb-att-date-trigger" id="crmb-leave-date-trigger"
                                 aria-labelledby="crmb-leave-date-label crmb-leave-date-value"
                                 aria-haspopup="dialog" aria-expanded="false" aria-controls="crmb-leave-calendar">
