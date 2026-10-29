@@ -43,17 +43,13 @@ $login_error = isset( $GLOBALS['crmbarghbazar_login_error'] )
                 <div class="crm-logo-orbit">
                     <span class="crm-orbit-ring" aria-hidden="true"></span>
                     <div class="crm-logo-card">
-                        <?php if ( has_custom_logo() ) : ?>
-                            <?php the_custom_logo(); ?>
-                        <?php else : ?>
-                            <img
-                                class="crm-logo-fallback"
-                                src="<?php echo esc_url( get_template_directory_uri() . '/assets/logo-mark.svg' ); ?>"
-                                width="104"
-                                height="104"
-                                alt="نشان برق بازار"
-                            >
-                        <?php endif; ?>
+                        <img
+                            class="crm-logo-fallback"
+                            src="<?php echo esc_url( get_template_directory_uri() . '/assets/logo-mark.svg' ); ?>"
+                            width="104"
+                            height="104"
+                            alt="لوگوی برق بازار"
+                        >
                     </div>
                 </div>
 
@@ -69,7 +65,7 @@ $login_error = isset( $GLOBALS['crmbarghbazar_login_error'] )
         <div class="crm-form-panel">
             <div class="crm-form-content">
                 <div class="crm-form-heading">
-                    <span class="crm-eyebrow"><span class="crm-eyebrow-dot" aria-hidden="true"></span> پنل اختصاصی برق بازار</span>
+                    
                     <h1>خوش آمدید <span class="crm-title-accent">!</span></h1>
                     <p>برای ورود به حساب کاربری، اطلاعات خود را وارد کنید.</p>
                 </div>
