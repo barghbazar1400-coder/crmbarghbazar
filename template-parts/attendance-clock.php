@@ -34,6 +34,7 @@ $clock_notice = isset( $_GET['clock_notice'] ) && is_string( $_GET['clock_notice
 $leave_notice = isset( $_GET['leave_notice'] ) && is_string( $_GET['leave_notice'] )
     ? sanitize_key( wp_unslash( $_GET['leave_notice'] ) ) : '';
 $timezone = wp_timezone_string();
+$clock_offset_seconds = ( new DateTimeImmutable( 'now', wp_timezone() ) )->getOffset();
 ?>
 <section class="crmb-att crmb-att-clock-screen" aria-label="ثبت تردد و مرخصی">
     <div class="crmb-att-clock-card">
@@ -42,7 +43,7 @@ $timezone = wp_timezone_string();
                 <h1>ثبت تردد</h1>
                 <p>ثبت ساعت ورود و خروج بر اساس زمان سرور انجام می‌شود.</p>
             </div>
-            <div class="crmb-att-live-display" data-clock-timezone="<?php echo esc_attr( $timezone ); ?>">
+            <div class="crmb-att-live-display" data-clock-timezone="<?php echo esc_attr( $timezone ); ?>" data-clock-offset="<?php echo esc_attr( $clock_offset_seconds ); ?>">
                 <time class="crmb-att-live-date" id="crmb-live-date" aria-label="تاریخ امروز"><?php echo esc_html( crmb_att_jdate( wp_date( 'Y-m-d' ) ) ); ?></time>
                 <span class="crmb-att-live-time" id="crmb-live-time" dir="ltr" aria-label="ساعت جاری"><?php echo esc_html( wp_date( 'H:i:s' ) ); ?></span>
             </div>
@@ -132,6 +133,8 @@ $timezone = wp_timezone_string();
     const timeElement = document.getElementById("crmb-live-time");
     const zone = root.dataset.clockTimezone || "Asia/Tehran";
     let dateFormatter, timeFormatter;
+    let usesOffset = false;
+    const offsetMs = (Number(root.dataset.clockOffset) || 0) * 1000;
     try {
         dateFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn", {
             timeZone: zone, weekday: "long", day: "numeric", month: "long", year: "numeric"
@@ -142,10 +145,20 @@ $timezone = wp_timezone_string();
         dateFormatter.format(new Date());
         timeFormatter.format(new Date());
     } catch (error) {
-        return; // Preserve PHP-rendered date/time if browser has no timezone support.
+        try {
+            usesOffset = true;
+            dateFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn", {
+                timeZone: "UTC", weekday: "long", day: "numeric", month: "long", year: "numeric"
+            });
+            timeFormatter = new Intl.DateTimeFormat("en-GB", {
+                timeZone: "UTC", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+            });
+        } catch (unsupported) {
+            return;
+        }
     }
     function tick() {
-        const now = new Date();
+        const now = new Date(Date.now() + (usesOffset ? offsetMs : 0));
         dateElement.textContent = dateFormatter.format(now);
         timeElement.textContent = timeFormatter.format(now);
     }
