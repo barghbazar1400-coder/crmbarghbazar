@@ -129,10 +129,21 @@ button { cursor: pointer; }
 .crm-orbit-ring::before { width: 9px; height: 9px; top: 38px; right: 27px; }
 .crm-orbit-ring::after { width: 6px; height: 6px; bottom: 28px; left: 38px; opacity: .6; }
 .crm-logo-card {
-  position: relative; z-index: 1; display: flex; align-items: center; justify-content: center;
-  width: 154px; height: 154px; padding: 20px;
-  background: #fff; border: 1px solid rgba(255,255,255,.85); border-radius: 42px;
-  box-shadow: 0 21px 50px rgba(27, 5, 79, .32), 0 3px 6px rgba(27, 5, 79, .12);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 154px;
+  height: 154px;
+  padding: 20px;
+  background: linear-gradient(145deg, #f3ecff 0%, #d9c2ff 100%);
+  border: 1px solid rgba(255, 255, 255, .35);
+  border-radius: 42px;
+  box-shadow:
+    0 21px 50px rgba(27, 5, 79, .32),
+    0 3px 6px rgba(27, 5, 79, .12),
+    inset 0 1px 0 rgba(255, 255, 255, .45);
   transform: rotate(-5deg);
   transition: transform .25s ease;
 }
