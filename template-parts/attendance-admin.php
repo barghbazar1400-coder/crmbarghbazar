@@ -40,6 +40,9 @@ $base = add_query_arg( 'crm_section', 'attendance', home_url( '/main/' ) );
 $summary_rows = $user ? $wpdb->get_results( $wpdb->prepare(
     "SELECT * FROM {$t['months']} WHERE user_id = %d ORDER BY jalali_month DESC LIMIT 36", $uid
 ) ) : array();
+$team_summaries = $wpdb->get_results( $wpdb->prepare(
+    "SELECT * FROM {$t['months']} WHERE jalali_month = %s ORDER BY employee_name LIMIT 500", $month
+) );
 
 $selected = isset( $_GET['edit_day'] ) && is_string( $_GET['edit_day'] )
     ? sanitize_text_field( wp_unslash( $_GET['edit_day'] ) ) : '';
@@ -62,7 +65,7 @@ foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval(
 <section class="crmb-att" aria-label="مدیریت حضور و غیاب">
     <header class="crmb-att-heading">
         <h1>حضور و غیاب کارکنان</h1>
-        <p>ثبت تردد، برنامه حضور، تأخیر، اضافه‌کاری و مرخصی ـ فقط مدیر کل</p>
+        <p>ثبت تردد، برنامه حضور، تأخیر، اضافه‌کاری و مرخصی ـ فقط مدیر کل · منطقه زمانی: <?php echo esc_html( wp_timezone_string() ?: 'UTC' ); ?></p>
     </header>
 
     <?php if ( isset( $notice_codes[ $notice ] ) ) : ?>
@@ -248,4 +251,31 @@ foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval(
             </div>
         </section>
     <?php endif; ?>
+
+    <section class="crmb-att-card">
+        <h2>خلاصه عملکرد تمام کارکنان ـ <?php echo esc_html( crmb_att_month_name( $month ) ); ?></h2>
+        <p class="crmb-att-hint">اطلاعات بایگانی‌شده مستقل از حساب کاربری ذخیره می‌شوند؛ بنابراین پس از حذف حساب کارمند هم خلاصه عملکرد او برای مدیر باقی می‌ماند.</p>
+        <div class="crmb-att-table-wrap">
+            <table class="crmb-att-table">
+                <thead><tr><th>کارمند</th><th>ساعت موظفی</th><th>فعالیت</th><th>اضافه‌کاری</th><th>تأخیر</th><th>مرخصی</th><th>غیبت</th><th>بدون ثبت</th></tr></thead>
+                <tbody>
+                <?php foreach ( $team_summaries as $team_row ) : ?>
+                    <tr>
+                        <td><?php echo esc_html( $team_row->employee_name ); ?></td>
+                        <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $team_row->scheduled_minutes ) ); ?></td>
+                        <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $team_row->worked_minutes ) ); ?></td>
+                        <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $team_row->overtime_minutes ) ); ?></td>
+                        <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $team_row->delay_minutes ) ); ?></td>
+                        <td><?php echo esc_html( $team_row->leave_days ); ?> روز</td>
+                        <td><?php echo esc_html( $team_row->absence_days ); ?> روز</td>
+                        <td><?php echo esc_html( $team_row->missing_days ); ?> روز</td>
+                    </tr>
+                <?php endforeach; ?>
+                <?php if ( ! $team_summaries ) : ?>
+                    <tr><td colspan="8">خلاصه بایگانی‌شده‌ای برای این ماه وجود ندارد.</td></tr>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
 </section>
