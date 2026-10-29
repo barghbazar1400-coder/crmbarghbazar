@@ -90,6 +90,24 @@ if ( ! empty( $crm_user->roles ) ) {
     </aside>
 
     <main class="crm-main-workspace" id="crm-main-content" aria-label="محتوای اصلی CRM">
+        <header class="crm-topbar" aria-label="نوار اعلان‌های پنل">
+            <div class="crm-topbar-group">
+                <span class="crm-topbar-bell" role="img" aria-label="اعلان‌ها؛ قابلیت تیکت و اعلان هنوز فعال نشده است"
+                      title="اعلان‌ها (به‌زودی)">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/>
+                        <path d="M10 21h4"/>
+                    </svg>
+                </span>
+                <div class="crm-topbar-datetime"
+                     data-clock-timezone="<?php echo esc_attr( wp_timezone_string() ); ?>"
+                     data-clock-offset="<?php echo esc_attr( ( new DateTimeImmutable( 'now', wp_timezone() ) )->getOffset() ); ?>">
+                    <time class="crm-topbar-date" id="crmb-live-date"><?php echo esc_html( crmb_att_jdate( wp_date( 'Y-m-d' ) ) ); ?></time>
+                    <span class="crm-topbar-time" id="crmb-live-time" dir="ltr"><?php echo esc_html( wp_date( 'H:i:s' ) ); ?></span>
+                </div>
+            </div>
+        </header>
         <?php
         if ( 'access' === $crm_current_section && crmbarghbazar_can_view_section( 'access' ) ) {
             get_template_part( 'template-parts/access-management' );
@@ -102,6 +120,46 @@ if ( ! empty( $crm_user->roles ) ) {
         ?>
     </main>
 </div>
+<script>
+(function () {
+    "use strict";
+    const root = document.querySelector(".crm-topbar-datetime");
+    if (!root) return;
+    const dateElement = document.getElementById("crmb-live-date");
+    const timeElement = document.getElementById("crmb-live-time");
+    const zone = root.dataset.clockTimezone || "Asia/Tehran";
+    const offsetMs = (Number(root.dataset.clockOffset) || 0) * 1000;
+    let useOffset = false;
+    let dateFormatter, timeFormatter;
+    function makeFormatters(timeZone) {
+        dateFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-persian-nu-latn", {
+            timeZone: timeZone, weekday: "long", day: "numeric", month: "long", year: "numeric"
+        });
+        timeFormatter = new Intl.DateTimeFormat("en-GB", {
+            timeZone: timeZone, hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23"
+        });
+        dateFormatter.format(new Date());
+        timeFormatter.format(new Date());
+    }
+    try {
+        makeFormatters(zone);
+    } catch (error) {
+        try {
+            useOffset = true;
+            makeFormatters("UTC");
+        } catch (unsupported) {
+            return; // Keep the initial server-rendered date/time.
+        }
+    }
+    function updateClock() {
+        const now = new Date(Date.now() + (useOffset ? offsetMs : 0));
+        dateElement.textContent = dateFormatter.format(now);
+        timeElement.textContent = timeFormatter.format(now);
+    }
+    updateClock();
+    window.setInterval(updateClock, 1000);
+})();
+</script>
 <?php wp_footer(); ?>
 </body>
 </html>
