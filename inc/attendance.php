@@ -84,7 +84,7 @@ function crmb_att_to_jalali( $gy, $gm, $gd ) {
     $jy = 979 + 33 * $cycles + 4 * intdiv( $jno, 1461 );
     $jno %= 1461;
     if ( $jno >= 366 ) {
-        $jy += intdiv( $jno - 366, 365 );
+        $jy += intdiv( $jno - 1, 365 );
         $jno = ( $jno - 366 ) % 365;
     }
     if ( $jno < 186 ) { $jm = 1 + intdiv( $jno, 31 ); $jd = 1 + $jno % 31; }
