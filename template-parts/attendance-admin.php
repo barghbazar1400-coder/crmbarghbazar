@@ -242,7 +242,7 @@ foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval(
                                 <td><?php echo esc_html( $r ? ( $statuses[ $r->status ] ?? $r->status ) : 'ثبت نشده' ); ?></td>
                                 <td dir="ltr"><?php echo esc_html( $r ? crmb_att_utc_to_local( $r->checkin_utc, true ) : '—' ); ?></td>
                                 <td dir="ltr"><?php echo esc_html( $r ? crmb_att_utc_to_local( $r->checkout_utc, true ) : '—' ); ?></td>
-                                <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $m['worked'] ) ); ?></td>
+                                <td dir="ltr"><?php echo esc_html( crmb_att_format_duration_seconds( $r ) ); ?></td>
                                 <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $m['overtime'] ) ); ?></td>
                                 <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $m['delay'] ) ); ?></td>
                                 <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $m['leave'] ) ); ?></td>
