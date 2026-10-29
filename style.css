@@ -1039,3 +1039,65 @@ body.crm-main-page {
   .crm-topbar-date { font-size: 10px; }
   .crm-topbar-time { font-size: 12px; }
 }
+
+
+/* Employee-first attendance directory and drill-down into the current month. */
+.crmb-att-employee-directory {
+  margin-top: 0;
+}
+.crmb-att-employee-directory > .crmb-att-hint {
+  margin: -7px 0 19px;
+}
+.crmb-att-employee-table {
+  min-width: 470px;
+}
+.crmb-att-employee-table th,
+.crmb-att-employee-table td {
+  padding: 15px 16px;
+}
+.crmb-att-employee-table tbody tr:hover {
+  background: #f7f2ff;
+}
+.crmb-att .crmb-att-employee-name {
+  color: #47248e;
+  font-size: 14px;
+  font-weight: 850;
+  text-decoration: none;
+}
+.crmb-att .crmb-att-employee-open {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 13px;
+  border: 1px solid #ded0fc;
+  border-radius: 9px;
+  background: #f8f4ff;
+  color: #6738c9;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.crmb-att .crmb-att-employee-open:hover {
+  background: #6b3cd5;
+  color: #fff;
+}
+.crmb-att-selected-employee {
+  margin: 0 0 18px;
+  padding: 18px 22px;
+  border: 1px solid #e5dbf7;
+  border-radius: 13px;
+  background: #faf7ff;
+}
+.crmb-att .crmb-att-selected-employee h2 {
+  margin: 9px 0 0;
+  color: #331766;
+  font-size: clamp(16px, 2.1vw, 20px);
+}
+.crmb-att .crmb-att-return {
+  color: #6c3ace;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+.crmb-att .crmb-att-return:hover {
+  text-decoration: underline;
+}
