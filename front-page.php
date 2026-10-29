@@ -17,6 +17,16 @@ $login_error = isset( $GLOBALS['crmbarghbazar_login_error'] )
     <meta charset="<?php bloginfo( 'charset' ); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <?php wp_head(); ?>
+    <?php
+    // Print theme styles from disk as a fallback when the public CSS URL is blocked
+    // or WordPress is configured with a different content URL.
+    $crmbarghbazar_css_file = get_stylesheet_directory() . '/style.css';
+    if ( is_readable( $crmbarghbazar_css_file ) ) :
+    ?>
+    <style id="crmbarghbazar-local-css">
+        <?php readfile( $crmbarghbazar_css_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Trusted theme stylesheet. ?>
+    </style>
+    <?php endif; ?>
 </head>
 <body <?php body_class( 'crm-login-page' ); ?>>
 <?php wp_body_open(); ?>
@@ -74,7 +84,7 @@ $login_error = isset( $GLOBALS['crmbarghbazar_login_error'] )
                     <div class="crm-field">
                         <label for="crm_username">نام کاربری یا ایمیل</label>
                         <div class="crm-input-wrap">
-                            <svg class="crm-field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <svg class="crm-field-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <path d="M19 20a7 7 0 0 0-14 0M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                             <input
@@ -94,7 +104,7 @@ $login_error = isset( $GLOBALS['crmbarghbazar_login_error'] )
                     <div class="crm-field">
                         <label for="crm_password">رمز عبور</label>
                         <div class="crm-input-wrap">
-                            <svg class="crm-field-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <svg class="crm-field-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                 <rect x="5" y="10" width="14" height="11" rx="2.5" stroke="currentColor" stroke-width="1.7"/>
                                 <path d="M8 10V7a4 4 0 0 1 8 0v3M12 14.5v2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
                             </svg>
@@ -116,7 +126,7 @@ $login_error = isset( $GLOBALS['crmbarghbazar_login_error'] )
 
                     <button class="crm-login-button" type="submit" name="crm_login_submit" value="1">
                         <span>ورود به حساب کاربری</span>
-                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                             <path d="M19 12H5m0 0 5-5m-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
