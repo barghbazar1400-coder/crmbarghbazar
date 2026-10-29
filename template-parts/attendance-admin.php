@@ -8,6 +8,22 @@ if ( ! current_user_can( 'manage_options' ) ) { return; }
 crmb_att_install();
 global $wpdb;
 $t = crmb_att_tables();
+$crmb_leave_pending = array();
+$crmb_leave_recent = array();
+if ( '1' === get_option( 'crmb_leave_schema_v1' ) ) {
+    $crmb_leave_table = crmb_leave_table();
+    $crmb_leave_pending = $wpdb->get_results(
+        "SELECT r.*, u.display_name FROM {$crmb_leave_table} r
+         LEFT JOIN {$wpdb->users} u ON r.user_id = u.ID
+         WHERE r.status = 'pending' ORDER BY r.created_utc ASC LIMIT 100"
+    );
+    $crmb_leave_recent = $wpdb->get_results(
+        "SELECT r.*, u.display_name FROM {$crmb_leave_table} r
+         LEFT JOIN {$wpdb->users} u ON r.user_id = u.ID
+         WHERE r.status IN ('approved','rejected')
+         ORDER BY r.reviewed_utc DESC LIMIT 20"
+    );
+}
 $users = get_users( array( 'orderby' => 'display_name', 'order' => 'ASC' ) );
 $uid = isset( $_GET['employee'] ) ? absint( $_GET['employee'] ) : 0;
 if ( ! $uid && $users ) { $uid = (int) $users[0]->ID; }
@@ -34,6 +50,14 @@ $notice_codes = array(
     'invalid' => 'اطلاعات نامعتبر است یا ثبت انجام نشد.',
     'closed' => 'این ماه بایگانی شده و دیگر قابل ویرایش نیست.',
 );
+$leave_review_notices = array(
+    'reviewed' => 'نتیجه درخواست مرخصی ثبت شد و کارمند می‌تواند آن را در پنل خود ببیند.',
+    'invalid' => 'درخواست یا تصمیم نامعتبر است.',
+    'closed' => 'درخواست قبلاً بررسی شده یا ماه آن بایگانی شده است.',
+    'error' => 'ذخیره تصمیم انجام نشد؛ دوباره تلاش کنید.',
+);
+$leave_review_notice = isset( $_GET['leave_notice'] ) && is_string( $_GET['leave_notice'] )
+    ? sanitize_key( wp_unslash( $_GET['leave_notice'] ) ) : '';
 $notice = isset( $_GET['attendance_notice'] ) && is_string( $_GET['attendance_notice'] )
     ? sanitize_key( wp_unslash( $_GET['attendance_notice'] ) ) : '';
 $base = add_query_arg( 'crm_section', 'attendance', home_url( '/main/' ) );
@@ -102,6 +126,70 @@ foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval(
         </label>
         <button type="submit" class="crmb-att-primary">نمایش</button>
     </form>
+
+    <?php if ( isset( $leave_review_notices[ $leave_review_notice ] ) ) : ?>
+        <p class="crmb-att-alert" role="status"><?php echo esc_html( $leave_review_notices[ $leave_review_notice ] ); ?></p>
+    <?php endif; ?>
+
+    <section class="crmb-att-card crmb-leave-inbox" aria-labelledby="crmb-leave-inbox-title">
+        <div class="crmb-leave-inbox-title">
+            <h2 id="crmb-leave-inbox-title">کارتابل درخواست‌های مرخصی</h2>
+            <span class="crmb-leave-pending-count"><?php echo esc_html( number_format_i18n( count( $crmb_leave_pending ) ) ); ?> در انتظار بررسی</span>
+        </div>
+        <div class="crmb-att-table-wrap">
+            <table class="crmb-att-table">
+                <thead>
+                    <tr><th>کارمند</th><th>تاریخ شمسی</th><th>از ساعت</th><th>تا ساعت</th><th>توضیحات</th><th>اقدام</th></tr>
+                </thead>
+                <tbody>
+                <?php foreach ( $crmb_leave_pending as $request ) : ?>
+                    <tr>
+                        <td><?php echo esc_html( $request->display_name ?: 'کاربر شماره ' . $request->user_id ); ?></td>
+                        <td dir="ltr"><?php echo esc_html( crmb_att_jdate( $request->leave_day ) ); ?></td>
+                        <td dir="ltr"><?php echo esc_html( $request->time_from ); ?></td>
+                        <td dir="ltr"><?php echo esc_html( $request->time_to ); ?></td>
+                        <td class="crmb-leave-reason-text"><?php echo $request->reason ? nl2br( esc_html( $request->reason ) ) : '—'; ?></td>
+                        <td>
+                            <div class="crmb-leave-review-actions">
+                                <?php foreach ( array( 'approved' => 'تأیید', 'rejected' => 'رد' ) as $decision => $label ) : ?>
+                                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                        <input type="hidden" name="action" value="crmb_leave_review">
+                                        <input type="hidden" name="request_id" value="<?php echo esc_attr( $request->id ); ?>">
+                                        <input type="hidden" name="decision" value="<?php echo esc_attr( $decision ); ?>">
+                                        <?php wp_nonce_field( 'crmb_leave_review', 'crmb_leave_nonce' ); ?>
+                                        <button class="<?php echo 'approved' === $decision ? 'crmb-leave-approve' : 'crmb-leave-reject'; ?>" type="submit"><?php echo esc_html( $label ); ?></button>
+                                    </form>
+                                <?php endforeach; ?>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                <?php if ( ! $crmb_leave_pending ) : ?>
+                    <tr><td colspan="6" class="crmb-att-no-requests">درخواست مرخصی در انتظار بررسی وجود ندارد.</td></tr>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php if ( $crmb_leave_recent ) : ?>
+            <h3 class="crmb-leave-recent-title">آخرین درخواست‌های بررسی‌شده</h3>
+            <div class="crmb-att-table-wrap">
+                <table class="crmb-att-table">
+                    <thead><tr><th>کارمند</th><th>روز</th><th>از ساعت</th><th>تا ساعت</th><th>نتیجه</th></tr></thead>
+                    <tbody>
+                    <?php foreach ( $crmb_leave_recent as $request ) : ?>
+                        <tr>
+                            <td><?php echo esc_html( $request->display_name ?: 'کاربر شماره ' . $request->user_id ); ?></td>
+                            <td dir="ltr"><?php echo esc_html( crmb_att_jdate( $request->leave_day ) ); ?></td>
+                            <td dir="ltr"><?php echo esc_html( $request->time_from ); ?></td>
+                            <td dir="ltr"><?php echo esc_html( $request->time_to ); ?></td>
+                            <td><span class="crmb-leave-status crmb-leave-status-<?php echo esc_attr( $request->status ); ?>"><?php echo esc_html( crmb_leave_status_label( $request->status ) ); ?></span></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </section>
 
     <?php if ( ! $user ) : ?>
         <p class="crmb-att-alert">هنوز کاربری برای بررسی وجود ندارد.</p>
