@@ -199,9 +199,17 @@ function crmb_att_utc_to_local( $time, $with_seconds = false ) {
         ->setTimezone( crmb_att_timezone() )
         ->format( $with_seconds ? 'H:i:s' : 'H:i' );
 }
-function crmb_att_duration( $row ) {
+function crmb_att_duration_seconds( $row ) {
     if ( empty( $row->checkin_utc ) || empty( $row->checkout_utc ) ) { return 0; }
-    return max( 0, (int) floor( ( strtotime( $row->checkout_utc . ' UTC' ) - strtotime( $row->checkin_utc . ' UTC' ) ) / 60 ) );
+    return max( 0, strtotime( $row->checkout_utc . ' UTC' ) - strtotime( $row->checkin_utc . ' UTC' ) );
+}
+function crmb_att_duration( $row ) {
+    return intdiv( crmb_att_duration_seconds( $row ), 60 );
+}
+/** Preserve seconds in the daily display; monthly payroll still counts minutes. */
+function crmb_att_format_duration_seconds( $row ) {
+    $seconds = crmb_att_duration_seconds( $row );
+    return sprintf( '%d:%02d:%02d', intdiv( $seconds, 3600 ), intdiv( $seconds % 3600, 60 ), $seconds % 60 );
 }
 function crmb_att_day_metrics( $row ) {
     $result = array( 'worked' => 0, 'regular' => 0, 'overtime' => 0, 'delay' => 0, 'leave' => 0, 'leave_days' => 0, 'absence' => 0 );
