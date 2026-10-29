@@ -432,7 +432,13 @@ function crmb_att_archive_month( $uid, $month ) {
         "SELECT * FROM {$t['days']} WHERE user_id = %d AND work_day BETWEEN %s AND %s FOR UPDATE",
         $uid, $bounds[0], $bounds[1]
     ) );
-    if ( ! $all || crmb_att_month_summary( $uid, $month ) ) { $wpdb->query( 'ROLLBACK' ); return false; }
+    $enrolled = get_user_meta( $uid, 'crmb_att_started_on', true );
+    // No rows can still mean a whole month of missing attendance after enrollment.
+    if ( crmb_att_month_summary( $uid, $month )
+        || ( ! $all && ( ! is_string( $enrolled ) || $enrolled > $bounds[1] ) ) ) {
+        $wpdb->query( 'ROLLBACK' );
+        return false;
+    }
     foreach ( $all as $row ) {
         if ( 'present' === $row->status && ( ! $row->checkin_utc || ! $row->checkout_utc ) ) {
             $wpdb->query( 'ROLLBACK' );
@@ -484,6 +490,29 @@ function crmb_att_rollup() {
         if ( $month < $today_month ) { $keys[ $r->user_id . ':' . $month ] = array( (int) $r->user_id, $month ); }
     }
     foreach ( $keys as $entry ) { crmb_att_archive_month( $entry[0], $entry[1] ); }
+
+    // Employees who made no punches at all still need a missing-days summary.
+    $parts = array_map( 'intval', explode( '-', $today_month ) );
+    if ( 1 === $parts[1] ) {
+        $previous_month = sprintf( '%04d-12', $parts[0] - 1 );
+    } else {
+        $previous_month = sprintf( '%04d-%02d', $parts[0], $parts[1] - 1 );
+    }
+    $previous_bounds = crmb_att_month_bounds( $previous_month );
+    if ( $previous_bounds ) {
+        $enrolled_users = get_users( array(
+            'meta_key' => 'crmb_att_started_on',
+            'fields'   => 'ID',
+            'number'   => 500,
+        ) );
+        foreach ( $enrolled_users as $user_id ) {
+            $enrolled = get_user_meta( $user_id, 'crmb_att_started_on', true );
+            if ( is_string( $enrolled ) && $enrolled <= $previous_bounds[1]
+                && ! crmb_att_month_summary( $user_id, $previous_month ) ) {
+                crmb_att_archive_month( (int) $user_id, $previous_month );
+            }
+        }
+    }
 }
 add_action( 'crmb_att_rollup', 'crmb_att_rollup' );
 function crmb_att_schedule_rollup() {
