@@ -150,3 +150,6 @@ function crmbarghbazar_serve_main() {
     exit;
 }
 add_action( 'template_redirect', 'crmbarghbazar_serve_main', 0 );
+
+// CRM role and user management (loaded on frontend and admin-post requests).
+require_once get_template_directory() . '/inc/access-management.php';
