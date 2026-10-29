@@ -111,8 +111,8 @@ function crmb_leave_submit() {
     $end_minutes = crmb_att_is_time( $end ) ? (int) substr( $end, 0, 2 ) * 60 + (int) substr( $end, 3, 2 ) : -1;
 
     if ( ! $day || $start_minutes < 0 || $end_minutes <= $start_minutes
-        || $day < wp_date( 'Y-m-d' )
-        || $day > wp_date( 'Y-m-d', strtotime( '+1 year' ) )
+        || $day < crmb_att_today()
+        || $day > crmb_att_one_year_from_now()
         || crmb_att_month_summary( get_current_user_id(), substr( crmb_att_jdate( $day ), 0, 7 ) ) ) {
         crmb_leave_redirect( 'invalid', 'clock' );
     }
@@ -142,7 +142,7 @@ function crmb_leave_submit() {
         array( '%d','%s','%s','%s','%d','%s','%s','%s' )
     );
     if ( $inserted ) {
-        crmb_att_enroll( get_current_user_id(), wp_date( 'Y-m-d' ) );
+        crmb_att_enroll( get_current_user_id(), crmb_att_today() );
     }
     crmb_leave_redirect( $inserted ? 'submitted' : 'error', 'clock' );
 }
