@@ -664,8 +664,8 @@ body.crm-main-page {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 18px 35px;
+  flex-wrap: nowrap;
+  gap: 15px 25px;
 }
 .crmb-att-live-title h1 {
   margin: 0 0 6px;
@@ -680,27 +680,35 @@ body.crm-main-page {
   font-size: 13px;
 }
 .crmb-att-live-display {
-  min-width: 220px;
-  padding: 14px 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 13px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  padding: 10px 15px;
   border: 1px solid #e9ddfa;
-  border-radius: 16px;
-  background: rgba(255,255,255,.86);
-  box-shadow: 0 10px 28px rgba(89, 46, 157, .07);
-  text-align: center;
+  border-radius: 12px;
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 6px 18px rgba(89, 46, 157, .06);
+  white-space: nowrap;
 }
 .crmb-att-live-date {
-  display: block;
-  margin-bottom: 3px;
+  display: inline;
+  margin: 0;
   color: #68517c;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 750;
   white-space: nowrap;
 }
 .crmb-att-live-time {
-  display: block;
-  font: 800 clamp(30px, 3.6vw, 46px)/1.25 Arial, Tahoma, sans-serif;
+  display: inline;
+  font: 800 clamp(19px, 2vw, 25px)/1.2 Arial, Tahoma, sans-serif;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 1px;
+  letter-spacing: .3px;
+  white-space: nowrap;
   color: #6332cc;
 }
 .crmb-att-clock-actions {
@@ -834,8 +842,8 @@ body.crm-main-page {
 .crmb-leave-reject { color: #b23450; background: #fff0f1; border-color: #f7d7de !important; }
 .crmb-leave-recent-title { margin-top: 28px !important; }
 @media (max-width: 800px) {
-  .crmb-att-live-header { align-items: stretch; }
-  .crmb-att-live-display { flex: 1 1 100%; }
+  .crmb-att-live-header { flex-wrap: wrap; align-items: center; }
+  .crmb-att-live-display { flex: 0 1 auto; }
   .crmb-att-leave-fields { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 480px) {
@@ -843,4 +851,153 @@ body.crm-main-page {
   .crmb-att-clock-screen .crmb-att-clock-buttons { grid-template-columns: minmax(0, 1fr); }
   .crmb-att-clock-screen > .crmb-att-card { padding: 20px 15px; margin: 20px 12px 0; }
   .crmb-att-leave-submit { width: 100%; }
+}
+
+
+/* Read-only Jalali calendar and clock-part dropdowns */
+.crmb-att-leave-field { position: relative; min-width: 0; }
+.crmb-att-leave-field > .crmb-att-field-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 750;
+  color: #52406c;
+}
+.crmb-att-date-picker { position: relative; width: 100%; }
+.crmb-att .crmb-att-date-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 10px 15px;
+  border: 1px solid #ddd3ee;
+  border-radius: 11px;
+  background: #fefcff;
+  color: #4c317d;
+  cursor: pointer;
+  text-align: right;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+.crmb-att-date-trigger:hover, .crmb-att-date-trigger[aria-expanded="true"] {
+  border-color: #9169ed;
+  background: #faf7ff;
+}
+.crmb-att-calendar-icon { font-size: 24px; line-height: 1; color: #7041d8; }
+.crmb-att-calendar[hidden], .crmb-att-leave-error[hidden] { display: none !important; }
+.crmb-att-calendar {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  z-index: 100;
+  width: min(330px, calc(100vw - 36px));
+  padding: 17px;
+  border: 1px solid #e6dcf5;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 15px 44px rgba(42, 14, 94, .18);
+  direction: rtl;
+}
+.crmb-att-calendar-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  color: #392074;
+}
+.crmb-att-calendar-heading strong { font-size: 15px; font-weight: 850; }
+.crmb-att-calendar-heading button {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  padding: 0;
+  border: 1px solid #e9e0fa;
+  border-radius: 9px;
+  background: #f8f4ff;
+  color: #7041c9;
+  font: 800 23px/1 Tahoma, sans-serif;
+  cursor: pointer;
+}
+.crmb-att-calendar-heading button:disabled { opacity: .3; cursor: not-allowed; }
+.crmb-att-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+  text-align: center;
+}
+.crmb-att-calendar-weekdays {
+  color: #8d79a9;
+  font-size: 11px;
+  font-weight: 800;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #f0e9f8;
+  margin-bottom: 7px;
+}
+.crmb-att-calendar-grid > span { display: grid; place-items: center; min-height: 33px; }
+.crmb-att-calendar-days button {
+  min-height: 36px;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #3e2d54;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.crmb-att-calendar-days button:hover:not(:disabled),
+.crmb-att-calendar-days button.is-selected {
+  color: #fff;
+  background: #7343d9;
+}
+.crmb-att-calendar-days button.is-today:not(.is-selected) {
+  color: #6134c3;
+  border-color: #d3c2fc;
+  background: #f6f1ff;
+  font-weight: 850;
+}
+.crmb-att-calendar-days button:disabled { color: #ccc4d4; cursor: not-allowed; }
+.crmb-att .crmb-att-time-parts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  direction: ltr;
+}
+.crmb-att .crmb-att-time-parts select {
+  min-width: 0;
+  width: 100%;
+  height: 52px;
+  padding: 8px 10px;
+  border: 1px solid #ddd3ee;
+  border-radius: 11px;
+  background: #fefcff;
+  color: #433061;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: center;
+}
+.crmb-att-time-parts > span { text-align: center; color: #8a73b0; font-weight: 850; }
+.crmb-att-leave-error {
+  padding: 11px 13px;
+  margin: 0;
+  border: 1px solid #f2d1da;
+  border-radius: 9px;
+  background: #fff1f5;
+  color: #a82c50;
+  font-size: 12px;
+}
+@media (max-width: 500px) {
+  .crmb-att-live-display { gap: 8px; padding: 9px 12px; }
+  .crmb-att-live-date { font-size: 10px; }
+  .crmb-att-live-time { font-size: 20px; }
+  .crmb-att-live-title h1 { font-size: 25px; }
+  .crmb-att-calendar { width: min(330px, calc(100vw - 36px)); }
 }
