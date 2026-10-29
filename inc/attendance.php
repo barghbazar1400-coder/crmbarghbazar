@@ -135,8 +135,25 @@ function crmb_att_month_bounds( $month ) {
     if ( ! $first || ! $next ) { return false; }
     return array( $first, gmdate( 'Y-m-d', strtotime( $next . ' -1 day' ) ), $next );
 }
+/**
+ * All staff attendance schedules and Gregorian work-day partitions are Tehran-local.
+ * Raw check-in/out timestamps continue to be stored as true UTC.
+ * Never infer an employee's timezone from WordPress General Settings.
+ */
+function crmb_att_timezone() {
+    return new DateTimeZone( 'Asia/Tehran' );
+}
+function crmb_att_now_local() {
+    return new DateTimeImmutable( 'now', crmb_att_timezone() );
+}
+function crmb_att_today() {
+    return crmb_att_now_local()->format( 'Y-m-d' );
+}
+function crmb_att_one_year_from_now() {
+    return crmb_att_now_local()->modify( '+1 year' )->format( 'Y-m-d' );
+}
 function crmb_att_current_month() {
-    return substr( crmb_att_jdate( wp_date( 'Y-m-d' ) ), 0, 7 );
+    return substr( crmb_att_jdate( crmb_att_today() ), 0, 7 );
 }
 function crmb_att_month_name( $month ) {
     $names = array( '', 'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند' );
@@ -168,17 +185,19 @@ function crmb_att_settings( $user_id ) {
 }
 function crmb_att_expected( $user_id, $date ) {
     $s = crmb_att_settings( $user_id );
-    $weekday = (int) ( new DateTimeImmutable( $date, wp_timezone() ) )->format( 'w' );
+    $weekday = (int) ( new DateTimeImmutable( $date, crmb_att_timezone() ) )->format( 'w' );
     return in_array( $weekday, $s['weekdays'], true ) ? $s['minutes'] : 0;
 }
 function crmb_att_local_to_utc( $date, $time ) {
     if ( ! crmb_att_is_time( $time ) ) { return false; }
-    $dt = DateTimeImmutable::createFromFormat( '!Y-m-d H:i', $date . ' ' . $time, wp_timezone() );
+    $dt = DateTimeImmutable::createFromFormat( '!Y-m-d H:i', $date . ' ' . $time, crmb_att_timezone() );
     return $dt ? $dt->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' ) : false;
 }
-function crmb_att_utc_to_local( $time ) {
+function crmb_att_utc_to_local( $time, $with_seconds = false ) {
     if ( ! $time ) { return ''; }
-    return ( new DateTimeImmutable( $time, new DateTimeZone( 'UTC' ) ) )->setTimezone( wp_timezone() )->format( 'H:i' );
+    return ( new DateTimeImmutable( $time, new DateTimeZone( 'UTC' ) ) )
+        ->setTimezone( crmb_att_timezone() )
+        ->format( $with_seconds ? 'H:i:s' : 'H:i' );
 }
 function crmb_att_duration( $row ) {
     if ( empty( $row->checkin_utc ) || empty( $row->checkout_utc ) ) { return 0; }
@@ -235,7 +254,7 @@ function crmb_att_month_metrics( $user_id, $month, $rows ) {
     $enrolled = get_user_meta( $user_id, 'crmb_att_started_on', true );
     $created = is_string( $enrolled ) && preg_match( '/^\\d{4}-\\d{2}-\\d{2}$/', $enrolled )
         ? max( $created, $enrolled ) : $created;
-    $today = wp_date( 'Y-m-d' );
+    $today = crmb_att_today();
     $approved_leave = function_exists( 'crmb_leave_approved_day_map' )
         ? crmb_leave_approved_day_map( $user_id, $month ) : array();
     foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval( 'P1D' ), new DateTimeImmutable( $bounds[2] ) ) as $dateobj ) {
@@ -296,7 +315,7 @@ function crmb_att_clock_action() {
     $uid = get_current_user_id();
     $action = isset( $_POST['clock_action'] ) && is_string( $_POST['clock_action'] )
         ? sanitize_key( wp_unslash( $_POST['clock_action'] ) ) : '';
-    $today = wp_date( 'Y-m-d' );
+    $today = crmb_att_today();
     $month = substr( crmb_att_jdate( $today ), 0, 7 );
     if ( crmb_att_month_summary( $uid, $month ) ) { crmb_att_return( 'closed' ); }
     $now = gmdate( 'Y-m-d H:i:s' );
@@ -365,7 +384,7 @@ function crmb_att_admin_action() {
             ? array_values( array_intersect( range( 0, 6 ), array_map( 'intval', wp_unslash( $_POST['weekdays'] ) ) ) ) : array();
         if ( ! crmb_att_is_time( $start ) || $minutes > 1440 ) { crmb_att_return( 'invalid', $uid, $month ); }
         update_user_meta( $uid, 'crmb_att_schedule', array( 'start' => $start, 'minutes' => $minutes, 'weekdays' => $weekdays ) );
-        crmb_att_enroll( $uid, wp_date( 'Y-m-d' ) );
+        crmb_att_enroll( $uid, crmb_att_today() );
         crmb_att_return( 'saved', $uid, $month );
     }
     if ( 'day' !== $task ) { crmb_att_return( 'invalid', $uid, $month ); }
@@ -376,7 +395,7 @@ function crmb_att_admin_action() {
     $day = crmb_att_to_gregorian( $j[0], $j[1], $j[2] );
     $bounds = crmb_att_month_bounds( $month );
     if ( ! $day || $day < $bounds[0] || $day > $bounds[1] || crmb_att_jdate( $day ) !== $jdate
-        || $day > wp_date( 'Y-m-d' ) ) { crmb_att_return( 'invalid', $uid, $month ); }
+        || $day > crmb_att_today() ) { crmb_att_return( 'invalid', $uid, $month ); }
 
     $status = isset( $_POST['day_status'] ) && is_string( $_POST['day_status'] )
         ? sanitize_key( wp_unslash( $_POST['day_status'] ) ) : '';
