@@ -278,6 +278,14 @@ function crmb_att_clock_action() {
     if ( crmb_att_month_summary( $uid, $month ) ) { crmb_att_return( 'closed' ); }
     $now = gmdate( 'Y-m-d H:i:s' );
     if ( 'in' === $action ) {
+        $open = $wpdb->get_var( $wpdb->prepare(
+            "SELECT id FROM {$t['days']} WHERE user_id = %d AND status = 'present'
+             AND checkin_utc IS NOT NULL AND checkout_utc IS NULL LIMIT 1", $uid
+        ) );
+        if ( $open ) {
+            wp_safe_redirect( add_query_arg( 'clock_notice', 'already', home_url( '/main/' ) ) );
+            exit;
+        }
         $schedule = crmb_att_settings( $uid );
         $created = $wpdb->query( $wpdb->prepare(
             "INSERT IGNORE INTO {$t['days']} (user_id,work_day,checkin_utc,status,expected_minutes,start_local,created_utc,updated_utc)
@@ -315,8 +323,13 @@ function crmb_att_admin_action() {
     $uid = isset( $_POST['employee'] ) ? absint( $_POST['employee'] ) : 0;
     $month = isset( $_POST['month'] ) && is_string( $_POST['month'] ) ? sanitize_text_field( wp_unslash( $_POST['month'] ) ) : '';
     $task = isset( $_POST['attendance_task'] ) && is_string( $_POST['attendance_task'] ) ? sanitize_key( wp_unslash( $_POST['attendance_task'] ) ) : '';
-    if ( ! get_userdata( $uid ) || ! crmb_att_month_bounds( $month ) || $month !== crmb_att_current_month() ) {
+    if ( ! get_userdata( $uid ) || ! crmb_att_month_bounds( $month ) || $month > crmb_att_current_month() ) {
         crmb_att_return( 'invalid', $uid, $month );
+    }
+    // Past months may need an administrator to complete an open attendance row
+    // before they can safely be archived. Only current-month schedules can change.
+    if ( 'schedule' === $task && $month !== crmb_att_current_month() ) {
+        crmb_att_return( 'closed', $uid, $month );
     }
     if ( crmb_att_month_summary( $uid, $month ) ) { crmb_att_return( 'closed', $uid, $month ); }
     if ( 'schedule' === $task ) {
@@ -427,10 +440,12 @@ function crmb_att_archive_month( $uid, $month ) {
         "DELETE FROM {$t['days']} WHERE user_id = %d AND work_day BETWEEN %s AND %s",
         $uid, $bounds[0], $bounds[1]
     ) );
-    if ( (int) $deleted !== count( $all ) || 1 !== $wpdb->query( 'COMMIT' ) ) {
-        $wpdb->query( 'ROLLBACK' ); return false;
+    if ( (int) $deleted !== count( $all ) ) {
+        $wpdb->query( 'ROLLBACK' );
+        return false;
     }
-    return true;
+    // wpdb can return 0 for a successful COMMIT statement; only false is failure.
+    return false !== $wpdb->query( 'COMMIT' );
 }
 function crmb_att_rollup() {
     if ( '1' !== get_option( 'crmb_att_schema_v1' ) ) { crmb_att_install(); }
