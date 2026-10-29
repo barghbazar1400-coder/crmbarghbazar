@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120" fill="none" role="img" aria-label="نشان موقت برق بازار">
+  <defs>
+    <linearGradient id="gradient" x1="26" y1="13" x2="96" y2="106" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9C70FF"/><stop offset="1" stop-color="#5226CA"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="104" height="104" rx="30" fill="#F6F2FF"/>
+  <path d="M67 18 31 67c-2 3 0 7 4 7h24l-7 29 38-52c2-3 0-7-4-7H62l5-26Z" fill="url(#gradient)"/>
+  <path d="M62 29 42 61h29l-8 25 23-34H56l6-23Z" fill="#FFF" opacity=".3"/>
+</svg>
