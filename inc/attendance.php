@@ -236,6 +236,8 @@ function crmb_att_month_metrics( $user_id, $month, $rows ) {
     $created = is_string( $enrolled ) && preg_match( '/^\\d{4}-\\d{2}-\\d{2}$/', $enrolled )
         ? max( $created, $enrolled ) : $created;
     $today = wp_date( 'Y-m-d' );
+    $approved_leave = function_exists( 'crmb_leave_approved_day_map' )
+        ? crmb_leave_approved_day_map( $user_id, $month ) : array();
     foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval( 'P1D' ), new DateTimeImmutable( $bounds[2] ) ) as $dateobj ) {
         $date = $dateobj->format( 'Y-m-d' );
         if ( $date < $created ) { continue; }
@@ -243,13 +245,22 @@ function crmb_att_month_metrics( $user_id, $month, $rows ) {
         $planned = $row ? (int) $row->expected_minutes : crmb_att_expected( $user_id, $date );
         if ( $row && 'holiday' === $row->status ) { $planned = 0; }
         $totals['scheduled_minutes'] += $planned;
+        $approved_minutes = min( $planned, max( 0, (int) ( $approved_leave[ $date ] ?? 0 ) ) );
+        $manual_leave = $row ? (int) crmb_att_day_metrics( $row )['leave'] : 0;
+        if ( $approved_minutes > $manual_leave ) {
+            $totals['leave_minutes'] += $approved_minutes - $manual_leave;
+            if ( $planned > 0 && $approved_minutes >= $planned
+                && ( ! $row || ! in_array( $row->status, array( 'paid_leave', 'unpaid_leave' ), true ) ) ) {
+                $totals['leave_days']++;
+            }
+        }
         if ( $row ) {
             $totals['days_with_records']++;
             $m = crmb_att_day_metrics( $row );
             foreach ( array( 'worked' => 'worked_minutes', 'regular' => 'regular_minutes', 'overtime' => 'overtime_minutes', 'delay' => 'delay_minutes', 'leave' => 'leave_minutes', 'leave_days' => 'leave_days', 'absence' => 'absence_days' ) as $k => $v ) {
                 $totals[ $v ] += $m[ $k ];
             }
-        } elseif ( $planned > 0 && $date < $today ) {
+        } elseif ( $planned > 0 && $date < $today && $approved_minutes < $planned ) {
             $totals['missing_days']++;
         }
     }
@@ -439,6 +450,20 @@ function crmb_att_archive_month( $uid, $month ) {
         $wpdb->query( 'ROLLBACK' );
         return false;
     }
+    // Lock applications together with daily rows before calculating the summary.
+    if ( function_exists( 'crmb_leave_table' ) && '1' === get_option( 'crmb_leave_schema_v1' ) ) {
+        $leave_table = crmb_leave_table();
+        $locked_leaves = $wpdb->get_results( $wpdb->prepare(
+            "SELECT id,status FROM {$leave_table} WHERE user_id = %d
+             AND leave_day BETWEEN %s AND %s FOR UPDATE", $uid, $bounds[0], $bounds[1]
+        ) );
+        foreach ( $locked_leaves as $leave ) {
+            if ( 'pending' === $leave->status ) {
+                $wpdb->query( 'ROLLBACK' );
+                return false;
+            }
+        }
+    }
     foreach ( $all as $row ) {
         if ( 'present' === $row->status && ( ! $row->checkin_utc || ! $row->checkout_utc ) ) {
             $wpdb->query( 'ROLLBACK' );
@@ -466,6 +491,11 @@ function crmb_att_archive_month( $uid, $month ) {
         $uid, $bounds[0], $bounds[1]
     ) );
     if ( (int) $deleted !== count( $all ) ) {
+        $wpdb->query( 'ROLLBACK' );
+        return false;
+    }
+    if ( function_exists( 'crmb_leave_delete_archived_requests' )
+        && ! crmb_leave_delete_archived_requests( $uid, $bounds ) ) {
         $wpdb->query( 'ROLLBACK' );
         return false;
     }
