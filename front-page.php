@@ -43,7 +43,20 @@ $login_error = isset( $GLOBALS['crmbarghbazar_login_error'] )
                 <div class="crm-logo-orbit">
                     <span class="crm-orbit-ring" aria-hidden="true"></span>
                     <div class="crm-logo-card">
-                        <?php if ( has_custom_logo() ) : ?>
+                        <?php
+                        // The uploaded logo is saved as the WordPress Site Icon
+                        // under Settings > General, not the Custom Logo setting.
+                        $crm_site_icon = get_site_icon_url( 512 );
+                        ?>
+                        <?php if ( $crm_site_icon ) : ?>
+                            <img
+                                class="crm-logo-fallback"
+                                src="<?php echo esc_url( $crm_site_icon ); ?>"
+                                width="104"
+                                height="104"
+                                alt="لوگوی برق بازار"
+                            >
+                        <?php elseif ( has_custom_logo() ) : ?>
                             <?php the_custom_logo(); ?>
                         <?php else : ?>
                             <img
