@@ -40,7 +40,7 @@ function crmbarghbazar_process_login() {
     nocache_headers();
 
     if ( is_user_logged_in() ) {
-        wp_safe_redirect( admin_url() );
+        wp_safe_redirect( home_url( '/main/' ) );
         exit;
     }
 
@@ -84,7 +84,53 @@ function crmbarghbazar_process_login() {
         return;
     }
 
-    wp_safe_redirect( admin_url() );
+    wp_safe_redirect( home_url( '/main/' ) );
     exit;
 }
 add_action( 'template_redirect', 'crmbarghbazar_process_login', 1 );
+
+/**
+ * Detect the private /main/ route without requiring manual WordPress page setup.
+ */
+function crmbarghbazar_is_main_request() {
+    if ( is_page( 'main' ) ) {
+        return true;
+    }
+
+    $request_uri = isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] )
+        ? wp_unslash( $_SERVER['REQUEST_URI'] )
+        : '';
+
+    $request_path = wp_parse_url( $request_uri, PHP_URL_PATH );
+    $main_path    = wp_parse_url( home_url( '/main/' ), PHP_URL_PATH );
+
+    return is_string( $request_path )
+        && is_string( $main_path )
+        && untrailingslashit( $request_path ) === untrailingslashit( $main_path );
+}
+
+/**
+ * Serve the CRM page to logged-in users, even when there is no WordPress page
+ * with the "main" slug. Keep visitors on the sign-in screen.
+ */
+function crmbarghbazar_serve_main() {
+    if ( ! crmbarghbazar_is_main_request() ) {
+        return;
+    }
+
+    nocache_headers();
+
+    if ( ! is_user_logged_in() ) {
+        wp_safe_redirect( home_url( '/' ) );
+        exit;
+    }
+
+    if ( is_page( 'main' ) ) {
+        return; // WordPress uses page-main.php automatically.
+    }
+
+    status_header( 200 );
+    include get_template_directory() . '/page-main.php';
+    exit;
+}
+add_action( 'template_redirect', 'crmbarghbazar_serve_main', 0 );
