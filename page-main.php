@@ -101,10 +101,11 @@ if ( ! empty( $crm_user->roles ) ) {
                     </svg>
                 </span>
                 <div class="crm-topbar-datetime"
-                     data-clock-timezone="<?php echo esc_attr( wp_timezone_string() ); ?>"
-                     data-clock-offset="<?php echo esc_attr( ( new DateTimeImmutable( 'now', wp_timezone() ) )->getOffset() ); ?>">
-                    <time class="crm-topbar-date" id="crmb-live-date"><?php echo esc_html( crmb_att_jdate( wp_date( 'Y-m-d' ) ) ); ?></time>
-                    <span class="crm-topbar-time" id="crmb-live-time" dir="ltr"><?php echo esc_html( wp_date( 'H:i:s' ) ); ?></span>
+                     data-clock-timezone="<?php echo esc_attr( crmb_att_timezone()->getName() ); ?>"
+                     data-clock-offset="<?php echo esc_attr( crmb_att_now_local()->getOffset() ); ?>"
+                     data-server-epoch="<?php echo esc_attr( time() ); ?>">
+                    <time class="crm-topbar-date" id="crmb-live-date"><?php echo esc_html( crmb_att_jdate( crmb_att_today() ) ); ?></time>
+                    <span class="crm-topbar-time" id="crmb-live-time" dir="ltr"><?php echo esc_html( crmb_att_now_local()->format( 'H:i:s' ) ); ?></span>
                 </div>
             </div>
         </header>
@@ -129,6 +130,16 @@ if ( ! empty( $crm_user->roles ) ) {
     const timeElement = document.getElementById("crmb-live-time");
     const zone = root.dataset.clockTimezone || "Asia/Tehran";
     const offsetMs = (Number(root.dataset.clockOffset) || 0) * 1000;
+    // Anchor the live clock to the server's UTC timestamp, not the browser's
+    // potentially incorrect system clock. performance.now() is monotonic.
+    const initialEpochMs = Number(root.dataset.serverEpoch) * 1000 || Date.now();
+    const monotonicStart = window.performance && typeof performance.now === "function"
+        ? performance.now() : 0;
+    const browserStart = Date.now();
+    function elapsedMs() {
+        return window.performance && typeof performance.now === "function"
+            ? performance.now() - monotonicStart : Date.now() - browserStart;
+    }
     let useOffset = false;
     let dateFormatter, timeFormatter;
     function makeFormatters(timeZone) {
@@ -152,7 +163,7 @@ if ( ! empty( $crm_user->roles ) ) {
         }
     }
     function updateClock() {
-        const now = new Date(Date.now() + (useOffset ? offsetMs : 0));
+        const now = new Date(initialEpochMs + elapsedMs() + (useOffset ? offsetMs : 0));
         dateElement.textContent = dateFormatter.format(now);
         timeElement.textContent = timeFormatter.format(now);
     }
