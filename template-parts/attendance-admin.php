@@ -98,7 +98,7 @@ foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval(
 <section class="crmb-att" aria-label="مدیریت حضور و غیاب">
     <header class="crmb-att-heading">
         <h1>حضور و غیاب کارکنان</h1>
-        <p>ثبت تردد، برنامه حضور، تأخیر، اضافه‌کاری و مرخصی ـ فقط مدیر کل · منطقه زمانی: <?php echo esc_html( wp_timezone_string() ?: 'UTC' ); ?></p>
+        <p>ثبت تردد، برنامه حضور، تأخیر، اضافه‌کاری و مرخصی ـ فقط مدیر کل · منطقه زمانی: <?php echo esc_html( crmb_att_timezone()->getName() ); ?></p>
     </header>
 
     <?php if ( isset( $notice_codes[ $notice ] ) ) : ?>
@@ -240,14 +240,14 @@ foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval(
                             <tr>
                                 <td dir="ltr"><?php echo esc_html( $item[1] ); ?></td>
                                 <td><?php echo esc_html( $r ? ( $statuses[ $r->status ] ?? $r->status ) : 'ثبت نشده' ); ?></td>
-                                <td dir="ltr"><?php echo esc_html( $r ? crmb_att_utc_to_local( $r->checkin_utc ) : '—' ); ?></td>
-                                <td dir="ltr"><?php echo esc_html( $r ? crmb_att_utc_to_local( $r->checkout_utc ) : '—' ); ?></td>
+                                <td dir="ltr"><?php echo esc_html( $r ? crmb_att_utc_to_local( $r->checkin_utc, true ) : '—' ); ?></td>
+                                <td dir="ltr"><?php echo esc_html( $r ? crmb_att_utc_to_local( $r->checkout_utc, true ) : '—' ); ?></td>
                                 <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $m['worked'] ) ); ?></td>
                                 <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $m['overtime'] ) ); ?></td>
                                 <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $m['delay'] ) ); ?></td>
                                 <td dir="ltr"><?php echo esc_html( crmb_att_format_minutes( $m['leave'] ) ); ?></td>
                                 <td>
-                                    <?php if ( $item[0] <= wp_date( 'Y-m-d' ) ) : ?>
+                                    <?php if ( $item[0] <= crmb_att_today() ) : ?>
                                         <a href="<?php echo esc_url( add_query_arg( array( 'employee' => $uid, 'month' => $month, 'edit_day' => $item[1] ), $base ) ); ?>">ویرایش</a>
                                     <?php endif; ?>
                                 </td>
@@ -292,7 +292,7 @@ foreach ( new DatePeriod( new DateTimeImmutable( $bounds[0] ), new DateInterval(
                     <label>تاریخ شمسی
                         <select name="day" required>
                             <?php foreach ( $day_options as $item ) : ?>
-                                <?php if ( $item[0] <= wp_date( 'Y-m-d' ) ) : ?>
+                                <?php if ( $item[0] <= crmb_att_today() ) : ?>
                                     <option value="<?php echo esc_attr( $item[1] ); ?>" <?php selected( $item[1], $selected ); ?>><?php echo esc_html( $item[1] ); ?></option>
                                 <?php endif; ?>
                             <?php endforeach; ?>
