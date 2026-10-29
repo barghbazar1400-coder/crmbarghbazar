@@ -25,12 +25,7 @@ if ( '1' === get_option( 'crmb_leave_schema_v1' ) ) {
     );
 }
 // Show an employee directory first. A daily report opens only after choosing a user.
-$users = array_values( array_filter(
-    get_users( array( 'orderby' => 'display_name', 'order' => 'ASC' ) ),
-    static function ( $candidate ) {
-        return ! user_can( $candidate, 'manage_options' );
-    }
-) );
+$users = get_users( array( 'orderby' => 'display_name', 'order' => 'ASC' ) );
 $requested_uid = isset( $_GET['employee'] ) ? absint( $_GET['employee'] ) : 0;
 $uid = 0;
 $user = false;
