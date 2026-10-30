@@ -134,6 +134,8 @@ if ( ! empty( $crm_user->roles ) ) {
             get_template_part( 'template-parts/tasks' );
         } elseif ( 'messages' === $crm_current_section && crmbarghbazar_can_view_section( 'messages' ) ) {
             get_template_part( 'template-parts/messages' );
+        } elseif ( 'reports' === $crm_current_section && crmbarghbazar_can_view_section( 'reports' ) ) {
+            get_template_part( 'template-parts/daily-reports' );
         }
         ?>
     </main>

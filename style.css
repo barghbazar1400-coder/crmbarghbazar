@@ -1133,3 +1133,22 @@ body.crm-main-page {
 .crmb-work-summary a { color: #6234b8; }
 .crm-topbar-bell { position: relative; text-decoration: none; }
 .crmb-unread-badge { position: absolute; top: -8px; inset-inline-start: 16px; padding: 2px 5px; border-radius: 9px; background: #ad3150; color: white; font: 700 10px/1.3 Arial, sans-serif; }
+
+/* Task timers, history and daily report editor. */
+.crmb-task-controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+.crmb-task-times { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px; }
+.crmb-task-times dt { font-size: 12px; color: #81768f; }
+.crmb-task-times dd { margin: 10px 0; color: #47248e; font-variant-numeric: tabular-nums; }
+#crmb-task-timer { font-size: 26px; }
+.crmb-task-running { padding: 10px 14px; border-radius: 9px; background: #edf8f0; color: #24673a; }
+.crmb-task-detail-link { color: #6234b8; font-weight: 750; }
+.crmb-reports .crmb-work-inline input { max-width: 200px; }
+.crmb-reports .wp-editor-wrap { width: 100%; }
+.crmb-reports .wp-editor-area { direction: rtl; }
+.crmb-report-content { overflow-wrap: anywhere; line-height: 2; }
+.crmb-report-content pre { overflow-x: auto; }
+.crmb-report-content blockquote { border-inline-start: 3px solid #8855f0; padding-inline-start: 16px; }
+.crmb-report-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; margin-top: 20px; }
+.crmb-report-photo { margin: 0; }
+.crmb-report-photo img { display: block; width: 100%; max-height: 350px; object-fit: contain; border-radius: 10px; border: 1px solid #e7e0f2; }
+.crmb-progress-summary { margin-top: 20px; }

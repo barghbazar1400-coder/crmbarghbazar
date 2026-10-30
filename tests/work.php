@@ -60,7 +60,7 @@ check(true,str_contains(end($wpdb->queries),'recipient_id = 7 AND read_utc IS NU
 $wpdb->affected=0; check('changed',crmb_work_mutate(array('task'=>'read_message','id'=>'5'))); $wpdb->affected=1;
 $_GET['employee']=99;
 $wpdb->queries=array(); crmb_work_list('tasks',1,5,true,false,true);
-check(true,str_contains($wpdb->queries[0],'assigned_to = 7')); check(true,str_contains($wpdb->queries[1],"status IN ('todo','doing')")); check(true,str_contains($wpdb->queries[1],'LIMIT 5 OFFSET 0'));
+check(true,str_contains($wpdb->queries[0],'assigned_to = 7')); check(true,str_contains($wpdb->queries[1],"status IN ('todo','doing','paused')")); check(true,str_contains($wpdb->queries[1],'LIMIT 5 OFFSET 0'));
 $admin=true; $wpdb->queries=array(); crmb_work_list('tasks',1,20,true); check(true,str_contains($wpdb->queries[0],'WHERE 1=1'));
 $wpdb->queries=array(); crmb_work_list('messages',1,20,true,false,false,99); check(true,str_contains($wpdb->queries[0],'recipient_id = 7 AND id = 99'));
 $wpdb->queries=array(); crmb_work_list('messages',2,20,true,true); check(true,str_contains($wpdb->queries[1],'sender_id = 7')); check(true,str_contains($wpdb->queries[1],'OFFSET 20'));

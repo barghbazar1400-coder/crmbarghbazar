@@ -2,6 +2,7 @@
 /** Own tasks for employees, optional team list and assignment form for managers. */
 defined( 'ABSPATH' ) || exit;
 if ( ! is_user_logged_in() ) { return; }
+if ( isset( $_GET['task_id'] ) ) { get_template_part( 'template-parts/task-progress' ); return; }
 $work_admin = current_user_can( 'manage_options' );
 $team = $work_admin && isset( $_GET['scope'] ) && 'team' === $_GET['scope'];
 $page = isset( $_GET['work_page'] ) && is_scalar( $_GET['work_page'] ) ? max( 1, absint( $_GET['work_page'] ) ) : 1;
@@ -41,9 +42,11 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
     <?php elseif ( ! $tasks['rows'] ) : ?><p class="crm-access-muted">وظیفه‌ای برای نمایش وجود ندارد.</p>
     <?php else : ?>
         <?php foreach ( $tasks['rows'] as $task ) :
-            $overdue = $task->due_day && $task->due_day < crmb_att_today() && in_array( $task->status, array( 'todo', 'doing' ), true ); ?>
+            $overdue = $task->due_day && $task->due_day < crmb_att_today() && in_array( $task->status, array( 'todo', 'doing', 'paused' ), true ); ?>
             <article class="crmb-work-item" id="task-<?php echo esc_attr( $task->id ); ?>">
                 <h3><?php echo esc_html( $task->title ); ?></h3>
+                <p><a class="crmb-task-detail-link" href="<?php echo esc_url( add_query_arg( 'task_id', $task->id, $base ) ); ?>">شروع / پایان کار و مشاهده روند انجام</a></p>
+                <?php if ( ! empty( $task->timer_started_utc ) ) : ?><p class="crmb-task-running">زمان‌سنج در حال اجراست — شروع: <?php echo esc_html( crmb_work_date( $task->timer_started_utc ) ); ?></p><?php endif; ?>
                 <p class="crmb-work-body"><?php echo esc_html( $task->description ); ?></p>
                 <p class="crm-access-muted">مسئول: <?php echo esc_html( crmb_work_user_name( $task->assigned_to ) ); ?> | واگذارکننده: <?php echo esc_html( crmb_work_user_name( $task->created_by ) ); ?></p>
                 <p>اولویت: <?php echo esc_html( crmb_work_priorities()[ $task->priority ] ?? 'عادی' ); ?> | وضعیت: <?php echo esc_html( crmb_work_statuses()[ $task->status ] ?? 'نامشخص' ); ?> | مهلت: <?php echo esc_html( $task->due_day ? crmb_att_jdate( $task->due_day ) : 'بدون مهلت' ); ?> <?php if ( $overdue ) : ?><strong class="crmb-work-overdue">مهلت گذشته</strong><?php endif; ?></p>

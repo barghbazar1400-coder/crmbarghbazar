@@ -56,6 +56,7 @@ $today = crmb_att_today();
             </section>
         <?php endif; ?>
     </div>
+    <?php get_template_part( 'template-parts/progress-summary' ); ?>
     <?php get_template_part( 'template-parts/work-summary' ); ?>
     <section class="crm-access-card">
         <h2>آخرین تغییرات درخواست‌های مرخصی</h2>

@@ -158,3 +158,5 @@ require_once get_template_directory() . '/inc/leave-requests.php';
 require_once get_template_directory() . '/inc/departments.php';
 require_once get_template_directory() . '/inc/dashboard.php';
 require_once get_template_directory() . '/inc/work.php';
+require_once get_template_directory() . '/inc/progress.php';
+require_once get_template_directory() . '/inc/daily-reports.php';
