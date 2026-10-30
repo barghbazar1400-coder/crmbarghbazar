@@ -15,10 +15,6 @@ function crmbarghbazar_menu_registry() {
     return apply_filters(
         'crmbarghbazar_menu_registry',
         array(
-            'access' => array(
-                'label'      => 'نقش‌ها / کاربران',
-                'admin_only' => true,
-            ),
             'attendance' => array(
                 'label'      => 'حضور و غیاب',
                 'admin_only' => true,
@@ -259,7 +255,7 @@ function crmbarghbazar_handle_access_action() {
 
     wp_safe_redirect(
         add_query_arg(
-            array( 'crm_section' => 'access', 'tab' => $tab, 'crm_notice' => $notice ),
+            array( 'crm_section' => 'departments', 'tab' => $tab, 'crm_notice' => $notice ),
             home_url( '/main/' )
         )
     );

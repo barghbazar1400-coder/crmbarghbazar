@@ -13,7 +13,7 @@ $messages = array( 'saved' => 'اطلاعات ذخیره شد.', 'deleted' => '�
 $notice = isset( $_GET['department_notice'] ) && is_string( $_GET['department_notice'] ) ? sanitize_key( $_GET['department_notice'] ) : '';
 ?>
 <section class="crm-access-screen" aria-labelledby="crmb-department-heading">
-    <header class="crm-access-header"><h1 id="crmb-department-heading">منابع انسانی — واحدهای سازمانی</h1><p>هر کارمند یک واحد اصلی دارد. مدیر واحد صرفاً مسئول سازمانی است و مجوزهای حساب او تغییری نمی‌کند.</p></header>
+    <h2 id="crmb-department-heading">واحدهای سازمانی</h2><p class="crm-access-muted">هر کارمند یک واحد اصلی دارد. دسترسی کارکنان را در زبانه‌های کارکنان و نقش‌ها و دسترسی‌ها تنظیم کنید.</p>
     <?php if ( isset( $messages[ $notice ] ) ) : ?>
         <p role="status" class="crm-access-notice <?php echo in_array( $notice, array( 'saved', 'deleted' ), true ) ? '' : 'is-error'; ?>"><?php echo esc_html( $messages[ $notice ] ); ?></p>
     <?php endif; ?>

@@ -75,6 +75,11 @@ if ( ! empty( $crm_user->roles ) ) {
             <?php
             $crm_current_section = isset( $_GET['crm_section'] ) && is_string( $_GET['crm_section'] )
                 ? sanitize_key( wp_unslash( $_GET['crm_section'] ) ) : '';
+            // Preserve old bookmarks without exposing another sidebar item.
+            if ( 'access' === $crm_current_section ) {
+                $crm_current_section = 'departments';
+                if ( ! isset( $_GET['tab'] ) ) { $_GET['tab'] = 'roles'; }
+            }
             foreach ( crmbarghbazar_menu_registry() as $crm_menu_slug => $crm_menu_item ) :
                 if ( ! crmbarghbazar_can_view_section( $crm_menu_slug ) ) {
                     continue;
@@ -110,15 +115,13 @@ if ( ! empty( $crm_user->roles ) ) {
             </div>
         </header>
         <?php
-        if ( 'access' === $crm_current_section && crmbarghbazar_can_view_section( 'access' ) ) {
-            get_template_part( 'template-parts/access-management' );
-        }         elseif ( 'attendance' === $crm_current_section && crmbarghbazar_can_view_section( 'attendance' ) ) {
+        if ( 'attendance' === $crm_current_section && crmbarghbazar_can_view_section( 'attendance' ) ) {
             get_template_part( 'template-parts/attendance-admin' );
         } elseif ( 'clock' === $crm_current_section || '' === $crm_current_section ) {
             get_template_part( 'template-parts/attendance-clock' );
         }
         elseif ( 'departments' === $crm_current_section && crmbarghbazar_can_view_section( 'departments' ) ) {
-            get_template_part( 'template-parts/departments' );
+            get_template_part( 'template-parts/human-resources' );
         }
         ?>
     </main>

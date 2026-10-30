@@ -51,23 +51,9 @@ $crm_user_query = new WP_User_Query(
 );
 $crm_users = $crm_user_query->get_results();
 $crm_total_pages = (int) ceil( $crm_user_query->get_total() / 20 );
-$crm_base_url = add_query_arg( 'crm_section', 'access', home_url( '/main/' ) );
+$crm_base_url = add_query_arg( 'crm_section', 'departments', home_url( '/main/' ) );
 ?>
 <section class="crm-access-screen" aria-labelledby="crm-access-title">
-    <div class="crm-access-header">
-        <div>
-            <h1 id="crm-access-title">نقش‌ها / کاربران</h1>
-            <p>مدیریت کاربران و سطح دسترسی بخش‌های CRM برق بازار</p>
-        </div>
-    </div>
-
-    <div class="crm-access-tabs" role="navigation" aria-label="بخش مدیریت دسترسی">
-        <a class="<?php echo 'roles' === $crm_tab ? 'is-active' : ''; ?>"
-           href="<?php echo esc_url( add_query_arg( 'tab', 'roles', $crm_base_url ) ); ?>">نقش‌ها</a>
-        <a class="<?php echo 'users' === $crm_tab ? 'is-active' : ''; ?>"
-           href="<?php echo esc_url( add_query_arg( 'tab', 'users', $crm_base_url ) ); ?>">کاربران</a>
-    </div>
-
     <?php if ( isset( $crm_notices[ $crm_notice ] ) ) : ?>
         <p class="crm-access-notice <?php echo 'invalid' === $crm_notice || 'role_in_use' === $crm_notice || 'email_invalid' === $crm_notice ? 'is-error' : 'is-success'; ?>" role="status">
             <?php echo esc_html( $crm_notices[ $crm_notice ] ); ?>

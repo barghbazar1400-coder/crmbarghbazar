@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 
 add_filter( 'crmbarghbazar_menu_registry', function ( $items ) {
-    $items['departments'] = array( 'label' => 'منابع انسانی / واحدهای سازمانی', 'admin_only' => true );
+    $items['departments'] = array( 'label' => 'منابع انسانی', 'admin_only' => true );
     return $items;
 } );
 
