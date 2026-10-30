@@ -75,6 +75,10 @@ if ( ! empty( $crm_user->roles ) ) {
             <?php
             $crm_current_section = isset( $_GET['crm_section'] ) && is_string( $_GET['crm_section'] )
                 ? sanitize_key( wp_unslash( $_GET['crm_section'] ) ) : '';
+            if ( '' === $crm_current_section ) {
+                // Old clock endpoints return to /main/ with a result message.
+                $crm_current_section = isset( $_GET['clock_notice'] ) || isset( $_GET['leave_notice'] ) ? 'clock' : 'dashboard';
+            }
             // Preserve old bookmarks without exposing another sidebar item.
             if ( 'access' === $crm_current_section ) {
                 $crm_current_section = 'departments';
@@ -115,9 +119,11 @@ if ( ! empty( $crm_user->roles ) ) {
             </div>
         </header>
         <?php
-        if ( 'attendance' === $crm_current_section && crmbarghbazar_can_view_section( 'attendance' ) ) {
+        if ( 'dashboard' === $crm_current_section && crmbarghbazar_can_view_section( 'dashboard' ) ) {
+            get_template_part( 'template-parts/dashboard' );
+        } elseif ( 'attendance' === $crm_current_section && crmbarghbazar_can_view_section( 'attendance' ) ) {
             get_template_part( 'template-parts/attendance-admin' );
-        } elseif ( 'clock' === $crm_current_section || '' === $crm_current_section ) {
+        } elseif ( 'clock' === $crm_current_section ) {
             get_template_part( 'template-parts/attendance-clock' );
         }
         elseif ( 'departments' === $crm_current_section && crmbarghbazar_can_view_section( 'departments' ) ) {

@@ -129,7 +129,7 @@ $leave_notice = isset( $_GET['leave_notice'] ) && is_string( $_GET['leave_notice
     </section>
 
     <section class="crmb-att-card crmb-att-leave-history">
-        <h2>وضعیت درخواست‌های مرخصی من</h2>
+        <h2 id="crmb-my-leave">وضعیت درخواست‌های مرخصی من</h2>
         <div class="crmb-att-table-wrap">
             <table class="crmb-att-table">
                 <thead><tr><th>تاریخ مرخصی</th><th>ساعت شروع</th><th>ساعت پایان</th><th>نتیجه بررسی</th></tr></thead>
