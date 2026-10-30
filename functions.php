@@ -25,7 +25,11 @@ function crmbarghbazar_enqueue_styles() {
     $stylesheet_path = get_stylesheet_directory() . '/style.css';
     $version         = file_exists( $stylesheet_path ) ? (string) filemtime( $stylesheet_path ) : '1.0.0';
 
-    wp_enqueue_style( 'crmbarghbazar-style', get_stylesheet_uri(), array(), $version );
+    // Host icon assets locally: no kit, remote stylesheet, or third-party request.
+    $icon_base = get_template_directory_uri() . '/assets/vendor/fontawesome/css/';
+    wp_enqueue_style( 'crmb-fontawesome', $icon_base . 'fontawesome.min.css', array(), '6.7.2' );
+    wp_enqueue_style( 'crmb-fontawesome-solid', $icon_base . 'solid.min.css', array( 'crmb-fontawesome' ), '6.7.2' );
+    wp_enqueue_style( 'crmbarghbazar-style', get_stylesheet_uri(), array( 'crmb-fontawesome-solid' ), $version );
 }
 add_action( 'wp_enqueue_scripts', 'crmbarghbazar_enqueue_styles' );
 

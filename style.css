@@ -1154,10 +1154,10 @@ body.crm-main-page {
 .crmb-progress-summary { margin-top: 20px; }
 
 /* Department dropdown and SEO workspace, following the CRM RTL layout. */
-.crm-department-menu { width: 100%; }
-.crm-department-menu > summary { cursor: pointer; list-style-position: inside; }
-.crm-department-menu nav { display: flex; flex-direction: column; gap: 5px; padding-inline-start: 12px; }
-.crm-main-navigation .crm-department-child { min-height: 38px; font-size: 12px; padding-block: 9px; }
+
+
+
+
 .crmb-seo > .crm-access-card { margin-top: 20px; }
 .crmb-seo .wp-editor-wrap { width: 100%; }
 .crmb-seo .crmb-work-inline select { max-width: 300px; }
@@ -1165,9 +1165,42 @@ body.crm-main-page {
 .crmb-seo-stats > div { border-radius: 12px; padding: 15px; background: #f6f1ff; display: flex; flex-direction: column; gap: 8px; }
 .crmb-seo-stats strong { font-size: 26px; color: #6534d3; }
 .crmb-seo-stats span { font-size: 12px; color: #493b5b; }
-.crm-department-menu > summary::after { content: '⌄'; margin-inline-start: auto; }
-.crm-department-menu[open] > summary::after { content: '⌃'; }
 
+
+
+/* Sidebar hierarchy: compact primary links and a distinct department accordion. */
+.crm-main-navigation { padding-top: 16px; }
+.crm-main-navigation .crm-main-nav-link {
+  box-sizing: border-box;
+  min-height: 43px;
+  margin: 0 0 4px;
+  padding: 10px 12px;
+  gap: 11px;
+  border-radius: 11px;
+  font-size: 13px;
+  line-height: 1.6;
+  text-align: start;
+}
+.crm-nav-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 22px; width: 22px; font-size: 15px; color: #d4c0fb; }
+.crm-nav-label { flex: 1; min-width: 0; }
+.crm-main-nav-link:hover .crm-nav-icon, .crm-main-nav-link.is-active .crm-nav-icon { color: #fff; }
+.crm-nav-section-label { margin: 21px 12px 10px; color: #c4a9ee; font-size: 10px; font-weight: 700; letter-spacing: .2px; }
+.crm-department-menu { box-sizing: border-box; width: 100%; border: 1px solid rgba(226,210,255,.17); border-radius: 15px; background: rgba(24,8,61,.16); overflow: hidden; }
+.crm-department-toggle { display: flex; align-items: center; gap: 10px; min-height: 58px; box-sizing: border-box; padding: 11px 12px; cursor: pointer; color: #fff; font-size: 13px; font-weight: 800; line-height: 1.6; list-style: none; }
+.crm-department-toggle::-webkit-details-marker { display: none; }
+.crm-department-toggle::marker { content: ''; }
+.crm-department-icon { flex-basis: 32px; width: 32px; height: 32px; border: 1px solid rgba(222,201,255,.16); border-radius: 10px; background: rgba(212,185,255,.13); color: #eadfff; }
+.crm-department-chevron { flex: 0 0 14px; margin-inline-start: auto; font-size: 11px; color: #cdb5f4; transition: transform .18s ease; }
+.crm-department-menu[open] .crm-department-chevron { transform: rotate(180deg); }
+.crm-department-menu[open] .crm-department-toggle { background: rgba(222,199,255,.06); }
+.crm-department-toggle:hover { background: rgba(255,255,255,.08); }
+.crm-department-submenu { display: flex; flex-direction: column; gap: 3px; margin: 4px 14px 13px; padding-inline-start: 10px; border-inline-start: 1px solid rgba(217,193,255,.22); }
+.crm-main-navigation .crm-department-child { position: relative; min-height: 38px; margin: 0; padding: 9px 10px; gap: 8px; border-radius: 9px; color: #dccbf7; font-size: 12px; font-weight: 500; }
+.crm-department-child .crm-nav-icon { flex-basis: 18px; width: 18px; font-size: 12px; color: #bda0e9; }
+.crm-main-navigation .crm-department-child.is-active { background: rgba(229,211,255,.16); border-color: rgba(229,211,255,.14); color: #fff; font-weight: 750; }
+.crm-department-child.is-active::before { content: ''; position: absolute; inset-inline-start: -12px; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: #ddc8ff; }
+.crm-main-nav-link:focus-visible, .crm-department-toggle:focus-visible { outline: 2px solid #e2ceff; outline-offset: -3px; }
+@media (prefers-reduced-motion: reduce) { .crm-department-chevron { transition: none; } }
 
 /* CRM desktop department navigation v2 — keep the fixed right rail usable with long menus. */
 .crm-nav-group {

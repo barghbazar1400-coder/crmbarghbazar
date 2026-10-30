@@ -84,79 +84,52 @@ if ( ! empty( $crm_user->roles ) ) {
                 $crm_current_section = 'departments';
                 if ( ! isset( $_GET['tab'] ) ) { $_GET['tab'] = 'roles'; }
             }
-            // Group only implemented, permitted pages. Unimplemented modules never
-            // appear as dead links, and future registered pages get a safe fallback.
-            $crm_menu_items = crmbarghbazar_menu_registry();
-            $crm_nav_groups = array(
-                'میز کار من' => array( 'dashboard', 'clock' ),
-                'منابع انسانی' => array( 'departments', 'attendance' ),
-                'مدیریت فعالیت‌ها' => array( 'tasks', 'messages', 'reports' ),
-                'فروش و مشتریان' => array( 'customers', 'sales', 'orders' ),
-                'سئو و بازاریابی' => array( 'seo' ),
+            $crm_nav_icons = array(
+                'dashboard' => 'fa-house', 'attendance' => 'fa-calendar-check',
+                'clock' => 'fa-fingerprint', 'departments' => 'fa-users',
+                'tasks' => 'fa-list-check', 'messages' => 'fa-envelope',
+                'reports' => 'fa-file-lines', 'seo' => 'fa-chart-line',
             );
-            $crm_rendered_items = array();
-            foreach ( $crm_nav_groups as $crm_group_label => $crm_group_slugs ) :
-                $crm_group_items = array();
-                foreach ( $crm_group_slugs as $crm_group_slug ) {
-                    if ( isset( $crm_menu_items[ $crm_group_slug ] )
-                        && crmbarghbazar_can_view_section( $crm_group_slug ) ) {
-                        $crm_group_items[ $crm_group_slug ] = $crm_menu_items[ $crm_group_slug ];
-                        $crm_rendered_items[ $crm_group_slug ] = true;
-                    }
+            $crm_child_icons = array(
+                'overview' => 'fa-gauge-high', 'projects' => 'fa-layer-group',
+                'page' => 'fa-file-circle-check', 'keyword' => 'fa-key',
+                'content' => 'fa-pen-nib', 'tasks' => 'fa-list-check',
+                'technical' => 'fa-screwdriver-wrench', 'report' => 'fa-chart-column',
+                'training' => 'fa-graduation-cap', 'team' => 'fa-users-gear',
+            );
+            foreach ( crmbarghbazar_menu_registry() as $crm_menu_slug => $crm_menu_item ) :
+                if ( ! crmbarghbazar_can_view_section( $crm_menu_slug ) ) {
+                    continue;
                 }
-                if ( ! $crm_group_items ) { continue; }
+                if ( ! empty( $crm_menu_item['children'] ) ) :
+                    $crm_child_tab = isset( $_GET['seo_tab'] ) && is_string( $_GET['seo_tab'] ) ? sanitize_key( $_GET['seo_tab'] ) : 'overview'; ?>
+                    <div class="crm-nav-section-label">دپارتمان‌ها</div>
+                    <details class="crm-department-menu" <?php echo $crm_current_section === $crm_menu_slug ? 'open' : ''; ?>>
+                        <summary class="crm-department-toggle">
+                            <span class="crm-nav-icon crm-department-icon" aria-hidden="true"><i class="fa-solid <?php echo esc_attr( $crm_nav_icons[ $crm_menu_slug ] ?? 'fa-layer-group' ); ?>"></i></span>
+                            <span class="crm-nav-label"><?php echo esc_html( $crm_menu_item['label'] ); ?></span>
+                            <i class="fa-solid fa-chevron-down crm-department-chevron" aria-hidden="true"></i>
+                        </summary>
+                        <nav class="crm-department-submenu" aria-label="زیرمجموعه دپارتمان سئو">
+                            <?php foreach ( $crm_menu_item['children'] as $crm_child_key => $crm_child_label ) : ?>
+                                <a class="crm-main-nav-link crm-department-child <?php echo $crm_current_section === $crm_menu_slug && $crm_child_tab === $crm_child_key ? 'is-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'crm_section' => $crm_menu_slug, 'seo_tab' => $crm_child_key ), home_url( '/main/' ) ) ); ?>" <?php echo $crm_current_section === $crm_menu_slug && $crm_child_tab === $crm_child_key ? 'aria-current="page"' : ''; ?>>
+                                    <span class="crm-nav-icon" aria-hidden="true"><i class="fa-solid <?php echo esc_attr( $crm_child_icons[ $crm_child_key ] ?? 'fa-circle' ); ?>"></i></span>
+                                    <span class="crm-nav-label"><?php echo esc_html( $crm_child_label ); ?></span>
+                                </a>
+                            <?php endforeach; ?>
+                        </nav>
+                    </details>
+                    <?php continue;
+                endif;
                 ?>
-                <div class="crm-nav-group">
-                    <h2 class="crm-nav-group-title"><?php echo esc_html( $crm_group_label ); ?></h2>
-                    <?php foreach ( $crm_group_items as $crm_menu_slug => $crm_menu_item ) :
-                        if ( ! empty( $crm_menu_item['children'] ) ) :
-                            $crm_child_tab = isset( $_GET['seo_tab'] ) && is_string( $_GET['seo_tab'] )
-                                ? sanitize_key( wp_unslash( $_GET['seo_tab'] ) ) : 'overview';
-                            ?>
-                            <details class="crm-department-menu" <?php echo $crm_current_section === $crm_menu_slug ? 'open' : ''; ?>>
-                                <summary class="crm-main-nav-link"><?php echo esc_html( $crm_menu_item['label'] ); ?></summary>
-                                <nav aria-label="<?php echo esc_attr( $crm_menu_item['label'] ); ?>">
-                                    <?php foreach ( $crm_menu_item['children'] as $crm_child_key => $crm_child_label ) :
-                                        $crm_child_active = $crm_current_section === $crm_menu_slug && $crm_child_tab === $crm_child_key;
-                                        ?>
-                                        <a class="crm-main-nav-link crm-department-child <?php echo $crm_child_active ? 'is-active' : ''; ?>"
-                                           href="<?php echo esc_url( add_query_arg( array( 'crm_section' => $crm_menu_slug, 'seo_tab' => $crm_child_key ), home_url( '/main/' ) ) ); ?>"
-                                           <?php echo $crm_child_active ? 'aria-current="page"' : ''; ?>><?php echo esc_html( $crm_child_label ); ?></a>
-                                    <?php endforeach; ?>
-                                </nav>
-                            </details>
-                        <?php else : ?>
-                            <a class="crm-main-nav-link <?php echo $crm_current_section === $crm_menu_slug ? 'is-active' : ''; ?>"
-                               href="<?php echo esc_url( add_query_arg( 'crm_section', $crm_menu_slug, home_url( '/main/' ) ) ); ?>"
-                               <?php echo $crm_current_section === $crm_menu_slug ? 'aria-current="page"' : ''; ?>>
-                                <?php echo esc_html( $crm_menu_item['label'] ); ?>
-                            </a>
-                        <?php endif; ?>
-                    <?php endforeach; ?>
-                </div>
+                <a class="crm-main-nav-link <?php echo $crm_current_section === $crm_menu_slug ? 'is-active' : ''; ?>"
+                   href="<?php echo esc_url( add_query_arg( 'crm_section', $crm_menu_slug, home_url( '/main/' ) ) ); ?>"
+                   <?php echo $crm_current_section === $crm_menu_slug ? 'aria-current="page"' : ''; ?>>
+                    <span class="crm-nav-icon" aria-hidden="true"><i class="fa-solid <?php echo esc_attr( $crm_nav_icons[ $crm_menu_slug ] ?? 'fa-circle' ); ?>"></i></span>
+                    <span class="crm-nav-label"><?php echo esc_html( $crm_menu_item['label'] ); ?></span>
+                </a>
             <?php endforeach; ?>
-            <?php
-            // Extensions can register new pages without needing a theme update.
-            $crm_other_items = array();
-            foreach ( $crm_menu_items as $crm_other_key => $crm_other_item ) {
-                if ( ! isset( $crm_rendered_items[ $crm_other_key ] )
-                    && crmbarghbazar_can_view_section( $crm_other_key )
-                    && empty( $crm_other_item['children'] ) ) {
-                    $crm_other_items[ $crm_other_key ] = $crm_other_item;
-                }
-            }
-            if ( $crm_other_items ) :
-                ?>
-                <div class="crm-nav-group">
-                    <h2 class="crm-nav-group-title">سایر بخش‌ها</h2>
-                    <?php foreach ( $crm_other_items as $crm_other_slug => $crm_other_item ) : ?>
-                        <a class="crm-main-nav-link <?php echo $crm_current_section === $crm_other_slug ? 'is-active' : ''; ?>"
-                           href="<?php echo esc_url( add_query_arg( 'crm_section', $crm_other_slug, home_url( '/main/' ) ) ); ?>"
-                           <?php echo $crm_current_section === $crm_other_slug ? 'aria-current="page"' : ''; ?>><?php echo esc_html( $crm_other_item['label'] ); ?></a>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-
+        </nav>
     </aside>
 
     <main class="crm-main-workspace" id="crm-main-content" aria-label="محتوای اصلی CRM">
