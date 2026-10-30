@@ -24,6 +24,35 @@ function crmb_department_members( $id ) {
     return get_users( array( 'meta_key' => 'crmb_department_id', 'meta_value' => (string) $id, 'orderby' => 'display_name', 'order' => 'ASC' ) );
 }
 
+/** One-time defaults. Individual markers preserve later renames and deletions. */
+function crmb_department_seed_defaults() {
+    if ( ! current_user_can( 'manage_options' ) ) { return; }
+    $defaults = array(
+        'sales' => 'فروش',
+        'seo' => 'سئو',
+        'content' => 'تولید محتوا',
+        'marketing' => 'بازاریابی',
+        'finance' => 'مالی و حسابداری',
+        'warehouse' => 'انبار',
+    );
+    foreach ( $defaults as $key => $name ) {
+        $marker = 'crmb_department_seed_v1_' . $key;
+        if ( get_option( $marker ) ) { continue; }
+        // Reuse manually-created units; never change their manager or members.
+        $term = get_term_by( 'name', $name, 'crmb_department' );
+        if ( ! $term ) {
+            $result = wp_insert_term( $name, 'crmb_department' );
+            if ( is_wp_error( $result ) ) {
+                // Another request may have inserted this name concurrently.
+                $term = get_term_by( 'name', $name, 'crmb_department' );
+                if ( ! $term ) { continue; } // Retry failed inserts on next visit.
+            }
+        }
+        update_option( $marker, 1, false );
+    }
+}
+add_action( 'init', 'crmb_department_seed_defaults', 20 );
+
 /** Return a status code so validation and persistence can be tested separately. */
 function crmb_department_save( $data ) {
     $task = isset( $data['task'] ) && is_string( $data['task'] ) ? $data['task'] : '';

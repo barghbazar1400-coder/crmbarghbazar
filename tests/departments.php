@@ -19,7 +19,7 @@ function update_user_meta($id, $key, $value) { global $members; $members[$id] = 
 function delete_user_meta($id, $key) { global $members; unset($members[$id]); return true; }
 function get_users($args) { global $members; return array_keys($members, (int) $args['meta_value']); }
 function wp_delete_term($id, $taxonomy) { global $terms; unset($terms[$id]); return true; }
-function current_user_can($cap) { return false; }
+function current_user_can($cap) { global $admin; return !empty($admin); }
 function wp_die($message, $title, $args) { throw new RuntimeException((string) $args['response']); }
 require __DIR__ . '/../inc/departments.php';
 $count = 0;
@@ -41,4 +41,26 @@ expect('deleted', crmb_department_save(array('task' => 'delete', 'department_id'
 expect('saved', crmb_department_save(array('task' => 'assign', 'employee' => 2, 'department_id' => 0)));
 expect('deleted', crmb_department_save(array('task' => 'delete', 'department_id' => 2)));
 try { $hooks['admin_post_crmb_departments'](); throw new RuntimeException('Access allowed'); } catch (RuntimeException $error) { expect('403', $error->getMessage()); }
+$admin = false;
+$options = array();
+function get_option($key) { global $options; return $options[$key] ?? false; }
+function update_option($key, $value, $autoload = false) { global $options; $options[$key] = $value; }
+$terms = $meta = $members = array();
+crmb_department_seed_defaults();
+expect(0, count($terms));
+$admin = true;
+wp_insert_term('فروش', 'crmb_department');
+update_term_meta(1, 'crmb_manager_id', 1);
+crmb_department_seed_defaults();
+expect(6, count($terms));
+expect(1, get_term_meta(1, 'crmb_manager_id', true));
+expect(6, count($options));
+crmb_department_seed_defaults();
+expect(6, count($terms));
+wp_update_term(1, 'crmb_department', array('name' => 'فروش سازمانی'));
+wp_delete_term(2, 'crmb_department');
+crmb_department_seed_defaults();
+expect(5, count($terms));
+expect('فروش سازمانی', get_term(1, 'crmb_department')->name);
+expect(false, get_term_by('name', 'سئو', 'crmb_department'));
 echo "$count checks passed\n";
