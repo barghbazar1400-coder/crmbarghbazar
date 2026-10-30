@@ -157,3 +157,4 @@ require_once get_template_directory() . '/inc/attendance.php';
 require_once get_template_directory() . '/inc/leave-requests.php';
 require_once get_template_directory() . '/inc/departments.php';
 require_once get_template_directory() . '/inc/dashboard.php';
+require_once get_template_directory() . '/inc/work.php';

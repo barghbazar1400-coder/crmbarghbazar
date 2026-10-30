@@ -101,14 +101,16 @@ if ( ! empty( $crm_user->roles ) ) {
     <main class="crm-main-workspace" id="crm-main-content" aria-label="محتوای اصلی CRM">
         <header class="crm-topbar" aria-label="نوار اعلان‌های پنل">
             <div class="crm-topbar-group">
-                <span class="crm-topbar-bell" role="img" aria-label="اعلان‌ها؛ قابلیت تیکت و اعلان هنوز فعال نشده است"
-                      title="اعلان‌ها (به‌زودی)">
+                <?php $crm_unread = crmb_work_unread_count(); ?>
+                <a class="crm-topbar-bell" href="<?php echo esc_url( add_query_arg( 'crm_section', 'messages', home_url( '/main/' ) ) ); ?>"
+                   aria-label="<?php echo esc_attr( null === $crm_unread ? 'پیام‌های داخلی' : $crm_unread . ' پیام خوانده‌نشده' ); ?>" title="پیام‌های داخلی">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
                          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                         <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/>
                         <path d="M10 21h4"/>
                     </svg>
-                </span>
+                    <?php if ( $crm_unread ) : ?><span class="crmb-unread-badge"><?php echo esc_html( $crm_unread > 99 ? '99+' : $crm_unread ); ?></span><?php endif; ?>
+                </a>
                 <div class="crm-topbar-datetime"
                      data-clock-timezone="<?php echo esc_attr( crmb_att_timezone()->getName() ); ?>"
                      data-clock-offset="<?php echo esc_attr( crmb_att_now_local()->getOffset() ); ?>"
@@ -128,6 +130,10 @@ if ( ! empty( $crm_user->roles ) ) {
         }
         elseif ( 'departments' === $crm_current_section && crmbarghbazar_can_view_section( 'departments' ) ) {
             get_template_part( 'template-parts/human-resources' );
+        } elseif ( 'tasks' === $crm_current_section && crmbarghbazar_can_view_section( 'tasks' ) ) {
+            get_template_part( 'template-parts/tasks' );
+        } elseif ( 'messages' === $crm_current_section && crmbarghbazar_can_view_section( 'messages' ) ) {
+            get_template_part( 'template-parts/messages' );
         }
         ?>
     </main>

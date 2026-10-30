@@ -2,6 +2,7 @@
 /** Standalone personal-dashboard query and rendering checks. */
 define('ABSPATH', __DIR__);
 $logged = true; $admin = false; $ready = true; $count = 0;
+function get_template_part($path) {}
 function add_filter($key, $callback) { global $filter; $filter = $callback; }
 function is_user_logged_in() { global $logged; return $logged; }
 function current_user_can($cap) { global $admin; return $admin; }
