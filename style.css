@@ -1152,3 +1152,18 @@ body.crm-main-page {
 .crmb-report-photo { margin: 0; }
 .crmb-report-photo img { display: block; width: 100%; max-height: 350px; object-fit: contain; border-radius: 10px; border: 1px solid #e7e0f2; }
 .crmb-progress-summary { margin-top: 20px; }
+
+/* Department dropdown and SEO workspace, following the CRM RTL layout. */
+.crm-department-menu { width: 100%; }
+.crm-department-menu > summary { cursor: pointer; list-style-position: inside; }
+.crm-department-menu nav { display: flex; flex-direction: column; gap: 5px; padding-inline-start: 12px; }
+.crm-main-navigation .crm-department-child { min-height: 38px; font-size: 12px; padding-block: 9px; }
+.crmb-seo > .crm-access-card { margin-top: 20px; }
+.crmb-seo .wp-editor-wrap { width: 100%; }
+.crmb-seo .crmb-work-inline select { max-width: 300px; }
+.crmb-seo-stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 12px; }
+.crmb-seo-stats > div { border-radius: 12px; padding: 15px; background: #f6f1ff; display: flex; flex-direction: column; gap: 8px; }
+.crmb-seo-stats strong { font-size: 26px; color: #6534d3; }
+.crmb-seo-stats span { font-size: 12px; color: #493b5b; }
+.crm-department-menu > summary::after { content: '⌄'; margin-inline-start: auto; }
+.crm-department-menu[open] > summary::after { content: '⌃'; }

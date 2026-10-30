@@ -89,7 +89,8 @@ function crmb_progress_ready() { return '1' === get_option( 'crmb_progress_schem
 function crmb_progress_task( $id, $lock = false ) {
     if ( ! is_user_logged_in() || ! crmb_progress_ready() || ! $id ) { return null; }
     global $wpdb; $t = crmb_progress_tables();
-    $where = current_user_can( 'manage_options' ) ? '' : $wpdb->prepare( ' AND assigned_to = %d', get_current_user_id() );
+    $manager = current_user_can( 'manage_options' ) || ( function_exists( 'crmb_seo_can_manage_task' ) && crmb_seo_can_manage_task( $id ) );
+    $where = $manager ? '' : $wpdb->prepare( ' AND assigned_to = %d', get_current_user_id() );
     return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t['tasks']} WHERE id = %d{$where}" . ( $lock ? ' FOR UPDATE' : '' ), $id ) );
 }
 function crmb_progress_event( $id, $type, $body = '' ) {
@@ -109,7 +110,7 @@ function crmb_progress_transition( $id, $status ) {
     if ( ! $wpdb->get_var( $wpdb->prepare( "SELECT user_id FROM {$t['locks']} WHERE user_id = %d FOR UPDATE", $uid ) ) ) { return crmb_progress_fail(); }
     $task = crmb_progress_task( $id, true );
     if ( ! $task ) { return crmb_progress_fail( $wpdb->last_error ? 'error' : 'denied' ); }
-    $admin = current_user_can( 'manage_options' ); $owner = (int) $task->assigned_to === $uid;
+    $admin = current_user_can( 'manage_options' ) || ( function_exists( 'crmb_seo_can_manage_task' ) && crmb_seo_can_manage_task( $id ) ); $owner = (int) $task->assigned_to === $uid;
     if ( ! $admin && ( ! $owner || 'cancelled' === $task->status || 'cancelled' === $status ) ) { return crmb_progress_fail( 'denied' ); }
     if ( 'doing' === $status && ! $owner ) { return crmb_progress_fail( 'denied' ); }
     if ( $task->status === $status && ( 'doing' !== $status || $task->timer_started_utc ) ) { return crmb_progress_fail( 'changed' ); }
@@ -135,7 +136,7 @@ function crmb_progress_transition( $id, $status ) {
 }
 /** Editing is serialized with timer writes; reassigning a running task is refused. */
 function crmb_progress_edit_task( $id, $values ) {
-    if ( ! current_user_can( 'manage_options' ) || ! crmb_progress_ready() ) { return 'denied'; }
+    if ( ( ! current_user_can( 'manage_options' ) && ! ( function_exists( 'crmb_seo_can_manage_task' ) && crmb_seo_can_manage_task( $id ) ) ) || ! crmb_progress_ready() ) { return 'denied'; }
     global $wpdb; $t = crmb_progress_tables();
     if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return 'error'; }
     $task = crmb_progress_task( $id, true );

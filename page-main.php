@@ -88,6 +88,18 @@ if ( ! empty( $crm_user->roles ) ) {
                 if ( ! crmbarghbazar_can_view_section( $crm_menu_slug ) ) {
                     continue;
                 }
+                if ( ! empty( $crm_menu_item['children'] ) ) :
+                    $crm_child_tab = isset( $_GET['seo_tab'] ) && is_string( $_GET['seo_tab'] ) ? sanitize_key( $_GET['seo_tab'] ) : 'overview'; ?>
+                    <details class="crm-department-menu" <?php echo $crm_current_section === $crm_menu_slug ? 'open' : ''; ?>>
+                        <summary class="crm-main-nav-link"><?php echo esc_html( $crm_menu_item['label'] ); ?></summary>
+                        <nav aria-label="زیرمجموعه دپارتمان سئو">
+                            <?php foreach ( $crm_menu_item['children'] as $crm_child_key => $crm_child_label ) : ?>
+                                <a class="crm-main-nav-link crm-department-child <?php echo $crm_current_section === $crm_menu_slug && $crm_child_tab === $crm_child_key ? 'is-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'crm_section' => $crm_menu_slug, 'seo_tab' => $crm_child_key ), home_url( '/main/' ) ) ); ?>"><?php echo esc_html( $crm_child_label ); ?></a>
+                            <?php endforeach; ?>
+                        </nav>
+                    </details>
+                    <?php continue;
+                endif;
                 ?>
                 <a class="crm-main-nav-link <?php echo $crm_current_section === $crm_menu_slug ? 'is-active' : ''; ?>"
                    href="<?php echo esc_url( add_query_arg( 'crm_section', $crm_menu_slug, home_url( '/main/' ) ) ); ?>"
@@ -136,6 +148,8 @@ if ( ! empty( $crm_user->roles ) ) {
             get_template_part( 'template-parts/messages' );
         } elseif ( 'reports' === $crm_current_section && crmbarghbazar_can_view_section( 'reports' ) ) {
             get_template_part( 'template-parts/daily-reports' );
+        } elseif ( 'seo' === $crm_current_section && crmbarghbazar_can_view_section( 'seo' ) ) {
+            get_template_part( 'template-parts/seo' );
         }
         ?>
     </main>

@@ -33,6 +33,9 @@ function crmbarghbazar_can_view_section( $section ) {
     if ( ! isset( $items[ $section ] ) ) {
         return false;
     }
+    if ( isset( $items[ $section ]['access_callback'] ) && is_callable( $items[ $section ]['access_callback'] ) ) {
+        return (bool) call_user_func( $items[ $section ]['access_callback'] );
+    }
 
     if ( ! empty( $items[ $section ]['admin_only'] ) ) {
         return current_user_can( 'manage_options' );
@@ -59,7 +62,7 @@ function crmbarghbazar_can_view_section( $section ) {
 function crmbarghbazar_assignable_sections() {
     $available = array();
     foreach ( crmbarghbazar_menu_registry() as $slug => $item ) {
-        if ( empty( $item['admin_only'] ) && empty( $item['always_visible'] ) && ! empty( $item['label'] ) ) {
+        if ( empty( $item['admin_only'] ) && empty( $item['always_visible'] ) && empty( $item['access_callback'] ) && ! empty( $item['label'] ) ) {
             $available[ $slug ] = $item['label'];
         }
     }
