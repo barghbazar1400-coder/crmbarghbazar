@@ -117,7 +117,9 @@ if ( ! empty( $crm_user->roles ) ) {
         } elseif ( 'clock' === $crm_current_section || '' === $crm_current_section ) {
             get_template_part( 'template-parts/attendance-clock' );
         }
-        // Other sections will be implemented when requested.
+        elseif ( 'departments' === $crm_current_section && crmbarghbazar_can_view_section( 'departments' ) ) {
+            get_template_part( 'template-parts/departments' );
+        }
         ?>
     </main>
 </div>
