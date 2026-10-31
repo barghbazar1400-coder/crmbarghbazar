@@ -179,7 +179,7 @@ if ( ! empty( $crm_user->roles ) ) {
         } elseif ( 'seo' === $crm_current_section && crmbarghbazar_can_view_section( 'seo' ) ) {
             get_template_part( 'template-parts/seo' );
         } elseif ( 'sales' === $crm_current_section && crmbarghbazar_can_view_section( 'sales' ) ) {
-            get_template_part( 'template-parts/sales' );
+            get_template_part( 'template-parts/sales-v2' );
         }
         ?>
     </main>
