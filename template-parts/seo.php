@@ -2,8 +2,8 @@
 /** SEO workspace entry: project selection never grants project membership. */
 defined('ABSPATH') || exit;
 if(!crmb_seo_access()) return;
-$seo_tab=crmb_work_text($_GET,'seo_tab') ?: 'overview';
-if(!isset(crmb_seo_tabs()[$seo_tab])) $seo_tab='overview';
+$seo_tab=crmb_work_text($_GET,'seo_tab') ?: 'workspace';
+if(!isset(crmb_seo_tabs()[$seo_tab])) $seo_tab='workspace';
 $seo_base=add_query_arg(array('crm_section'=>'seo','seo_tab'=>$seo_tab),home_url('/main/'));
 ?>
 <section class="crm-access-screen crmb-work crmb-seo" aria-labelledby="seo-title">
@@ -22,7 +22,8 @@ $seo_base=add_query_arg(array('crm_section'=>'seo','seo_tab'=>$seo_tab),home_url
         <form method="get" action="<?php echo esc_url(home_url('/main/')); ?>" class="crm-access-form crmb-work-inline"><input type="hidden" name="crm_section" value="seo"><input type="hidden" name="seo_tab" value="<?php echo esc_attr($seo_tab); ?>"><label for="seo-project">پروژه</label><select id="seo-project" name="project"><?php foreach($seo_projects as $p) : ?><option value="<?php echo esc_attr($p->id); ?>" <?php selected($seo_project_id,$p->id); ?>><?php echo esc_html($p->name); ?></option><?php endforeach; ?></select><button class="crm-access-primary crmb-work-button" type="submit">نمایش پروژه</button></form>
         <?php if(!$seo_project) : ?><p class="crm-access-muted">پروژه مجازی برای نمایش ندارید. مدیر پروژه را ایجاد و اعضا را اضافه می‌کند.</p><?php else :
             $seo_base=add_query_arg('project',$seo_project_id,$seo_base);
-            if('overview'===$seo_tab) include __DIR__.'/seo-overview.php';
+            if('workspace'===$seo_tab) include __DIR__.'/seo-workspace.php';
+            elseif('overview'===$seo_tab) include __DIR__.'/seo-overview.php';
             elseif('tasks'===$seo_tab) include __DIR__.'/seo-tasks.php';
             elseif(isset(crmb_seo_kinds()[$seo_tab])) include __DIR__.'/seo-items.php';
         endif;
