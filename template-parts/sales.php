@@ -165,6 +165,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form crmb-sales-form">
                 <?php crmb_sales_form_fields( 'save_opportunity' ); ?>
                 <?php if ( $edit_opportunity ) : ?><input type="hidden" name="opportunity_id" value="<?php echo esc_attr( $edit_opportunity->id ); ?>"><?php endif; ?>
+                <label for="sales-op-customer-search">جست‌وجوی مشتری</label><input id="sales-op-customer-search" class="crmb-sales-customer-finder" data-target="sales-op-customer" type="search" autocomplete="off" placeholder="نام، شماره تماس یا شرکت"><div class="crmb-sales-customer-results" role="status"></div>
                 <label for="sales-op-customer">مشتری</label><select id="sales-op-customer" name="customer_id" required><option value="">انتخاب کنید</option>
                     <?php foreach ( $customers ?: array() as $c ) : ?><option value="<?php echo esc_attr( $c->id ); ?>" <?php selected( $edit_opportunity->customer_id ?? '', $c->id ); ?>><?php echo esc_html( $c->name . ' · ' . $c->phone ); ?></option><?php endforeach; ?>
                 </select>
@@ -194,6 +195,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
         <details class="crmb-sales-expand" id="crmb-sales-new-quote"><summary>+ صدور پیش‌فاکتور جدید</summary>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form crmb-sales-form" id="crmb-sales-quote-form">
                 <?php crmb_sales_form_fields( 'create_quote' ); ?>
+                <label for="sales-quote-customer-search">جست‌وجوی مشتری</label><input id="sales-quote-customer-search" class="crmb-sales-customer-finder" data-target="sales-quote-customer" type="search" autocomplete="off" placeholder="نام، شماره تماس یا شرکت"><div class="crmb-sales-customer-results" role="status"></div>
                 <label for="sales-quote-customer">مشتری *</label><select id="sales-quote-customer" name="customer_id" required><option value="">انتخاب مشتری</option>
                     <?php foreach ( $customers ?: array() as $c ) : ?><option value="<?php echo esc_attr( $c->id ); ?>"><?php echo esc_html( $c->name . ' · ' . $c->phone ); ?></option><?php endforeach; ?>
                 </select>
@@ -338,6 +340,49 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
                 if (current === sequence) results.textContent = "جست‌وجوی محصولات ناموفق بود.";
             }
         },250);
+    });
+    // An older customer may be outside the 200 shown in the dropdown.
+    // Searching loads only customers accessible to the current salesperson.
+    document.querySelectorAll(".crmb-sales-customer-finder").forEach(field => {
+        const target = document.getElementById(field.dataset.target);
+        const output = field.nextElementSibling;
+        let requestSequence = 0, searchTimer = null;
+        field.addEventListener("input", () => {
+            clearTimeout(searchTimer);
+            output.replaceChildren();
+            const term = field.value.trim(), run = ++requestSequence;
+            if (term.length < 2) return;
+            searchTimer = setTimeout(async () => {
+                try {
+                    const url = new URL(endpoint,window.location.href);
+                    url.searchParams.set("action","crmb_sales_customer");
+                    url.searchParams.set("nonce",nonce);
+                    url.searchParams.set("q",term);
+                    const response = await fetch(url.toString(), {credentials:"same-origin"});
+                    const json = await response.json();
+                    if (run !== requestSequence) return;
+                    if (!response.ok || !json.success || !Array.isArray(json.data)) throw new Error("failed");
+                    output.replaceChildren();
+                    if (!json.data.length) { output.textContent = "مشتری پیدا نشد."; return; }
+                    json.data.forEach(c => {
+                        const button = document.createElement("button");
+                        button.type = "button"; button.className = "crmb-sales-result";
+                        button.textContent = c.name + (c.phone ? " · " + c.phone : "");
+                        button.addEventListener("click", () => {
+                            let option = Array.from(target.options).find(o => o.value === String(c.id));
+                            if (!option) {
+                                option = new Option(c.name + (c.phone ? " · " + c.phone : ""),String(c.id));
+                                target.add(option);
+                            }
+                            target.value = String(c.id);
+                            target.dispatchEvent(new Event("change"));
+                            field.value = ""; output.replaceChildren(); ++requestSequence;
+                        });
+                        output.append(button);
+                    });
+                } catch(e) { if (run === requestSequence) output.textContent = "جست‌وجوی مشتری ناموفق بود."; }
+            },250);
+        });
     });
     redraw();
 })();
