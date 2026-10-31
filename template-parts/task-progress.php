@@ -12,7 +12,7 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
     <?php if ( ! $task ) : ?><p role="status">وظیفه در دسترس نیست یا اجازه مشاهده آن را ندارید.</p></section><?php return; endif;
     global $wpdb; $tables = crmb_progress_tables();
     $owner = (int) $task->assigned_to === get_current_user_id();
-    $admin = current_user_can( 'manage_options' ) || ( function_exists( 'crmb_seo_can_manage_task' ) && crmb_seo_can_manage_task( $id ) );
+    $admin = crmb_leadership_can_manage_tasks() || ( function_exists( 'crmb_seo_can_manage_task' ) && crmb_seo_can_manage_task( $id ) );
     $event_page = isset( $_GET['history_page'] ) && is_scalar( $_GET['history_page'] ) ? max( 1, min( 100000, absint( $_GET['history_page'] ) ) ) : 1;
     $events = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$tables['events']} WHERE task_id = %d ORDER BY id DESC LIMIT 21 OFFSET %d", $id, ( $event_page - 1 ) * 20 ) );
     $history_error = (bool) $wpdb->last_error;
