@@ -23,7 +23,7 @@ $seo_base=add_query_arg(array('crm_section'=>'seo','seo_tab'=>$seo_tab),home_url
         include __DIR__.'/seo-management.php';
     } else { ?>
         <form method="get" action="<?php echo esc_url(home_url('/main/')); ?>" class="crm-access-form crmb-work-inline"><input type="hidden" name="crm_section" value="seo"><input type="hidden" name="seo_tab" value="<?php echo esc_attr($seo_tab); ?>"><label for="seo-project">پروژه</label><select id="seo-project" name="project"><?php foreach($seo_projects as $p) : ?><option value="<?php echo esc_attr($p->id); ?>" <?php selected($seo_project_id,$p->id); ?>><?php echo esc_html($p->name); ?></option><?php endforeach; ?></select><button class="crm-access-primary crmb-work-button" type="submit">نمایش پروژه</button></form>
-        <?php if(!$seo_project) : ?><p class="crm-access-muted">پروژه مجازی برای نمایش ندارید. مدیر پروژه را ایجاد و اعضا را اضافه می‌کند.</p><?php else :
+        <?php if(!$seo_project) : ?><p class="crm-access-muted">هنوز پروژه‌ای برای شما قابل مشاهده نیست. مدیر پروژه را ایجاد و اعضا را اضافه می‌کند.</p><?php if(current_user_can('manage_options') || 'manager'===crmb_seo_level()) : ?><p><a class="crm-access-primary crmb-dashboard-link" href="<?php echo esc_url(add_query_arg(array('crm_section'=>'seo','seo_tab'=>'projects'),home_url('/main/'))); ?>">ایجاد اولین پروژه</a></p><?php endif; ?><?php else :
             $seo_base=add_query_arg('project',$seo_project_id,$seo_base);
             if('workspace'===$seo_tab) include __DIR__.'/seo-workspace.php';
             elseif('overview'===$seo_tab) include __DIR__.'/seo-overview.php';
