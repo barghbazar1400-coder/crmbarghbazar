@@ -95,6 +95,16 @@ ob_start(); include __DIR__.'/../template-parts/seo.php'; $html=ob_get_clean(); 
 $uid=5; $_GET=array('seo_tab'=>'content','project'=>1,'item'=>$iid); ob_start(); include __DIR__.'/../template-parts/seo.php'; $html=ob_get_clean(); check(false,str_contains($html,'Intern deliverable'));
 $uid=3; $_GET=array('seo_tab'=>'report','project'=>1,'item'=>$reportid); ob_start(); include __DIR__.'/../template-parts/seo.php'; $html=ob_get_clean(); check(true,str_contains($html,'Search Console web')); check(true,str_contains($html,'10.00%'));
 $uid=2;
+$uid=2; $_GET=array('project'=>1);
+ob_start(); include __DIR__.'/../template-parts/seo.php'; $workspace=ob_get_clean();
+check(true,str_contains($workspace,'پرونده‌های کاری پروژه'));
+check(true,str_contains($workspace,'name="seo_kind"'));
+check(true,str_contains($workspace,'Cable content'));
+check(true,str_contains($workspace,'seo_tab=content') || str_contains($workspace,'seo_tab%3Dcontent'));
+$uid=4; $_GET=array('seo_tab'=>'workspace','project'=>1);
+ob_start(); include __DIR__.'/../template-parts/seo.php'; $workspace=ob_get_clean();
+check(false,str_contains($workspace,'Weekly SEO'));
+$uid=2;
 foreach(array('overview','projects','page','keyword','content','tasks','technical','report','training','team') as $tab) { $_GET=array('seo_tab'=>$tab,'project'=>1); ob_start(); include __DIR__.'/../template-parts/seo.php'; $html=ob_get_clean(); check(true,str_contains($html,'دپارتمان سئو')); }
 $uid=8; try { crmb_seo_handle_post(); } catch(RuntimeException $e) { check('403',$e->getMessage()); }
 $uid=2; $_SERVER['REQUEST_METHOD']='GET'; try { crmb_seo_handle_post(); } catch(RuntimeException $e) { check('405',$e->getMessage()); }
