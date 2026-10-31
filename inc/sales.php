@@ -211,7 +211,7 @@ function crmb_sales_quote_create( $data ) {
     $quantities = $data['quantities'] ?? null;
     $notes = crmb_sales_clean( $data, 'notes', 4000, true );
     $discount_raw = isset( $data['discount_percent'] ) ? $data['discount_percent'] : '0';
-    $discount_pct = function_exists( 'crmb_sales_ops_discount_percent' ) ? crmb_sales_ops_discount_percent( $discount_raw ) : null;
+    $discount_pct = function_exists( 'crmb_sales_ops_discount_percent' ) ? crmb_sales_ops_discount_percent( $discount_raw ) : ( '0' === (string) $discount_raw ? 0 : null );
     if ( null === $discount_pct || ( $discount_pct > 0 && ! crmb_sales_ops_ready() ) ) { return 'invalid'; }
     if ( ! $customer || ! is_array( $ids ) || ! is_array( $quantities ) ||
         ! count( $ids ) || count( $ids ) !== count( $quantities ) || count( $ids ) > 30 ) { return 'invalid'; }
