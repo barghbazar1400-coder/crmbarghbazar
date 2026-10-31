@@ -3,7 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 if ( ! is_user_logged_in() ) { return; }
 if ( isset( $_GET['task_id'] ) ) { get_template_part( 'template-parts/task-progress' ); return; }
-$work_admin = current_user_can( 'manage_options' );
+$work_admin = crmb_leadership_can_manage_tasks();
 $team = $work_admin && isset( $_GET['scope'] ) && 'team' === $_GET['scope'];
 $page = isset( $_GET['work_page'] ) && is_scalar( $_GET['work_page'] ) ? max( 1, absint( $_GET['work_page'] ) ) : 1;
 $tasks = crmb_work_list( 'tasks', $page, 20, $team );
