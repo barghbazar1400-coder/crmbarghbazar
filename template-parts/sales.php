@@ -194,9 +194,57 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
         <?php else : ?><div class="crm-access-table-wrap"><table class="crm-access-table"><thead><tr><th>نام</th><th>شرکت</th><th>تلفن</th><th>عملیات</th></tr></thead><tbody>
             <?php foreach ( $customers as $customer ) : ?><tr><td><?php echo esc_html( $customer->name ); ?></td><td><?php echo esc_html( $customer->company ); ?></td>
                 <td dir="ltr"><?php echo esc_html( $customer->phone ); ?></td>
-                <td><a href="<?php echo esc_url( add_query_arg( 'edit_customer', $customer->id, $base ) . '#crmb-sales-customers' ); ?>">ویرایش</a></td></tr><?php endforeach; ?>
+                <td><a href="<?php echo esc_url( add_query_arg( array( 'sales_tab'=>'customers', 'customer'=>$customer->id ), $base ) ); ?>">پرونده</a> · <a href="<?php echo esc_url( add_query_arg( array( 'sales_tab'=>'customers','edit_customer'=>$customer->id ), $base ) ); ?>">ویرایش</a></td></tr><?php endforeach; ?>
         </tbody></table></div><?php endif; ?>
-        <?php if ( $customers_ok && (int) $total_customers > 200 ) : ?><p class="crm-access-muted">۲۰۰ پرونده جدید نمایش داده شده است؛ جست‌وجو و صفحه‌بندی کامل در مرحله بعد افزوده می‌شود.</p><?php endif; ?>
+        <?php if ( $customers_ok && (int) $total_customers > 200 ) : ?><p class="crm-access-muted">۲۰۰ پرونده جدید نمایش داده شده است؛ برای یافتن مشتری در فرم‌ها از جست‌وجوی نام یا تلفن استفاده کنید.</p><?php endif; ?>
+        <?php
+        $focus = crmb_sales_customer( crmb_sales_id( $_GET, 'customer' ) );
+        if ( $focus ) :
+            $customer_opportunities = $wpdb->get_results( $wpdb->prepare(
+                "SELECT id,title,stage,followup_day FROM {$t['opportunities']} WHERE customer_id=%d" . crmb_sales_scope() . " ORDER BY id DESC LIMIT 25", $focus->id
+            ) );
+            $customer_op_error = (bool) $wpdb->last_error;
+            $customer_quotes = $wpdb->get_results( $wpdb->prepare(
+                "SELECT id,status,subtotal_toman,created_utc FROM {$t['quotes']} WHERE customer_id=%d" . crmb_sales_scope() . " ORDER BY id DESC LIMIT 25", $focus->id
+            ) );
+            $customer_quote_error = (bool) $wpdb->last_error;
+            $customer_calls = array(); $customer_call_error = false;
+            if ( crmb_sales_ops_ready() ) {
+                $ops_tables = crmb_sales_ops_tables();
+                $customer_calls = $wpdb->get_results( $wpdb->prepare(
+                    "SELECT outcome,note,created_utc,next_followup_day FROM {$ops_tables['calls']} WHERE customer_id=%d" . crmb_sales_scope() . " ORDER BY id DESC LIMIT 25", $focus->id
+                ) );
+                $customer_call_error = (bool) $wpdb->last_error;
+            }
+        ?>
+        <div class="crmb-sales-customer-file" id="crmb-customer-file">
+            <div class="crmb-leadership-heading"><h3>پرونده <?php echo esc_html( $focus->name ); ?></h3><a href="<?php echo esc_url( add_query_arg( 'sales_tab', 'customers', $base ) ); ?>">بستن پرونده</a></div>
+            <p class="crm-access-muted"><?php echo esc_html( $focus->company ?: 'بدون شرکت' ); ?> · <span dir="ltr"><?php echo esc_html( $focus->phone ?: 'بدون شماره' ); ?></span></p>
+            <div class="crmb-sales-customer-columns">
+                <div><h4>تماس‌ها</h4>
+                    <?php if ( $customer_call_error ) : ?><p role="status">تماس‌ها دریافت نشدند.</p>
+                    <?php elseif ( ! $customer_calls ) : ?><p>تماسی ثبت نشده است.</p>
+                    <?php else : foreach ( $customer_calls as $call ) : ?>
+                        <article class="crmb-sales-customer-note"><small><?php echo esc_html( crmb_work_date( $call->created_utc ) ); ?></small><p><?php echo esc_html( $call->note ); ?></p></article>
+                    <?php endforeach; endif; ?>
+                </div>
+                <div><h4>فرصت‌ها</h4>
+                    <?php if ( $customer_op_error ) : ?><p role="status">فرصت‌ها دریافت نشدند.</p>
+                    <?php elseif ( ! $customer_opportunities ) : ?><p>فرصتی ثبت نشده است.</p>
+                    <?php else : foreach ( $customer_opportunities as $op ) : ?>
+                        <p><?php echo esc_html( $op->title . ' · ' . ( crmb_sales_stages()[$op->stage] ?? '—' ) ); ?></p>
+                    <?php endforeach; endif; ?>
+                </div>
+                <div><h4>پیش‌فاکتورها</h4>
+                    <?php if ( $customer_quote_error ) : ?><p role="status">پیش‌فاکتورها دریافت نشدند.</p>
+                    <?php elseif ( ! $customer_quotes ) : ?><p>پیش‌فاکتوری ثبت نشده است.</p>
+                    <?php else : foreach ( $customer_quotes as $q ) : ?>
+                        <p><a href="<?php echo esc_url( add_query_arg( array( 'sales_view'=>'quote','quote'=>$q->id ), $base ) ); ?>"><?php echo esc_html( 'PF-' . str_pad( (string) $q->id, 6, '0', STR_PAD_LEFT ) ); ?></a> · <?php echo esc_html( crmb_sales_quote_states()[$q->status] ?? '—' ); ?></p>
+                    <?php endforeach; endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
     </section>
 
     <section class="crm-access-card crmb-sales-panel" id="crmb-sales-opportunities">
