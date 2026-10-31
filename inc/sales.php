@@ -215,7 +215,7 @@ function crmb_sales_quote_create( $data ) {
         $id = crmb_sales_id( array( 'product' => $value ), 'product' );
         $raw_quantity = $quantities[$index] ?? null;
         if ( ! $id || ! is_string( $raw_quantity ) ||
-            ! preg_match( '/^(?:[1-9][0-9]{0,4}|0\.[0-9]{0,1}[1-9]|[1-9][0-9]{0,4}\.[0-9]{1,2})$/D', $raw_quantity ) ) {
+            ! preg_match( '/^(?:[1-9][0-9]{0,4}(?:\.[0-9]{1,2})?|0\.(?:0[1-9]|[1-9][0-9]?))$/D', $raw_quantity ) ) {
             return 'invalid';
         }
         $product = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t['products']} WHERE id=%d AND price_toman>0", $id ) );
@@ -280,7 +280,7 @@ function crmb_sales_csv_header( $header ) {
     );
     $normalized = array();
     foreach ( $header as $i => $name ) {
-        $normalized[$i] = mb_strtolower( trim( preg_replace( '/^\xEF\xBB\xBF/', '', (string) $name ) ), 'UTF-8' );
+        $normalized[$i] = strtolower( trim( preg_replace( '/^\xEF\xBB\xBF/', '', (string) $name ) ) );
     }
     $found = array();
     foreach ( $map as $key => $candidates ) {
@@ -402,7 +402,7 @@ function crmb_sales_catalog_ajax() {
     if ( ! crmb_sales_access() || ! crmb_sales_ready() ) { wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 ); }
     check_ajax_referer( 'crmb_sales_catalog', 'nonce' );
     $term = isset( $_GET['q'] ) && is_string( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
-    if ( mb_strlen( $term, 'UTF-8' ) < 2 || mb_strlen( $term, 'UTF-8' ) > 80 ) { wp_send_json_success( array() ); }
+    if ( strlen( $term ) < 2 || strlen( $term ) > 240 ) { wp_send_json_success( array() ); }
     global $wpdb; $t = crmb_sales_tables();
     $like = '%' . $wpdb->esc_like( $term ) . '%';
     $rows = $wpdb->get_results( $wpdb->prepare(
