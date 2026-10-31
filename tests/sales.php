@@ -33,7 +33,7 @@ class SalesTestDB {
             'CREATE TABLE wp_crmb_sales_products(id INTEGER PRIMARY KEY AUTOINCREMENT,external_key TEXT,sku TEXT,title TEXT,price_toman INTEGER,stock_status TEXT,updated_utc TEXT);' .
             'CREATE TABLE wp_crmb_sales_customers(id INTEGER PRIMARY KEY AUTOINCREMENT,owner_id INTEGER,name TEXT,phone TEXT,email TEXT,company TEXT,notes TEXT,created_utc TEXT,updated_utc TEXT);' .
             'CREATE TABLE wp_crmb_sales_opportunities(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,owner_id INTEGER,title TEXT,stage TEXT,followup_day TEXT,notes TEXT,created_utc TEXT,updated_utc TEXT);' .
-            'CREATE TABLE wp_crmb_sales_quotes(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,owner_id INTEGER,status TEXT,notes TEXT,subtotal_toman INTEGER,created_utc TEXT,updated_utc TEXT);' .
+            'CREATE TABLE wp_crmb_sales_quotes(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,opportunity_id INTEGER DEFAULT 0,owner_id INTEGER,status TEXT,notes TEXT,subtotal_toman INTEGER,created_utc TEXT,updated_utc TEXT);' .
             'CREATE TABLE wp_crmb_sales_quote_lines(id INTEGER PRIMARY KEY AUTOINCREMENT,quote_id INTEGER,product_id INTEGER,product_title TEXT,sku TEXT,quantity TEXT,unit_price_toman INTEGER,total_toman INTEGER);' .
             'CREATE TABLE wp_crmb_sales_quote_history(id INTEGER PRIMARY KEY AUTOINCREMENT,quote_id INTEGER,actor_id INTEGER,event_type TEXT,created_utc TEXT);'
         );
@@ -95,7 +95,7 @@ $wpdb->insert( 'wp_crmb_sales_products', array(
     'stock_status' => 'instock', 'updated_utc' => gmdate( 'Y-m-d H:i:s' ),
 ) );
 check( 'invalid', crmb_sales_quote_create( array( 'customer_id' => '1', 'product_ids' => array( '1' ), 'quantities' => array( '-3' ) ) ) );
-$quote = crmb_sales_quote_create( array( 'customer_id' => '1', 'product_ids' => array( '1' ), 'quantities' => array( '0.50' ), 'notes' => 'قیمت مقطوع' ) );
+$quote = crmb_sales_quote_create( array( 'customer_id' => '1', 'opportunity_id' => '1', 'product_ids' => array( '1' ), 'quantities' => array( '0.50' ), 'notes' => 'قیمت مقطوع' ) );
 check( 1, $quote );
 check( 60000, (int) crmb_sales_quote( $quote )->subtotal_toman );
 check( 1, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM wp_crmb_sales_quote_lines' ) );
@@ -103,6 +103,7 @@ $wpdb->update( 'wp_crmb_sales_products', array( 'price_toman' => 150000 ), array
 check( 120000, (int) $wpdb->get_var( 'SELECT unit_price_toman FROM wp_crmb_sales_quote_lines WHERE quote_id=1' ) );
 check( 'invalid', crmb_sales_quote_transition( array( 'quote_id' => '1', 'status' => 'accepted' ) ) );
 check( 'saved', crmb_sales_quote_transition( array( 'quote_id' => '1', 'status' => 'sent' ) ) );
+check( 'quoted', $wpdb->get_var( 'SELECT stage FROM wp_crmb_sales_opportunities WHERE id=1' ) );
 check( 'saved', crmb_sales_quote_transition( array( 'quote_id' => '1', 'status' => 'accepted' ) ) );
 check( 'accepted', crmb_sales_quote( 1 )->status );
 check( 'invalid', crmb_sales_quote_transition( array( 'quote_id' => '1', 'status' => 'sent' ) ) );
