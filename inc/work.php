@@ -143,7 +143,7 @@ function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = f
     $t = crmb_work_tables(); $uid = get_current_user_id();
     $limit = max( 1, min( 20, (int) $limit ) ); $page = max( 1, min( 100000, (int) $page ) );
     if ( 'tasks' === $kind ) {
-        $where = $team && current_user_can( 'manage_options' ) ? '1=1' : $wpdb->prepare( 'assigned_to = %d', $uid );
+        $where = $team && crmb_leadership_can_manage_tasks() ? '1=1' : $wpdb->prepare( 'assigned_to = %d', $uid );
         if ( $active ) { $where .= " AND status IN ('todo','doing','paused')"; }
         $order = "CASE WHEN status IN ('todo','doing','paused') THEN 0 ELSE 1 END, due_day IS NULL, due_day ASC, id DESC";
     } else {
