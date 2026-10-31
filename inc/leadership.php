@@ -33,6 +33,7 @@ function crmb_leadership_data() {
         'tasks_open' => null, 'tasks_overdue' => null, 'tasks_done' => null,
         'timers_active' => null, 'reports_pending' => null, 'leaves_pending' => null,
         'seo_review' => null, 'seo_projects' => null, 'recent' => null,
+        'sales_customers' => null, 'sales_quotes' => null, 'sales_followups' => null,
     );
     if ( ! crmb_leadership_can_operate() ) { return $empty; }
     global $wpdb;
@@ -75,6 +76,17 @@ function crmb_leadership_data() {
         } else {
             $empty['seo_review'] = 0;
         }
+    }
+    // Sales figures are operational counts, never invented revenue.
+    if ( function_exists( 'crmb_sales_access' ) && crmb_sales_access() && crmb_sales_ready() ) {
+        $sales = crmb_sales_tables();
+        $scope = crmb_sales_scope();
+        $empty['sales_customers'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$sales['customers']} WHERE 1=1{$scope}" );
+        $empty['sales_quotes'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$sales['quotes']} WHERE 1=1{$scope}" );
+        $empty['sales_followups'] = crmb_leadership_count( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$sales['opportunities']} WHERE followup_day<=%s AND stage IN ('lead','contacted','quoted'){$scope}",
+            crmb_att_today()
+        ) );
     }
     return $empty;
 }
