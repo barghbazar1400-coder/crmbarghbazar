@@ -100,7 +100,7 @@ function crmb_work_mutate( $data ) {
         if ( ! $id || ! isset( crmb_work_statuses()[ $status ] ) ) { return 'invalid'; }
         $row = $wpdb->get_row( $wpdb->prepare( "SELECT assigned_to,status FROM {$t['tasks']} WHERE id = %d", $id ) );
         if ( ! $row ) { return $wpdb->last_error ? 'error' : 'invalid'; }
-        $admin = current_user_can( 'manage_options' );
+        $admin = crmb_leadership_can_manage_tasks();
         if ( ! $admin && ( (int) $row->assigned_to !== $uid || 'cancelled' === $status || 'cancelled' === $row->status ) ) { return 'denied'; }
         // Include ownership and original status in the write to resist concurrent reassignment.
         $where = array( 'id' => $id, 'assigned_to' => (int) $row->assigned_to, 'status' => $row->status );
