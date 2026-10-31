@@ -40,7 +40,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
         $history = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['history']} WHERE quote_id=%d ORDER BY id DESC LIMIT 20", $quote->id ) );
         $status_labels = crmb_sales_quote_states();
         $discount = function_exists( 'crmb_sales_ops_discount' ) ? crmb_sales_ops_discount( (int) $quote->id ) : null;
-        $discount_pending = $discount && 'approved' !== $discount->status;
+        $discount_pending = $discount && 'pending' === $discount->status;
         $payable = function_exists( 'crmb_sales_ops_total' ) ? crmb_sales_ops_total( $quote->subtotal_toman, $discount ) : (int) $quote->subtotal_toman; ?>
         <div class="crmb-sales-actions"><a href="<?php echo esc_url( $base . '#crmb-sales-quotes' ); ?>">← بازگشت به میز فروش</a><?php if ( ! $discount_pending ) : ?><button type="button" class="crm-access-primary" onclick="window.print()">چاپ پیش‌فاکتور</button><?php endif; ?></div>
         <article class="crm-access-card crmb-sales-invoice">
