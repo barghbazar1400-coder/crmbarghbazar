@@ -90,6 +90,7 @@ if ( ! empty( $crm_user->roles ) ) {
                 'tasks' => 'fa-list-check', 'messages' => 'fa-envelope',
                 'reports' => 'fa-file-lines', 'seo' => 'fa-chart-line',
                 'ceo' => 'fa-crown', 'operations' => 'fa-clipboard-check',
+                'sales' => 'fa-cart-shopping',
             );
             $crm_child_icons = array(
                 'overview' => 'fa-gauge-high', 'projects' => 'fa-layer-group',
