@@ -100,7 +100,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
     $search = isset( $_GET['sales_search'] ) && is_string( $_GET['sales_search'] ) ? sanitize_text_field( wp_unslash( $_GET['sales_search'] ) ) : '';
     $product_where = '';
     if ( $search ) {
-        $like = '%' . $wpdb->esc_like( mb_substr( $search, 0, 80, 'UTF-8' ) ) . '%';
+        $like = '%' . $wpdb->esc_like( substr( $search, 0, 240 ) ) . '%';
         $product_where = $wpdb->prepare( ' WHERE title LIKE %s OR sku LIKE %s', $like, $like );
     }
     $catalog = $wpdb->get_results( "SELECT id,title,sku,price_toman,stock_status FROM {$t['products']}{$product_where} ORDER BY id DESC LIMIT 30" );
