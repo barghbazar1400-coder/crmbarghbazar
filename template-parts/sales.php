@@ -48,6 +48,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
                 <div><dt>شماره تماس</dt><dd dir="ltr"><?php echo esc_html( $customer ? $customer->phone : '—' ); ?></dd></div>
                 <div><dt>شرکت</dt><dd><?php echo esc_html( $customer && $customer->company ? $customer->company : '—' ); ?></dd></div>
                 <div><dt>تاریخ صدور</dt><dd><?php echo esc_html( crmb_work_date( $quote->created_utc ) ); ?></dd></div>
+                <?php if ( $quote->opportunity_id ) : ?><div><dt>فرصت فروش مرتبط</dt><dd><?php echo esc_html( '#' . $quote->opportunity_id ); ?></dd></div><?php endif; ?>
             </dl>
             <?php if ( $line_error ) : ?><p role="alert">اقلام پیش‌فاکتور دریافت نشد؛ چاپ نکنید.</p><?php else : ?>
                 <div class="crm-access-table-wrap"><table class="crm-access-table crmb-sales-lines"><thead><tr><th>محصول</th><th>کد کالا</th><th>تعداد</th><th>قیمت واحد (تومان)</th><th>جمع (تومان)</th></tr></thead>
@@ -95,6 +96,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
     $customer_error = (bool) $wpdb->last_error;
     $opportunities = $wpdb->get_results( "SELECT o.*,c.name AS customer_name FROM {$t['opportunities']} o INNER JOIN {$t['customers']} c ON c.id=o.customer_id WHERE 1=1" . crmb_sales_scope( 'o' ) . " ORDER BY o.followup_day IS NULL,o.followup_day,o.id DESC LIMIT 25" );
     $opportunity_error = (bool) $wpdb->last_error;
+    $quote_opportunities = $wpdb->get_results( "SELECT id,title,customer_id FROM {$t['opportunities']} WHERE 1=1{$scope} ORDER BY id DESC LIMIT 200" );
     $quotes = $wpdb->get_results( "SELECT q.*,c.name AS customer_name FROM {$t['quotes']} q INNER JOIN {$t['customers']} c ON c.id=q.customer_id WHERE 1=1" . crmb_sales_scope( 'q' ) . " ORDER BY q.id DESC LIMIT 25" );
     $quotes_error = (bool) $wpdb->last_error;
     $search = isset( $_GET['sales_search'] ) && is_string( $_GET['sales_search'] ) ? sanitize_text_field( wp_unslash( $_GET['sales_search'] ) ) : '';
@@ -195,6 +197,9 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
                 <label for="sales-quote-customer">مشتری *</label><select id="sales-quote-customer" name="customer_id" required><option value="">انتخاب مشتری</option>
                     <?php foreach ( $customers ?: array() as $c ) : ?><option value="<?php echo esc_attr( $c->id ); ?>"><?php echo esc_html( $c->name . ' · ' . $c->phone ); ?></option><?php endforeach; ?>
                 </select>
+                <label for="sales-quote-opportunity">فرصت فروش مرتبط (اختیاری)</label><select id="sales-quote-opportunity" name="opportunity_id"><option value="0">بدون فرصت مرتبط</option>
+                    <?php foreach ( $quote_opportunities ?: array() as $op ) : ?><option value="<?php echo esc_attr( $op->id ); ?>" data-customer="<?php echo esc_attr( $op->customer_id ); ?>"><?php echo esc_html( $op->title ); ?></option><?php endforeach; ?>
+                </select>
                 <label for="sales-product-search">جست‌وجوی محصول با نام یا SKU (حداقل دو حرف)</label>
                 <input id="sales-product-search" type="search" autocomplete="off" placeholder="مثلاً سیم افشان ۲.۵ یا کد کالا">
                 <p class="crm-access-muted">محصول را جست‌وجو و انتخاب کنید؛ سپس مقدار را تنظیم کنید. قیمت واحد از CSV واردشده خوانده می‌شود.</p>
@@ -258,6 +263,14 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
     "use strict";
     const form = document.getElementById("crmb-sales-quote-form");
     if (!form) return;
+    const customer = document.getElementById("sales-quote-customer");
+    const opportunity = document.getElementById("sales-quote-opportunity");
+    function filterOpportunity() {
+        opportunity.value = "0";
+        Array.from(opportunity.options).forEach(opt => { opt.hidden = opt.value !== "0" && opt.dataset.customer !== customer.value; });
+    }
+    customer.addEventListener("change", filterOpportunity);
+    filterOpportunity();
     const search = document.getElementById("sales-product-search");
     const results = document.getElementById("crmb-sales-search-results");
     const selected = document.getElementById("crmb-sales-selected");
