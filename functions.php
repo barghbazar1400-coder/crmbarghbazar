@@ -167,3 +167,4 @@ require_once get_template_directory() . '/inc/daily-reports.php';
 require_once get_template_directory() . '/inc/seo.php';
 require_once get_template_directory() . '/inc/seo-media.php';
 require_once get_template_directory() . '/inc/leadership.php';
+require_once get_template_directory() . '/inc/sales.php';
