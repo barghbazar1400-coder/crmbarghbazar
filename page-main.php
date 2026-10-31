@@ -178,6 +178,8 @@ if ( ! empty( $crm_user->roles ) ) {
             get_template_part( 'template-parts/daily-reports' );
         } elseif ( 'seo' === $crm_current_section && crmbarghbazar_can_view_section( 'seo' ) ) {
             get_template_part( 'template-parts/seo' );
+        } elseif ( 'sales' === $crm_current_section && crmbarghbazar_can_view_section( 'sales' ) ) {
+            get_template_part( 'template-parts/sales' );
         }
         ?>
     </main>
