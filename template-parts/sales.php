@@ -16,6 +16,8 @@ $notices = array(
     'empty_catalog' => 'محصول قیمت‌دار یا محصول قابل شناسایی در فایل نبود.',
     'error' => 'ثبت اطلاعات ناموفق بود؛ داده‌ها را بررسی و دوباره تلاش کنید.',
     'denied' => 'برای این عملیات دسترسی ندارید.',
+    'needs_approval' => 'این پیش‌فاکتور تخفیف دارد و قبل از ارسال باید مدیر تأیید کند.',
+    'changed' => 'اطلاعات تغییر کرده است؛ صفحه را تازه کنید.',
 );
 $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ? sanitize_key( $_GET['sales_notice'] ) : '';
 ?>
@@ -36,8 +38,11 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
         $lines = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['lines']} WHERE quote_id=%d ORDER BY id", $quote->id ) );
         $line_error = (bool) $wpdb->last_error;
         $history = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t['history']} WHERE quote_id=%d ORDER BY id DESC LIMIT 20", $quote->id ) );
-        $status_labels = crmb_sales_quote_states(); ?>
-        <div class="crmb-sales-actions"><a href="<?php echo esc_url( $base . '#crmb-sales-quotes' ); ?>">← بازگشت به میز فروش</a><button type="button" class="crm-access-primary" onclick="window.print()">چاپ پیش‌فاکتور</button></div>
+        $status_labels = crmb_sales_quote_states();
+        $discount = function_exists( 'crmb_sales_ops_discount' ) ? crmb_sales_ops_discount( (int) $quote->id ) : null;
+        $discount_pending = $discount && 'approved' !== $discount->status;
+        $payable = function_exists( 'crmb_sales_ops_total' ) ? crmb_sales_ops_total( $quote->subtotal_toman, $discount ) : (int) $quote->subtotal_toman; ?>
+        <div class="crmb-sales-actions"><a href="<?php echo esc_url( $base . '#crmb-sales-quotes' ); ?>">← بازگشت به میز فروش</a><?php if ( ! $discount_pending ) : ?><button type="button" class="crm-access-primary" onclick="window.print()">چاپ پیش‌فاکتور</button><?php endif; ?></div>
         <article class="crm-access-card crmb-sales-invoice">
             <div class="crmb-sales-invoice-head"><div><p class="crmb-sales-kicker">پیش‌فاکتور فروش</p><h2>برق‌بازار · CRM</h2></div>
                 <div><strong dir="ltr"><?php echo esc_html( 'PF-' . str_pad( (string) $quote->id, 6, '0', STR_PAD_LEFT ) ); ?></strong>
@@ -60,13 +65,28 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
                         <td><?php echo esc_html( number_format( (int) $line->total_toman ) ); ?></td>
                     </tr><?php endforeach; ?></tbody></table></div>
                 <p class="crmb-sales-total"><span>جمع اقلام (تومان)</span><strong><?php echo esc_html( number_format( (int) $quote->subtotal_toman ) ); ?></strong></p>
+                <?php if ( $discount ) : ?>
+                    <p class="crmb-sales-total"><span>تخفیف درخواستی: <?php echo esc_html( $discount->percent ); ?>٪</span>
+                        <strong><?php echo esc_html( array( 'pending'=>'در انتظار تأیید مدیر','approved'=>'تأیید شد','rejected'=>'رد شد' )[$discount->status] ?? 'نامشخص' ); ?></strong></p>
+                    <?php if ( $discount_pending ) : ?><p role="alert">تا زمان تأیید تخفیف، ارسال و چاپ نسخه نهایی پیش‌فاکتور مجاز نیست.</p><?php endif; ?>
+                <?php endif; ?>
+                <p class="crmb-sales-total crmb-sales-payable"><span>مبلغ قابل پرداخت (تومان)<?php echo $discount_pending ? ' — قبل از تأیید تخفیف' : ''; ?></span><strong><?php echo esc_html( number_format( $payable ) ); ?></strong></p>
             <?php endif; ?>
             <?php if ( $quote->notes ) : ?><p class="crmb-sales-note"><strong>توضیحات:</strong> <?php echo nl2br( esc_html( $quote->notes ) ); ?></p><?php endif; ?>
             <p class="crm-access-muted">قیمت‌ها مربوط به زمان صدور پیش‌فاکتور است. مالیات، هزینه حمل و موجودی قطعی کالا در این نسخه محاسبه یا تضمین نمی‌شود؛ این سند فاکتور رسمی یا سفارش ووکامرس نیست.</p>
         </article>
         <section class="crm-access-card crmb-sales-actions"><h2>پیگیری وضعیت</h2>
+            <?php if ( $discount && 'pending' === $discount->status && crmb_sales_admin() ) : ?>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crmb-sales-inline">
+                    <?php crmb_sales_ops_form_fields( 'discount_review' ); ?>
+                    <input type="hidden" name="quote_id" value="<?php echo esc_attr( $quote->id ); ?>">
+                    <label for="sales-discount-decision">درخواست تخفیف <?php echo esc_html( $discount->percent ); ?>٪</label>
+                    <select id="sales-discount-decision" name="decision"><option value="approved">تأیید مدیر</option><option value="rejected">رد تخفیف</option></select>
+                    <button type="submit" class="crm-access-primary">ثبت تصمیم</button>
+                </form>
+            <?php endif; ?>
             <?php $next_states = array( 'draft' => array( 'sent' ), 'sent' => array( 'accepted', 'rejected' ) ); ?>
-            <?php if ( isset( $next_states[$quote->status] ) ) : ?>
+            <?php if ( isset( $next_states[$quote->status] ) && ! ( 'draft' === $quote->status && $discount_pending ) ) : ?>
                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crmb-sales-inline">
                     <?php crmb_sales_form_fields( 'quote_status' ); ?>
                     <input type="hidden" name="quote_id" value="<?php echo esc_attr( $quote->id ); ?>">
@@ -207,6 +227,9 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
                 <p class="crm-access-muted">محصول را جست‌وجو و انتخاب کنید؛ سپس مقدار را تنظیم کنید. قیمت واحد از CSV واردشده خوانده می‌شود.</p>
                 <div id="crmb-sales-search-results" class="crmb-sales-search-results" role="status" aria-live="polite"></div>
                 <div id="crmb-sales-selected" class="crmb-sales-selected" aria-live="polite"></div>
+                <label for="sales-discount-percent">تخفیف درخواستی (درصد، حداکثر ۴۰٪)</label>
+                <input id="sales-discount-percent" type="number" name="discount_percent" min="0" max="40" step="0.01" value="0">
+                <p class="crm-access-muted">تخفیف بیشتر از صفر، فقط پس از تأیید مدیر قابل ارسال است؛ جمع نهایی در پیش‌فاکتور ثبت می‌شود.</p>
                 <label for="sales-quote-notes">شرایط و توضیحات پیش‌فاکتور</label><textarea id="sales-quote-notes" name="notes" rows="3" placeholder="مدت اعتبار، نحوه تحویل و شرایط پرداخت را اینجا بنویسید."></textarea>
                 <p class="crmb-sales-total">جمع اقلام: <strong id="crmb-sales-preview-total">۰ تومان</strong></p>
                 <button class="crm-access-primary" type="submit" id="crmb-sales-submit-quote" disabled>ثبت و مشاهده پیش‌فاکتور</button>
@@ -278,15 +301,19 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
     const selected = document.getElementById("crmb-sales-selected");
     const submit = document.getElementById("crmb-sales-submit-quote");
     const total = document.getElementById("crmb-sales-preview-total");
+    const discountField = document.getElementById("sales-discount-percent");
     const endpoint = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
     const nonce = <?php echo wp_json_encode( wp_create_nonce( 'crmb_sales_catalog' ) ); ?>;
     let timer = null, sequence = 0, products = [];
     const money = value => new Intl.NumberFormat("fa-IR").format(Math.round(value));
     function update() {
         const sum = products.reduce((s,p) => s + p.price * p.quantity, 0);
-        total.textContent = money(sum) + " تومان";
-        submit.disabled = products.length === 0 || products.some(p => !p.quantity || p.quantity > 99999) || sum <= 0;
+        const discount = Number(discountField.value);
+        const validDiscount = Number.isFinite(discount) && discount >= 0 && discount <= 40;
+        total.textContent = money(validDiscount ? sum*(100-discount)/100 : sum) + " تومان" + (discount>0 ? " (نیازمند تأیید مدیر)" : "");
+        submit.disabled = !validDiscount || products.length === 0 || products.some(p => !p.quantity || p.quantity > 99999) || sum <= 0;
     }
+    discountField.addEventListener("input", update);
     function redraw() {
         selected.replaceChildren();
         products.forEach((p,i) => {
