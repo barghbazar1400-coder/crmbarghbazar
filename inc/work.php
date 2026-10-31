@@ -2,6 +2,11 @@
 /** Private tasks and internal messages. All mutations use authenticated POSTs. */
 defined( 'ABSPATH' ) || exit;
 
+/** Keep isolated PHP tests compatible when executive navigation is not loaded. */
+function crmb_work_manage_team() {
+    return function_exists( 'crmb_leadership_can_manage_tasks' )
+        ? crmb_leadership_can_manage_tasks() : current_user_can( 'manage_options' );
+}
 function crmb_work_tables() {
     global $wpdb;
     return array( 'tasks' => $wpdb->prefix . 'crmb_tasks', 'messages' => $wpdb->prefix . 'crmb_messages' );
@@ -77,7 +82,7 @@ function crmb_work_mutate( $data ) {
     $task = crmb_work_text( $data, 'task' ); $id = crmb_work_id( $data, 'id' );
     $now = gmdate( 'Y-m-d H:i:s' );
     if ( 'save_task' === $task ) {
-        if ( ! crmb_leadership_can_manage_tasks() ) { return 'denied'; }
+        if ( ! crmb_work_manage_team() ) { return 'denied'; }
         $title = crmb_work_text( $data, 'title' ); $body = crmb_work_text( $data, 'description', true );
         $assigned = crmb_work_id( $data, 'assigned_to' ); $priority = crmb_work_text( $data, 'priority' );
         $raw_due = crmb_work_text( $data, 'due_day' );
@@ -100,7 +105,7 @@ function crmb_work_mutate( $data ) {
         if ( ! $id || ! isset( crmb_work_statuses()[ $status ] ) ) { return 'invalid'; }
         $row = $wpdb->get_row( $wpdb->prepare( "SELECT assigned_to,status FROM {$t['tasks']} WHERE id = %d", $id ) );
         if ( ! $row ) { return $wpdb->last_error ? 'error' : 'invalid'; }
-        $admin = crmb_leadership_can_manage_tasks();
+        $admin = crmb_work_manage_team();
         if ( ! $admin && ( (int) $row->assigned_to !== $uid || 'cancelled' === $status || 'cancelled' === $row->status ) ) { return 'denied'; }
         // Include ownership and original status in the write to resist concurrent reassignment.
         $where = array( 'id' => $id, 'assigned_to' => (int) $row->assigned_to, 'status' => $row->status );
@@ -143,7 +148,7 @@ function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = f
     $t = crmb_work_tables(); $uid = get_current_user_id();
     $limit = max( 1, min( 20, (int) $limit ) ); $page = max( 1, min( 100000, (int) $page ) );
     if ( 'tasks' === $kind ) {
-        $where = $team && crmb_leadership_can_manage_tasks() ? '1=1' : $wpdb->prepare( 'assigned_to = %d', $uid );
+        $where = $team && crmb_work_manage_team() ? '1=1' : $wpdb->prepare( 'assigned_to = %d', $uid );
         if ( $active ) { $where .= " AND status IN ('todo','doing','paused')"; }
         $order = "CASE WHEN status IN ('todo','doing','paused') THEN 0 ELSE 1 END, due_day IS NULL, due_day ASC, id DESC";
     } else {
