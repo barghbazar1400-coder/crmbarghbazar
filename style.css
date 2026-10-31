@@ -1428,7 +1428,7 @@ body.crm-main-page {
 }
 .crmb-sales-v2-tabs button {
   border: 1px solid transparent; background: transparent; cursor: pointer;
-  padding: 10px 17px; border-radius: 9px; color: #6c5e80; font: 750 13px/1.7 inherit;
+  padding: 10px 17px; border-radius: 9px; color: #6c5e80; font-size: 13px; font-weight: 750; line-height: 1.7;
 }
 .crmb-sales-v2-tabs button.is-active { background: #4a228e; color: #fff; box-shadow: 0 3px 10px rgba(58,25,118,.2); }
 .crmb-sales-v2-tabs button:hover:not(.is-active) { background: #f3edff; color: #4a228e; }
@@ -1460,7 +1460,7 @@ body.crm-main-page {
 .crmb-sales-v2-lane:nth-child(4) .crmb-sales-v2-lane-header { border-color: #46a385; }
 .crmb-sales-v2-lane:nth-child(5) .crmb-sales-v2-lane-header { border-color: #c7b4ba; }
 .crmb-sales-v2-lane-header h3 { margin: 0; font-size: 12px; color: #3c2a59; }
-.crmb-sales-v2-lane-header span { border-radius: 7px; background: white; color: #5a3a95; padding: 2px 7px; font: 800 12px/1.7 inherit; }
+.crmb-sales-v2-lane-header span { border-radius: 7px; background: white; color: #5a3a95; padding: 2px 7px; font-size: 12px; font-weight: 800; line-height: 1.7; }
 .crmb-sales-v2-cards { padding: 9px; display: grid; gap: 8px; align-content: start; }
 .crmb-sales-v2-deal { padding: 11px; background: white; border: 1px solid #e6e0f1; border-radius: 9px; box-shadow: 0 2px 8px rgba(35,17,73,.035); }
 .crmb-sales-v2-deal-title { font-size: 13px; color: #2c1951; font-weight: 800; margin: 0 0 8px; overflow-wrap: anywhere; }
@@ -1504,3 +1504,13 @@ body.crm-main-page {
   .crmb-sales-v2-overview .crm-access-card { padding: 12px; }
   .crmb-sales-v2-buttons button { flex: 1; }
 }
+
+.crmb-sales-customer-file { margin-top: 18px; padding: 18px; border: 1px solid #d7c8ea; background: #fcfaff; border-radius: 12px; }
+.crmb-sales-customer-file h3 { color: #3f1c7c; margin: 0; }
+.crmb-sales-customer-columns { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-top: 15px; }
+.crmb-sales-customer-columns > div { background: white; border: 1px solid #eee5f5; border-radius: 10px; padding: 13px; min-width: 0; }
+.crmb-sales-customer-columns h4 { margin: 0 0 12px; color: #522a94; }
+.crmb-sales-customer-columns p { font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
+.crmb-sales-customer-note { border-bottom: 1px solid #efeaf5; padding: 8px 0; }
+.crmb-sales-customer-note small { color: #877a9b; }
+@media (max-width: 900px) { .crmb-sales-customer-columns { grid-template-columns: 1fr; } }
