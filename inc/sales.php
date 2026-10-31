@@ -74,6 +74,7 @@ function crmb_sales_install() {
     dbDelta( "CREATE TABLE {$t['quotes']} (
         id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
         customer_id bigint(20) unsigned NOT NULL,
+        opportunity_id bigint(20) unsigned NOT NULL DEFAULT 0,
         owner_id bigint(20) unsigned NOT NULL,
         status varchar(20) NOT NULL DEFAULT 'draft',
         notes text NOT NULL,
@@ -205,12 +206,20 @@ function crmb_sales_opportunity_save( $data ) {
 function crmb_sales_quote_create( $data ) {
     if ( ! crmb_sales_access() || ! crmb_sales_ready() ) { return 'denied'; }
     $customer = crmb_sales_customer( crmb_sales_id( $data, 'customer_id' ) );
+    $opportunity_id = crmb_sales_id( $data, 'opportunity_id' );
     $ids = $data['product_ids'] ?? null;
     $quantities = $data['quantities'] ?? null;
     $notes = crmb_sales_clean( $data, 'notes', 4000, true );
     if ( ! $customer || ! is_array( $ids ) || ! is_array( $quantities ) ||
         ! count( $ids ) || count( $ids ) !== count( $quantities ) || count( $ids ) > 30 ) { return 'invalid'; }
     global $wpdb; $t = crmb_sales_tables(); $lines = array(); $subtotal = 0;
+    if ( $opportunity_id ) {
+        $associated = $wpdb->get_var( $wpdb->prepare(
+            "SELECT id FROM {$t['opportunities']} WHERE id=%d AND customer_id=%d" . crmb_sales_scope(),
+            $opportunity_id, $customer->id
+        ) );
+        if ( ! $associated || $wpdb->last_error ) { return 'invalid'; }
+    }
     foreach ( $ids as $index => $value ) {
         $id = crmb_sales_id( array( 'product' => $value ), 'product' );
         $raw_quantity = $quantities[$index] ?? null;
@@ -232,7 +241,7 @@ function crmb_sales_quote_create( $data ) {
     if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return 'error'; }
     $now = gmdate( 'Y-m-d H:i:s' );
     $ok = $wpdb->insert( $t['quotes'], array(
-        'customer_id' => $customer->id, 'owner_id' => get_current_user_id(),
+        'customer_id' => $customer->id, 'opportunity_id' => $opportunity_id, 'owner_id' => get_current_user_id(),
         'status' => 'draft', 'notes' => $notes, 'subtotal_toman' => $subtotal,
         'created_utc' => $now, 'updated_utc' => $now,
     ) );
@@ -260,6 +269,13 @@ function crmb_sales_quote_transition( $data ) {
     global $wpdb; $t = crmb_sales_tables(); $now = gmdate( 'Y-m-d H:i:s' );
     if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return 'error'; }
     $result = $wpdb->update( $t['quotes'], array( 'status' => $next, 'updated_utc' => $now ), array( 'id' => $quote->id, 'status' => $quote->status ) );
+    if ( 1 === $result && 'sent' === $next && (int) $quote->opportunity_id ) {
+        $wpdb->query( $wpdb->prepare(
+            "UPDATE {$t['opportunities']} SET stage='quoted',updated_utc=%s WHERE id=%d AND stage IN ('lead','contacted')" . crmb_sales_scope(),
+            $now, $quote->opportunity_id
+        ) );
+        if ( $wpdb->last_error ) { $wpdb->query( 'ROLLBACK' ); return 'error'; }
+    }
     if ( 1 !== $result || false === $wpdb->insert( $t['history'], array(
         'quote_id' => $quote->id, 'actor_id' => get_current_user_id(),
         'event_type' => $next, 'created_utc' => $now,
