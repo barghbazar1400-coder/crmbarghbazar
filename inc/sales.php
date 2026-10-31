@@ -331,12 +331,12 @@ function crmb_sales_catalog_import( $files, $data ) {
     arsort( $counts );
     $delimiter = array_key_first( $counts );
     rewind( $handle );
-    $header = fgetcsv( $handle, 32768, $delimiter );
+    $header = fgetcsv( $handle, 0, $delimiter );
     $columns = crmb_sales_csv_header( is_array( $header ) ? $header : array() );
     if ( ! isset( $columns['title'] ) || ( ! isset( $columns['id'] ) && ! isset( $columns['sku'] ) ) ||
         ( ! isset( $columns['regular'] ) && ! isset( $columns['sale'] ) ) ) { fclose( $handle ); return 'bad_columns'; }
     $read = 0; $skipped = 0; $rows = array();
-    while ( ( $row = fgetcsv( $handle, 32768, $delimiter ) ) !== false ) {
+    while ( ( $row = fgetcsv( $handle, 0, $delimiter ) ) !== false ) {
         if ( count( $row ) === 1 && trim( (string) $row[0] ) === '' ) { continue; }
         ++$read;
         if ( $read > 5000 ) { fclose( $handle ); return 'too_many'; }
@@ -406,7 +406,9 @@ function crmb_sales_handle_post() {
     } else {
         $args['sales_anchor'] = $section;
     }
-    wp_safe_redirect( add_query_arg( $args, home_url( '/main/' ) ) );
+    $destination = add_query_arg( $args, home_url( '/main/' ) );
+    if ( ! isset( $args['sales_view'] ) ) { $destination .= '#crmb-sales-' . $section; }
+    wp_safe_redirect( $destination );
     exit;
 }
 add_action( 'admin_post_crmb_sales', 'crmb_sales_handle_post' );
