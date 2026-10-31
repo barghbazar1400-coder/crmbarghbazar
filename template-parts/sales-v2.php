@@ -149,9 +149,27 @@ $base = add_query_arg( 'crm_section', 'sales', home_url( '/main/' ) );
                 <?php else : ?><p role="status">فرم تماس آماده نیست؛ مدیر وضعیت نصب را بررسی کند.</p><?php endif; ?>
             </section>
             <?php if ( crmb_sales_admin() ) :
+                $pending_discounts = crmb_sales_ops_ready() ? $wpdb->get_results(
+                    "SELECT d.quote_id,d.percent,c.name AS customer_name
+                     FROM {$ops['discounts']} d INNER JOIN {$sales['quotes']} q ON q.id=d.quote_id
+                     INNER JOIN {$sales['customers']} c ON c.id=q.customer_id
+                     WHERE d.status='pending' ORDER BY d.quote_id DESC LIMIT 10"
+                ) : array();
+                $discounts_error = (bool) $wpdb->last_error;
                 $team = $wpdb->get_results(
                     "SELECT owner_id,COUNT(*) AS total FROM {$sales['opportunities']} WHERE stage NOT IN ('won','lost') GROUP BY owner_id ORDER BY total DESC LIMIT 15"
                 ); $team_error = (bool) $wpdb->last_error; ?>
+            <section class="crm-access-card">
+                <div class="crmb-leadership-heading"><h2>درخواست‌های تخفیف مدیر</h2></div>
+                <?php if ( $discounts_error ) : ?><p role="status">درخواست‌های تخفیف دریافت نشد.</p>
+                <?php elseif ( ! $pending_discounts ) : ?><p class="crm-access-muted">درخواست تخفیف منتظر تأیید ندارید.</p>
+                <?php else : ?><ul class="crmb-sales-v2-team">
+                    <?php foreach ( $pending_discounts as $d ) : ?><li>
+                        <span><?php echo esc_html( $d->customer_name . ' · ' . $d->percent . '٪' ); ?></span>
+                        <a href="<?php echo esc_url( add_query_arg( array( 'sales_view'=>'quote','quote'=>$d->quote_id ), $base ) ); ?>">بررسی</a>
+                    </li><?php endforeach; ?>
+                </ul><?php endif; ?>
+            </section>
             <section class="crm-access-card">
                 <h2>بار کاری تیم فروش</h2>
                 <?php if ( $team_error ) : ?><p role="status">گزارش تیم در دسترس نیست.</p>
