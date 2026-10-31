@@ -77,7 +77,7 @@ function crmb_work_mutate( $data ) {
     $task = crmb_work_text( $data, 'task' ); $id = crmb_work_id( $data, 'id' );
     $now = gmdate( 'Y-m-d H:i:s' );
     if ( 'save_task' === $task ) {
-        if ( ! current_user_can( 'manage_options' ) ) { return 'denied'; }
+        if ( ! crmb_leadership_can_manage_tasks() ) { return 'denied'; }
         $title = crmb_work_text( $data, 'title' ); $body = crmb_work_text( $data, 'description', true );
         $assigned = crmb_work_id( $data, 'assigned_to' ); $priority = crmb_work_text( $data, 'priority' );
         $raw_due = crmb_work_text( $data, 'due_day' );
