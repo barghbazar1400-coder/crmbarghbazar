@@ -278,7 +278,7 @@ function crmb_sales_quote_transition( $data ) {
     if ( ! in_array( $next, $allowed[$quote->status] ?? array(), true ) ) { return 'invalid'; }
     if ( 'sent' === $next && function_exists( 'crmb_sales_ops_discount' ) ) {
         $discount = crmb_sales_ops_discount( (int) $quote->id );
-        if ( $discount && 'approved' !== $discount->status ) { return 'needs_approval'; }
+        if ( $discount && 'pending' === $discount->status ) { return 'needs_approval'; }
     }
     global $wpdb; $t = crmb_sales_tables(); $now = gmdate( 'Y-m-d H:i:s' );
     if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return 'error'; }
