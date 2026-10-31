@@ -1409,3 +1409,7 @@ body.crm-main-page {
   .crmb-sales-invoice table { width: 100%; }
   .crmb-sales-invoice tr { break-inside: avoid; }
 }
+
+.crmb-sales-customer-results { display: grid; gap: 6px; grid-column: 1 / -1; }
+.crmb-sales-customer-results .crmb-sales-result { width: 100%; }
+.crmb-sales-form .crmb-sales-customer-finder { grid-column: 1 / -1; }
