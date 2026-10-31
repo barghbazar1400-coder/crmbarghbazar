@@ -1413,3 +1413,94 @@ body.crm-main-page {
 .crmb-sales-customer-results { display: grid; gap: 6px; grid-column: 1 / -1; }
 .crmb-sales-customer-results .crmb-sales-result { width: 100%; }
 .crmb-sales-form .crmb-sales-customer-finder { grid-column: 1 / -1; }
+
+
+/* CRM sales workspace v2 — practical high-density desktop UI. */
+.crmb-sales-v2-panel[hidden] { display: none !important; }
+.crmb-sales-v2-active > .crmb-sales-head,
+.crmb-sales-v2-active > .crmb-sales-jump,
+.crmb-sales-v2-active > .crmb-sales-metrics { display: none !important; }
+.crmb-sales-v2-active { padding-bottom: 0; }
+.crmb-sales-v2-tabs {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  background: #fff; padding: 12px 16px; margin: 0 0 14px;
+  border: 1px solid #e9e2f3; border-radius: 12px;
+}
+.crmb-sales-v2-tabs button {
+  border: 1px solid transparent; background: transparent; cursor: pointer;
+  padding: 10px 17px; border-radius: 9px; color: #6c5e80; font: 750 13px/1.7 inherit;
+}
+.crmb-sales-v2-tabs button.is-active { background: #4a228e; color: #fff; box-shadow: 0 3px 10px rgba(58,25,118,.2); }
+.crmb-sales-v2-tabs button:hover:not(.is-active) { background: #f3edff; color: #4a228e; }
+.crmb-sales-v2-overview { margin-top: 0; padding-top: 0; }
+.crmb-sales-v2-toolbar {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 16px; margin: 10px 0 16px;
+}
+.crmb-sales-v2-eyebrow { display: block; font-size: 11px; font-weight: 650; color: #85739b; margin-bottom: 3px; }
+.crmb-sales-v2-toolbar h2 { margin: 0; color: #2f1859; font-size: clamp(18px,2vw,23px); }
+.crmb-sales-v2-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+.crmb-sales-v2-buttons button { margin: 0; border: 0; min-height: 37px; padding: 8px 14px; }
+.crmb-sales-v2-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 315px); align-items: start; gap: 16px; }
+.crmb-sales-v2-main, .crmb-sales-v2-aside { min-width: 0; display: grid; gap: 14px; }
+.crmb-sales-v2-overview .crm-access-card { min-width: 0; margin: 0; padding: 18px; border-radius: 13px; }
+.crmb-sales-v2-overview .crm-access-card h2 { margin: 0 0 6px; font-size: 16px; color: #351868; }
+.crmb-sales-v2-link { color: #6230ae; font-size: 12px; font-weight: 800; background: none; border: none; text-decoration: none; cursor: pointer; padding: 0; }
+.crmb-sales-v2-kanban {
+  display: grid; grid-auto-flow: column; grid-auto-columns: minmax(185px, 1fr);
+  gap: 9px; overflow-x: auto; padding: 6px 2px 14px; overscroll-behavior-x: contain;
+}
+.crmb-sales-v2-lane { display: flex; flex-direction: column; min-width: 185px; background: #f8f7fb; border: 1px solid #eeeaf4; border-radius: 10px; }
+.crmb-sales-v2-lane-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 13px 12px 11px; border-bottom: 2px solid #ded4f1;
+}
+.crmb-sales-v2-lane:nth-child(2) .crmb-sales-v2-lane-header { border-color: #9b7bea; }
+.crmb-sales-v2-lane:nth-child(3) .crmb-sales-v2-lane-header { border-color: #6e42c6; }
+.crmb-sales-v2-lane:nth-child(4) .crmb-sales-v2-lane-header { border-color: #46a385; }
+.crmb-sales-v2-lane:nth-child(5) .crmb-sales-v2-lane-header { border-color: #c7b4ba; }
+.crmb-sales-v2-lane-header h3 { margin: 0; font-size: 12px; color: #3c2a59; }
+.crmb-sales-v2-lane-header span { border-radius: 7px; background: white; color: #5a3a95; padding: 2px 7px; font: 800 12px/1.7 inherit; }
+.crmb-sales-v2-cards { padding: 9px; display: grid; gap: 8px; align-content: start; }
+.crmb-sales-v2-deal { padding: 11px; background: white; border: 1px solid #e6e0f1; border-radius: 9px; box-shadow: 0 2px 8px rgba(35,17,73,.035); }
+.crmb-sales-v2-deal-title { font-size: 13px; color: #2c1951; font-weight: 800; margin: 0 0 8px; overflow-wrap: anywhere; }
+.crmb-sales-v2-deal-customer { font-size: 12px; color: #625374; margin: 0 0 4px; }
+.crmb-sales-v2-deal p { line-height: 1.6; }
+.crmb-sales-v2-deal > .crm-access-muted,.crmb-sales-v2-deal > .crmb-work-overdue { font-size: 11px; }
+.crmb-sales-v2-stage { display: flex; gap: 6px; padding: 8px 0; }
+.crmb-sales-v2-stage select { flex: 1; min-width: 0; max-width: 150px; height: 31px; padding: 3px; border: 1px solid #ddd4e9; border-radius: 7px; background: #fff; color: #493367; font: inherit; font-size: 11px; }
+.crmb-sales-v2-stage button { border: 0; border-radius: 6px; padding: 0 8px; font-size: 11px; font-weight: 750; color: #fff; background: #5a319c; cursor: pointer; }
+.crmb-sales-v2-empty { margin: 0; text-align: center; padding: 25px 8px; color: #93869e; font-size: 11px; }
+.crmb-sales-v2-followups { margin: 0; padding: 0; list-style: none; display: grid; gap: 0; }
+.crmb-sales-v2-followups li { display: flex; flex-direction: column; gap: 3px; padding: 10px 0; border-bottom: 1px solid #eee8f5; }
+.crmb-sales-v2-followups li:last-child { border-bottom: 0; }
+.crmb-sales-v2-followups li strong { font-size: 12px; color: #3e2867; }
+.crmb-sales-v2-followups li span, .crmb-sales-v2-followups li small { font-size: 11px; }
+.crmb-sales-v2-count { padding: 4px 8px; background: #efe9fa; color: #53299c; border-radius: 7px; font-weight: 800; }
+.crmb-sales-v2-call { display: grid; gap: 7px; }
+.crmb-sales-v2-call label { color: #59416f; font-size: 12px; font-weight: 700; }
+.crmb-sales-v2-call input,.crmb-sales-v2-call select,.crmb-sales-v2-call textarea { width: 100%; box-sizing: border-box; min-width: 0; }
+.crmb-sales-v2-call button.crm-access-primary { margin-top: 8px; }
+#crmb-call-customer-results { display: grid; gap: 4px; }
+#crmb-call-customer-results button { text-align: right; border: 1px solid #e8def7; background: #faf7ff; border-radius: 7px; cursor: pointer; padding: 7px; font: inherit; }
+.crmb-sales-v2-activity { display: grid; gap: 10px; }
+.crmb-sales-v2-activity > div { border-right: 3px solid #bba8eb; padding: 5px 12px; background: #fbf9fe; }
+.crmb-sales-v2-activity strong { font-size: 12px; color: #3e235e; }
+.crmb-sales-v2-activity span { float: left; font-size: 11px; color: #8d8199; }
+.crmb-sales-v2-activity p { margin: 6px 0; color: #5a4d64; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+.crmb-sales-v2-team { padding: 0; list-style: none; margin: 0; }
+.crmb-sales-v2-team li { display: flex; gap: 10px; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee6f5; padding: 10px 0; }
+.crmb-sales-v2-team li strong { color: #6241a3; font-size: 11px; }
+.crmb-sales-v2-team li span { color: #413051; font-size: 12px; }
+.crmb-sales-payable { border-top: 2px solid #e4d8f4; padding-top: 14px; }
+@media (max-width: 1140px) {
+  .crmb-sales-v2-grid { grid-template-columns: minmax(0, 1fr); }
+  .crmb-sales-v2-aside { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 680px) {
+  .crmb-sales-v2-tabs { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; }
+  .crmb-sales-v2-tabs button { flex-shrink: 0; padding: 8px 12px; }
+  .crmb-sales-v2-aside { grid-template-columns: 1fr; }
+  .crmb-sales-v2-overview .crm-access-card { padding: 12px; }
+  .crmb-sales-v2-buttons button { flex: 1; }
+}
