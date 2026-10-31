@@ -13,7 +13,9 @@ function is_user_logged_in() { global $logged; return $logged; }
 function current_user_can( $cap ) { global $admin; return $cap === 'manage_options' && $admin; }
 function crmbarghbazar_can_view_section( $section ) { global $sales, $admin; return $section === 'sales' && ( $sales || $admin ); }
 function get_current_user_id() { global $uid; return $uid; }
-function get_option( $key, $default = false ) { return $key === 'crmb_sales_schema_v1' ? '1' : $default; }
+function user_can( $user, $cap ) { return in_array( $cap, array( 'crm_menu_sales', 'manage_options' ), true ) && isset( $user->ID ); }
+function get_userdata( $id ) { return in_array( $id, array( 7, 8, 9 ), true ) ? (object) array( 'ID' => $id, 'display_name' => 'Seller #' . $id ) : false; }
+function get_option( $key, $default = false ) { return in_array( $key, array( 'crmb_sales_schema_v1', 'crmb_sales_ops_schema_v1' ), true ) ? '1' : $default; }
 function absint( $value ) { return abs( (int) $value ); }
 function sanitize_text_field( $value ) { return trim( strip_tags( (string) $value ) ); }
 function sanitize_textarea_field( $value ) { return trim( strip_tags( (string) $value ) ); }
@@ -35,7 +37,9 @@ class SalesTestDB {
             'CREATE TABLE wp_crmb_sales_opportunities(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,owner_id INTEGER,title TEXT,stage TEXT,followup_day TEXT,notes TEXT,created_utc TEXT,updated_utc TEXT);' .
             'CREATE TABLE wp_crmb_sales_quotes(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,opportunity_id INTEGER DEFAULT 0,owner_id INTEGER,status TEXT,notes TEXT,subtotal_toman INTEGER,created_utc TEXT,updated_utc TEXT);' .
             'CREATE TABLE wp_crmb_sales_quote_lines(id INTEGER PRIMARY KEY AUTOINCREMENT,quote_id INTEGER,product_id INTEGER,product_title TEXT,sku TEXT,quantity TEXT,unit_price_toman INTEGER,total_toman INTEGER);' .
-            'CREATE TABLE wp_crmb_sales_quote_history(id INTEGER PRIMARY KEY AUTOINCREMENT,quote_id INTEGER,actor_id INTEGER,event_type TEXT,created_utc TEXT);'
+            'CREATE TABLE wp_crmb_sales_quote_history(id INTEGER PRIMARY KEY AUTOINCREMENT,quote_id INTEGER,actor_id INTEGER,event_type TEXT,created_utc TEXT);' .
+            'CREATE TABLE wp_crmb_sales_calls(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,opportunity_id INTEGER,owner_id INTEGER,outcome TEXT,note TEXT,next_followup_day TEXT,created_utc TEXT);' .
+            'CREATE TABLE wp_crmb_sales_discounts(quote_id INTEGER PRIMARY KEY,percent TEXT,status TEXT,requested_by INTEGER,reviewed_by INTEGER DEFAULT 0,reviewed_utc TEXT);'
         );
     }
     function prepare( $sql, ...$values ) {
@@ -48,6 +52,7 @@ class SalesTestDB {
     function run( $sql ) {
         $this->last_error = '';
         if ( $sql === 'START TRANSACTION' ) { $sql = 'BEGIN TRANSACTION'; }
+        $sql = preg_replace( '/ FOR UPDATE$/', '', $sql );
         try { return $this->db->query( $sql ); }
         catch ( Throwable $e ) { $this->last_error = $e->getMessage(); return false; }
     }
@@ -77,6 +82,7 @@ class SalesTestDB {
 }
 $wpdb = new SalesTestDB();
 require __DIR__ . '/../inc/sales.php';
+require __DIR__ . '/../inc/sales-operations.php';
 check( true, crmb_sales_access() );
 check( false, crmb_sales_admin() );
 check( 15000, crmb_sales_csv_price( '15,000', 'toman' ) );
@@ -112,6 +118,30 @@ check( null, crmb_sales_customer( 1 ) );
 check( null, crmb_sales_quote( 1 ) );
 check( 'denied', crmb_sales_customer_save( array( 'customer_id' => '1', 'name' => 'Try overwrite' ) ) );
 check( 'invalid', crmb_sales_quote_create( array( 'customer_id' => '1', 'product_ids' => array( '1' ), 'quantities' => array( '1' ) ) ) );
+$uid = 7; $admin = false; $sales = true;
+check( 'saved', crmb_sales_ops_call( array( 'customer_id' => '1', 'opportunity_id' => '1', 'outcome' => 'answered', 'note' => 'مکالمه انجام شد', 'next_followup_day' => '1405-08-10' ) ) );
+check( 1, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM wp_crmb_sales_calls' ) );
+check( 'saved', crmb_sales_ops_move( array( 'opportunity_id' => '1', 'stage' => 'won' ) ) );
+check( 'won', $wpdb->get_var( 'SELECT stage FROM wp_crmb_sales_opportunities WHERE id=1' ) );
+$discounted = crmb_sales_quote_create( array( 'customer_id' => '1', 'product_ids' => array( '1' ), 'quantities' => array( '1' ), 'discount_percent' => '10' ) );
+check( 2, $discounted );
+check( 'needs_approval', crmb_sales_quote_transition( array( 'quote_id' => '2', 'status' => 'sent' ) ) );
+check( null, crmb_sales_ops_discount( 9999 ) );
+check( 'denied', crmb_sales_ops_review_discount( array( 'quote_id' => '2', 'decision' => 'approved' ) ) );
+$admin = true; $sales = false;
+check( 'saved', crmb_sales_ops_review_discount( array( 'quote_id' => '2', 'decision' => 'approved' ) ) );
+check( 135000, crmb_sales_ops_total( 150000, crmb_sales_ops_discount( 2 ) ) );
+check( 'saved', crmb_sales_quote_transition( array( 'quote_id' => '2', 'status' => 'sent' ) ) );
+check( 'saved', crmb_sales_ops_assign( array( 'customer_id' => '1', 'owner_id' => '8' ) ) );
+check( 8, (int) $wpdb->get_var( 'SELECT owner_id FROM wp_crmb_sales_customers WHERE id=1' ) );
+check( 8, (int) $wpdb->get_var( 'SELECT owner_id FROM wp_crmb_sales_opportunities WHERE id=1' ) );
+check( 8, (int) $wpdb->get_var( 'SELECT owner_id FROM wp_crmb_sales_quotes WHERE id=2' ) );
+check( 8, (int) $wpdb->get_var( 'SELECT owner_id FROM wp_crmb_sales_calls WHERE id=1' ) );
+$admin = false; $sales = true; $uid = 7;
+check( null, crmb_sales_quote( 2 ) );
+check( null, crmb_sales_customer( 1 ) );
+$uid = 8;
+check( true, (bool) crmb_sales_quote( 2 ) );
 $admin = true; $sales = false;
 check( true, crmb_sales_access() );
 check( true, (bool) crmb_sales_quote( 1 ) );
