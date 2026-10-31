@@ -77,7 +77,7 @@ if ( ! empty( $crm_user->roles ) ) {
                 ? sanitize_key( wp_unslash( $_GET['crm_section'] ) ) : '';
             if ( '' === $crm_current_section ) {
                 // Old clock endpoints return to /main/ with a result message.
-                $crm_current_section = isset( $_GET['clock_notice'] ) || isset( $_GET['leave_notice'] ) ? 'clock' : 'dashboard';
+                $crm_current_section = isset( $_GET['clock_notice'] ) || isset( $_GET['leave_notice'] ) ? 'clock' : ( current_user_can( 'manage_options' ) ? 'ceo' : ( crmb_leadership_can_operate() ? 'operations' : 'dashboard' ) );
             }
             // Preserve old bookmarks without exposing another sidebar item.
             if ( 'access' === $crm_current_section ) {
@@ -89,6 +89,7 @@ if ( ! empty( $crm_user->roles ) ) {
                 'clock' => 'fa-fingerprint', 'departments' => 'fa-users',
                 'tasks' => 'fa-list-check', 'messages' => 'fa-envelope',
                 'reports' => 'fa-file-lines', 'seo' => 'fa-chart-line',
+                'ceo' => 'fa-crown', 'operations' => 'fa-clipboard-check',
             );
             $crm_child_icons = array(
                 'overview' => 'fa-gauge-high', 'projects' => 'fa-layer-group',
@@ -155,7 +156,11 @@ if ( ! empty( $crm_user->roles ) ) {
             </div>
         </header>
         <?php
-        if ( 'dashboard' === $crm_current_section && crmbarghbazar_can_view_section( 'dashboard' ) ) {
+        if ( 'ceo' === $crm_current_section && crmbarghbazar_can_view_section( 'ceo' ) ) {
+            get_template_part( 'template-parts/leadership' );
+        } elseif ( 'operations' === $crm_current_section && crmbarghbazar_can_view_section( 'operations' ) ) {
+            get_template_part( 'template-parts/leadership' );
+        } elseif ( 'dashboard' === $crm_current_section && crmbarghbazar_can_view_section( 'dashboard' ) ) {
             get_template_part( 'template-parts/dashboard' );
         } elseif ( 'attendance' === $crm_current_section && crmbarghbazar_can_view_section( 'attendance' ) ) {
             get_template_part( 'template-parts/attendance-admin' );
