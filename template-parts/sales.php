@@ -157,6 +157,26 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
 
     <section class="crm-access-card crmb-sales-panel" id="crmb-sales-customers">
         <div class="crmb-leadership-heading"><h2>مشتریان</h2><span class="crm-access-muted">پرونده هر مشتری فقط برای فروشنده ثبت‌کننده و مدیر کل قابل مشاهده است.</span></div>
+        <?php if ( crmb_sales_admin() ) : ?>
+        <details class="crmb-sales-expand"><summary>واگذاری پرونده مشتری به فروشنده</summary>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crmb-sales-inline crm-access-form">
+                <?php crmb_sales_ops_form_fields( 'assign_customer' ); ?>
+                <label for="sales-assign-customer">مشتری</label>
+                <select id="sales-assign-customer" name="customer_id" required>
+                    <option value="">انتخاب مشتری</option>
+                    <?php foreach ( $customers ?: array() as $c ) : ?><option value="<?php echo esc_attr( $c->id ); ?>"><?php echo esc_html( $c->name . ' · #' . $c->id ); ?></option><?php endforeach; ?>
+                </select>
+                <label for="sales-assign-owner">مسئول جدید</label><select id="sales-assign-owner" name="owner_id" required>
+                    <?php foreach ( get_users( array( 'orderby' => 'display_name' ) ) as $seller ) :
+                        if ( ! user_can( $seller, 'crm_menu_sales' ) && ! user_can( $seller, 'manage_options' ) ) { continue; } ?>
+                        <option value="<?php echo esc_attr( $seller->ID ); ?>"><?php echo esc_html( $seller->display_name ); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button class="crm-access-primary" type="submit">انتقال مشتری و سوابق</button>
+            </form>
+            <p class="crm-access-muted">تمام فرصت‌ها، تماس‌ها و پیش‌فاکتورهای مرتبط به مسئول جدید منتقل می‌شوند؛ سوابق باقی می‌مانند.</p>
+        </details>
+        <?php endif; ?>
         <details class="crmb-sales-expand" <?php echo $edit_customer ? 'open' : ''; ?>><summary><?php echo $edit_customer ? 'ویرایش پرونده مشتری' : '+ ثبت مشتری جدید'; ?></summary>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form crmb-sales-form">
                 <?php crmb_sales_form_fields( 'save_customer' ); ?>
