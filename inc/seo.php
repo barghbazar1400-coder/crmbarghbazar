@@ -6,7 +6,7 @@ function crmb_seo_tiers() { return array('manager'=>'مدیر سئو','expert'=>
 function crmb_seo_level($user_id=0) { return get_user_meta($user_id ?: get_current_user_id(),'crmb_seo_level',true); }
 function crmb_seo_access() { return is_user_logged_in() && (current_user_can('manage_options') || isset(crmb_seo_tiers()[crmb_seo_level()])); }
 function crmb_seo_ready() { return '1'===get_option('crmb_seo_schema_v1'); }
-function crmb_seo_tabs() { return array('overview'=>'پیش‌خوان سئو','projects'=>'پروژه‌ها','page'=>'صفحات هدف','keyword'=>'کلمات کلیدی','content'=>'درج و برنامه محتوا','tasks'=>'وظایف و کنترل کیفیت','technical'=>'بررسی فنی','report'=>'گزارش‌های سئو','training'=>'آموزش کارآموز','team'=>'اعضا و دسترسی‌ها'); }
+function crmb_seo_tabs() { return array('workspace'=>'میز پروژه','overview'=>'پیش‌خوان سئو','projects'=>'پروژه‌ها','page'=>'صفحات هدف','keyword'=>'کلمات کلیدی','content'=>'درج و برنامه محتوا','tasks'=>'وظایف و کنترل کیفیت','technical'=>'بررسی فنی','report'=>'گزارش‌های سئو','training'=>'آموزش کارآموز','team'=>'اعضا و دسترسی‌ها'); }
 function crmb_seo_kinds() { return array_intersect_key(crmb_seo_tabs(),array_flip(array('page','keyword','content','technical','report','training'))); }
 function crmb_seo_states() { return array('draft'=>'در حال آماده‌سازی','submitted'=>'منتظر بازبینی','changes'=>'نیازمند اصلاح','reviewed'=>'بازبینی کارشناس انجام شد','approved'=>'تأیید نهایی مدیر','published'=>'انتشار در سایت ثبت شد'); }
 function crmb_seo_install() {
@@ -77,7 +77,7 @@ function crmb_seo_install() {
     update_option('crmb_seo_schema_v1','1',false);
 }
 add_action('init','crmb_seo_install',10);
-add_filter('crmbarghbazar_menu_registry',function($items){$items['seo']=array('label'=>'دپارتمان سئو','access_callback'=>'crmb_seo_access','children'=>crmb_seo_tabs());return $items;});
+add_filter('crmbarghbazar_menu_registry',function($items){$items['seo']=array('label'=>'فضای کاری سئو','access_callback'=>'crmb_seo_access');return $items;});
 function crmb_seo_is_member($project,$user) { global $wpdb; $t=crmb_seo_tables(); return (bool)$wpdb->get_var($wpdb->prepare("SELECT user_id FROM {$t['members']} WHERE project_id=%d AND user_id=%d",$project,$user)); }
 function crmb_seo_project($id) {
     if(!crmb_seo_access() || !crmb_seo_ready() || !$id) return null;
