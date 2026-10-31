@@ -428,3 +428,20 @@ function crmb_sales_catalog_ajax() {
     wp_send_json_success( $rows ?: array() );
 }
 add_action( 'wp_ajax_crmb_sales_catalog', 'crmb_sales_catalog_ajax' );
+
+/** Search only the current salesperson's customers; managers can find all. */
+function crmb_sales_customer_ajax() {
+    if ( ! crmb_sales_access() || ! crmb_sales_ready() ) { wp_send_json_error( array( 'message' => 'دسترسی ندارید.' ), 403 ); }
+    check_ajax_referer( 'crmb_sales_catalog', 'nonce' );
+    $term = isset( $_GET['q'] ) && is_string( $_GET['q'] ) ? sanitize_text_field( wp_unslash( $_GET['q'] ) ) : '';
+    if ( strlen( $term ) < 2 || strlen( $term ) > 240 ) { wp_send_json_success( array() ); }
+    global $wpdb; $t = crmb_sales_tables();
+    $like = '%' . $wpdb->esc_like( $term ) . '%';
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        "SELECT id,name,phone,company FROM {$t['customers']} WHERE (name LIKE %s OR phone LIKE %s OR company LIKE %s)"
+            . crmb_sales_scope() . " ORDER BY id DESC LIMIT 20", $like, $like, $like
+    ) );
+    if ( $wpdb->last_error ) { wp_send_json_error( array( 'message' => 'خطای دریافت مشتری.' ), 500 ); }
+    wp_send_json_success( $rows ?: array() );
+}
+add_action( 'wp_ajax_crmb_sales_customer', 'crmb_sales_customer_ajax' );
