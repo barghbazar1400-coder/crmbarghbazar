@@ -111,7 +111,7 @@ $uid = 8;
 check( null, crmb_sales_customer( 1 ) );
 check( null, crmb_sales_quote( 1 ) );
 check( 'denied', crmb_sales_customer_save( array( 'customer_id' => '1', 'name' => 'Try overwrite' ) ) );
-check( 'invalid', crmb_sales_quote_create( array( 'customer_id' => '1', 'product_ids' => array( '1' ), 'quantities' => array( '1' ) ) );
+check( 'invalid', crmb_sales_quote_create( array( 'customer_id' => '1', 'product_ids' => array( '1' ), 'quantities' => array( '1' ) ) ) );
 $admin = true; $sales = false;
 check( true, crmb_sales_access() );
 check( true, (bool) crmb_sales_quote( 1 ) );
