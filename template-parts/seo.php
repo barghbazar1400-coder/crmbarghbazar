@@ -16,6 +16,9 @@ $seo_base=add_query_arg(array('crm_section'=>'seo','seo_tab'=>$seo_tab),home_url
     $seo_project=$seo_project_id?crmb_seo_project($seo_project_id):null;
     $seo_manage=$seo_project && crmb_seo_manage($seo_project_id);
     global $wpdb; $seo_tables=crmb_seo_tables();
+    if('workspace'!==$seo_tab && $seo_project) {
+        echo '<p class="crmb-seo-back"><a href="' . esc_url(add_query_arg(array('crm_section'=>'seo','seo_tab'=>'workspace','project'=>$seo_project_id),home_url('/main/'))) . '">← بازگشت به میز پروژه</a></p>';
+    }
     if('projects'===$seo_tab || 'team'===$seo_tab) {
         include __DIR__.'/seo-management.php';
     } else { ?>
