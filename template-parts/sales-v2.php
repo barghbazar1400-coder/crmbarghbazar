@@ -194,7 +194,7 @@ $base = add_query_arg( 'crm_section', 'sales', home_url( '/main/' ) );
         }
         if (key!=="overview") ids[key].scrollIntoView({block:"nearest"});
     }
-    const current=params.get("sales_tab") || (params.has("edit_customer")?"customers":params.has("edit_opportunity")?"opportunities":"overview");
+    const current=params.get("sales_tab") || params.get("sales_anchor") || (params.has("edit_customer")?"customers":params.has("edit_opportunity")?"opportunities":params.has("sales_search")?"catalog":"overview");
     activate(current,false);
     document.querySelectorAll("[data-sales-open]").forEach(button=>{
         button.addEventListener("click",event=>{
