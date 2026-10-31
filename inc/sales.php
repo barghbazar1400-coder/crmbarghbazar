@@ -210,6 +210,9 @@ function crmb_sales_quote_create( $data ) {
     $ids = $data['product_ids'] ?? null;
     $quantities = $data['quantities'] ?? null;
     $notes = crmb_sales_clean( $data, 'notes', 4000, true );
+    $discount_raw = isset( $data['discount_percent'] ) ? $data['discount_percent'] : '0';
+    $discount_pct = function_exists( 'crmb_sales_ops_discount_percent' ) ? crmb_sales_ops_discount_percent( $discount_raw ) : null;
+    if ( null === $discount_pct || ( $discount_pct > 0 && ! crmb_sales_ops_ready() ) ) { return 'invalid'; }
     if ( ! $customer || ! is_array( $ids ) || ! is_array( $quantities ) ||
         ! count( $ids ) || count( $ids ) !== count( $quantities ) || count( $ids ) > 30 ) { return 'invalid'; }
     global $wpdb; $t = crmb_sales_tables(); $lines = array(); $subtotal = 0;
@@ -251,6 +254,13 @@ function crmb_sales_quote_create( $data ) {
         $line['quote_id'] = $quote_id;
         if ( false === $wpdb->insert( $t['lines'], $line ) ) { $wpdb->query( 'ROLLBACK' ); return 'error'; }
     }
+    if ( $discount_pct > 0 ) {
+        $extra = crmb_sales_ops_tables();
+        if ( false === $wpdb->insert( $extra['discounts'], array(
+            'quote_id' => $quote_id, 'percent' => $discount_pct,
+            'status' => 'pending', 'requested_by' => get_current_user_id(),
+        ) ) ) { $wpdb->query( 'ROLLBACK' ); return 'error'; }
+    }
     if ( false === $wpdb->insert( $t['history'], array(
         'quote_id' => $quote_id, 'actor_id' => get_current_user_id(),
         'event_type' => 'created', 'created_utc' => $now,
@@ -266,6 +276,10 @@ function crmb_sales_quote_transition( $data ) {
     $allowed = array( 'draft' => array( 'sent' ), 'sent' => array( 'accepted', 'rejected' ), 'accepted' => array(), 'rejected' => array() );
     if ( ! $quote ) { return 'denied'; }
     if ( ! in_array( $next, $allowed[$quote->status] ?? array(), true ) ) { return 'invalid'; }
+    if ( 'sent' === $next && function_exists( 'crmb_sales_ops_discount' ) ) {
+        $discount = crmb_sales_ops_discount( (int) $quote->id );
+        if ( $discount && 'approved' !== $discount->status ) { return 'needs_approval'; }
+    }
     global $wpdb; $t = crmb_sales_tables(); $now = gmdate( 'Y-m-d H:i:s' );
     if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return 'error'; }
     $result = $wpdb->update( $t['quotes'], array( 'status' => $next, 'updated_utc' => $now ), array( 'id' => $quote->id, 'status' => $quote->status ) );
