@@ -14,6 +14,7 @@ $metrics = array(
     array( 'key' => 'timers_active', 'label' => 'زمان‌سنج‌های فعال', 'url' => $task_url ),
     array( 'key' => 'reports_pending', 'label' => 'گزارش‌های نیازمند بررسی', 'url' => $is_ceo ? add_query_arg( array( 'crm_section' => 'reports', 'scope' => 'team' ), $base ) : '' ),
     array( 'key' => 'leaves_pending', 'label' => 'مرخصی‌های منتظر تصمیم', 'url' => $is_ceo ? add_query_arg( 'crm_section', 'attendance', $base ) : '' ),
+    array( 'key' => 'sales_followups', 'label' => 'پیگیری‌های فروش سررسید', 'url' => crmbarghbazar_can_view_section( 'sales' ) ? add_query_arg( 'crm_section', 'sales', $base ) : '' ),
 );
 ?>
 <section class="crm-access-screen crmb-leadership" aria-labelledby="crmb-leadership-title">
@@ -57,6 +58,9 @@ $metrics = array(
                 <a href="<?php echo esc_url( $task_url ); ?>">برنامه کار تیم و واگذاری</a>
                 <?php if ( crmbarghbazar_can_view_section( 'seo' ) ) : ?>
                     <a href="<?php echo esc_url( $seo_url ); ?>">پروژه‌ها و گردش کار سئو</a>
+                <?php endif; ?>
+                <?php if ( crmbarghbazar_can_view_section( 'sales' ) ) : ?>
+                    <a href="<?php echo esc_url( add_query_arg( 'crm_section', 'sales', $base ) ); ?>">میز فروش، مشتریان و پیش‌فاکتورها</a>
                 <?php endif; ?>
                 <?php if ( $is_ceo ) : ?>
                     <a href="<?php echo esc_url( add_query_arg( 'crm_section', 'departments', $base ) ); ?>">کارکنان و دسترسی‌ها</a>
