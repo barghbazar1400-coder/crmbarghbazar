@@ -98,7 +98,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                         <p class="crmb-task-card-description is-empty">توضیح بیشتری برای این وظیفه ثبت نشده است.</p>
                     <?php endif; ?>
                     <div class="crmb-task-card-info">
-                        <div><i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                        <div><i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
                             <span><?php echo $overdue ? 'مهلت گذشته: ' : ( $due_today ? 'مهلت امروز: ' : 'مهلت انجام: ' ); ?>
                             <strong class="<?php echo $overdue ? 'crmb-work-overdue' : ''; ?>"><?php echo esc_html( $task->due_day ? crmb_att_jdate( $task->due_day ) : 'تعیین نشده' ); ?></strong></span>
                         </div>
