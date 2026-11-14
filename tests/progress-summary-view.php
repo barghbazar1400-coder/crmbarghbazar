@@ -58,6 +58,10 @@ function render_daily_summary() {
 }
 $employee = render_daily_summary();
 check_summary( str_contains( $employee, 'crmb-progress-summary-layout' ), 'Compact layout' );
+check_summary( str_contains( $employee, 'crmb-progress-timer-card' ), 'Independent timer card' );
+check_summary( str_contains( $employee, 'crmb-progress-report-card' ), 'Independent report card' );
+check_summary( ! str_contains( $employee, 'crmb-progress-team-activity' ), 'No manager card for employee' );
+check_summary( ! str_contains( $employee, 'crm-access-card crmb-progress-summary' ), 'No outer enclosing card' );
 check_summary( str_contains( $employee, 'بررسی محصولات' ), 'Own active task' );
 check_summary( str_contains( $employee, 'پیش‌نویس' ), 'Own report status' );
 check_summary( ! str_contains( $employee, 'آخرین فعالیت‌های تیم' ), 'No team activity for employee' );
@@ -66,6 +70,8 @@ $manager = true;
 $wpdb->queries = array();
 $admin_html = render_daily_summary();
 check_summary( str_contains( $admin_html, 'آخرین فعالیت‌های تیم' ), 'Manager activity list' );
+check_summary( str_contains( $admin_html, 'crm-access-card crmb-progress-team-activity' ), 'Independent team activity card' );
+check_summary( substr_count( $admin_html, 'crm-access-card crmb-progress-' ) === 3, 'Three sibling cards' );
 check_summary( str_contains( $admin_html, '2 گزارش منتظر بررسی' ), 'Pending approvals count' );
 check_summary( substr_count( $admin_html, 'crmb-progress-activity-item' ) === 2, 'Recent events' );
 check_summary( str_contains( $admin_html, '&lt;script&gt;' ), 'Event text escaped' );
