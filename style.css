@@ -1614,3 +1614,28 @@ body.crm-main-page {
   .crmb-task-card-action { justify-content: center; }
   .crmb-task-card-status-form { justify-content: space-between; }
 }
+
+
+/* Task detail inherits the same clean visual rhythm as the employee list. */
+.crmb-task-detail-page { padding-top: 30px; }
+.crmb-task-detail-page > .crm-access-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+.crmb-task-detail-page > .crm-access-header p { margin: 0; }
+.crmb-task-detail-page > .crm-access-header a { display: inline-block; color: #6036b0; border: 1px solid #e1d3f3; padding: 9px 13px; border-radius: 9px; background: #fff; text-decoration: none; font-weight: 750; }
+.crmb-task-detail-page > .crm-access-card { padding: 22px 26px; margin: 14px 0; }
+.crmb-task-detail-page > .crm-access-card > h2 { margin: 0 0 12px; font-size: 17px; }
+.crmb-task-detail-page .crmb-work-body { font-size: 13px; line-height: 2.1; white-space: pre-wrap; overflow-wrap: anywhere; color: #584a69; }
+.crmb-task-detail-page .crmb-task-times { margin: 18px 0 8px; gap: 12px; grid-template-columns: repeat(3,minmax(0,1fr)); }
+.crmb-task-detail-page .crmb-task-times > div { border: 1px solid #eae2f6; background: #faf8fe; padding: 15px; border-radius: 11px; min-width: 0; }
+.crmb-task-detail-page .crmb-task-times dt { font-size: 11px; }
+.crmb-task-detail-page .crmb-task-times dd { margin: 7px 0 0; font-size: 13px; color: #4a2c83; overflow-wrap: anywhere; }
+.crmb-task-detail-page #crmb-task-timer { font-size: clamp(18px,2vw,25px); color: #3f2582; }
+.crmb-task-detail-page .crmb-task-controls { margin-top: 17px; }
+.crmb-task-detail-page .crmb-task-controls form button { min-height: 40px; margin: 0; }
+.crmb-task-detail-page > .crm-access-card > .crm-access-form textarea { min-height: 105px; }
+.crmb-task-detail-page .crmb-work-item { padding: 13px 0; }
+.crmb-task-detail-page .crmb-work-item h3 { margin: 0 0 7px; font-size: 13px; }
+.crmb-task-detail-page .crmb-work-item p { margin: 7px 0; }
+@media (max-width: 670px) {
+  .crmb-task-detail-page > .crm-access-card { padding: 17px 15px; }
+  .crmb-task-detail-page .crmb-task-times { grid-template-columns: 1fr; }
+}
