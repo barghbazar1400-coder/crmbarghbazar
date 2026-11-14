@@ -1514,3 +1514,103 @@ body.crm-main-page {
 .crmb-sales-customer-note { border-bottom: 1px solid #efeaf5; padding: 8px 0; }
 .crmb-sales-customer-note small { color: #877a9b; }
 @media (max-width: 900px) { .crmb-sales-customer-columns { grid-template-columns: 1fr; } }
+
+
+/* Employee task desk — focused, compact and readable without changing task workflow. */
+.crmb-tasks-page { padding-top: 30px; }
+.crmb-tasks-page > .crm-access-header { margin: 0 0 24px; }
+.crmb-tasks-page .crm-access-header h1 { font-size: clamp(23px,2.6vw,30px); }
+.crmb-tasks-overview { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin: 0 0 26px; }
+.crmb-tasks-overview-item {
+  display: flex; align-items: center; gap: 13px;
+  min-width: 0; padding: 16px 19px; background: #fff;
+  border: 1px solid #eae3f5; border-radius: 14px;
+  box-shadow: 0 7px 22px rgba(62,37,111,.035);
+}
+.crmb-tasks-overview-icon {
+  display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0;
+  border-radius: 12px; background: #f0e9fd; color: #683cc1; font-size: 18px;
+}
+.crmb-tasks-overview-icon.is-active { background: #fff1e4; color: #b66d1b; }
+.crmb-tasks-overview-icon.is-done { background: #e7f6ef; color: #237a57; }
+.crmb-tasks-overview-item > div { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.crmb-tasks-overview-item > div > span { color: #7d708e; font-size: 12px; }
+.crmb-tasks-overview-item strong { color: #31205c; font-size: 24px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.crmb-tasks-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 0 17px; }
+.crmb-tasks-section-heading h2 { margin: 0; font-size: 18px; font-weight: 850; color: #36206a; }
+.crmb-tasks-section-heading p { margin: 5px 0 0; font-size: 12px; color: #82748e; }
+.crmb-tasks-section-count { color: #69547c; border: 1px solid #e7dbf5; padding: 8px 12px; border-radius: 9px; background: #fff; font-size: 11px; white-space: nowrap; }
+.crmb-tasks-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,390px),1fr)); align-items: start; gap: 16px; }
+.crmb-task-card {
+  background: #fff; border: 1px solid #e8dff4; border-radius: 16px; padding: 20px 22px;
+  box-shadow: 0 9px 25px rgba(59,30,108,.045); min-width: 0; position: relative;
+  transition: border-color .18s, box-shadow .18s;
+}
+.crmb-task-card:hover { border-color: #cdb9f0; box-shadow: 0 11px 30px rgba(59,30,108,.09); }
+.crmb-task-card.is-status-done { border-inline-start: 3px solid #48a67b; }
+.crmb-task-card.is-status-doing { border-inline-start: 3px solid #7d50d1; }
+.crmb-task-card-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; }
+.crmb-task-card-number { color: #8e7c9b; font-size: 11px; }
+.crmb-task-card-flags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.crmb-task-card-priority, .crmb-task-card-status { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 8px; font-weight: 750; font-size: 11px; white-space: nowrap; }
+.crmb-task-card-priority.is-priority-normal { background: #f4f1f8; color: #766483; }
+.crmb-task-card-priority.is-priority-high { background: #fff2de; color: #97601c; }
+.crmb-task-card-priority.is-priority-urgent { background: #ffeded; color: #b23b46; }
+.crmb-task-card-status.is-todo { background: #eff2fc; color: #506d9f; }
+.crmb-task-card-status.is-doing { background: #f0e9fe; color: #6739ad; }
+.crmb-task-card-status.is-paused { background: #fff3df; color: #99611b; }
+.crmb-task-card-status.is-done { background: #e5f5ec; color: #27764f; }
+.crmb-task-card-status.is-cancelled { background: #f2f0f3; color: #7c7382; }
+.crmb-task-card-title { font-size: 17px !important; color: #342060 !important; margin: 0 0 9px !important; line-height: 1.6; }
+.crmb-task-card-title a { color: inherit; text-decoration: none; }
+.crmb-task-card-title a:hover { color: #7344c8; text-decoration: underline; text-underline-offset: 4px; }
+.crmb-task-card-description {
+  margin: 0 0 17px; color: #625370; font-size: 13px;
+  line-height: 2; white-space: pre-line; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.crmb-task-card-description.is-empty { color: #aaa0b4; }
+.crmb-task-card-info { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 11px; padding: 15px 0; border-top: 1px solid #eee8f7; }
+.crmb-task-card-info > div { display: flex; gap: 8px; align-items: flex-start; color: #796d86; font-size: 12px; min-width: 0; line-height: 1.7; }
+.crmb-task-card-info i { color: #9479cc; font-size: 13px; margin-top: 4px; }
+.crmb-task-card-info strong { color: #4b395f; font-weight: 750; overflow-wrap: anywhere; }
+.crmb-task-card-info strong.crmb-work-overdue { color: #b83d55; }
+.crmb-task-card-running { background: #e9f8f0; border: 1px solid #c9eadb; border-radius: 9px; font-size: 11px; color: #256e4b; padding: 9px 12px; margin-bottom: 14px; }
+.crmb-task-card-live-dot { display: inline-block; width: 7px; height: 7px; background: #2fa86a; border-radius: 50%; margin-left: 6px; vertical-align: middle; }
+.crmb-task-card-footer { border-top: 1px solid #eee8f7; padding-top: 15px; display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+.crmb-task-card-action { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 8px 13px; color: #fff; text-decoration: none; font-size: 12px; font-weight: 800; background: #7042ca; border-radius: 9px; box-sizing: border-box; }
+.crmb-task-card-action:hover { background: #5b2eaf; color: #fff; }
+.crmb-task-card-status-form { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin: 0; }
+.crmb-task-card-status-form label { color: #71637d; font-size: 11px; white-space: nowrap; }
+.crmb-task-card-status-form select { width: auto; max-width: 145px; min-width: 116px; height: 38px; border-radius: 9px; background: #fbf9ff; border: 1px solid #dfd4f0; padding: 5px 8px; font-size: 12px; color: #49315f; font-family: inherit; }
+.crmb-task-card-status-form button { border: 1px solid #d3c3ef; color: #5f38a5; background: #f7f2ff; padding: 9px 13px; min-height: 38px; border-radius: 9px; cursor: pointer; font: inherit; font-size: 12px; font-weight: 750; }
+.crmb-task-card-status-form button:hover { background: #eee5ff; }
+.crmb-task-card-edit { display: inline-block; margin-top: 13px; font-size: 11px; color: #7957b1; text-decoration: none; }
+.crmb-task-card-edit:hover { text-decoration: underline; }
+.crmb-task-card-action:focus-visible, .crmb-task-card-status-form select:focus-visible, .crmb-task-card-status-form button:focus-visible { outline: 2px solid #774ad3; outline-offset: 3px; }
+.crmb-tasks-empty { background: #fff; border: 1px dashed #d8c9ec; border-radius: 14px; padding: 36px 18px; text-align: center; color: #766585; display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.crmb-tasks-empty > span { font-size: 29px; color: #75ad8d; margin-bottom: 5px; }
+.crmb-tasks-empty strong { color: #51396c; }
+.crmb-tasks-empty p { margin: 0; }
+.crmb-tasks-pagination { margin-top: 16px; }
+.crmb-tasks-editor { margin: 20px 0 25px !important; }
+.crmb-tasks-editor > summary { font-weight: 800; font-size: 14px; color: #6736bd; padding: 2px 0; cursor: pointer; }
+.crmb-tasks-editor[open] > summary { margin-bottom: 18px; }
+@media (max-width: 760px) {
+  .crmb-tasks-page { padding-top: 24px; }
+  .crmb-tasks-overview { gap: 8px; }
+  .crmb-tasks-overview-item { padding: 12px; gap: 8px; }
+  .crmb-tasks-overview-icon { width: 34px; height: 34px; font-size: 14px; }
+  .crmb-tasks-overview-item > div > span { font-size: 10px; }
+  .crmb-tasks-overview-item strong { font-size: 20px; }
+  .crmb-task-card { padding: 16px; }
+  .crmb-tasks-section-heading { align-items: flex-start; }
+}
+@media (max-width: 490px) {
+  .crmb-tasks-overview { grid-template-columns: 1fr 1fr; }
+  .crmb-tasks-overview-item:first-child { grid-column: 1 / -1; }
+  .crmb-task-card-info { grid-template-columns: 1fr; }
+  .crmb-task-card-footer { align-items: stretch; }
+  .crmb-task-card-action { justify-content: center; }
+  .crmb-task-card-status-form { justify-content: space-between; }
+}
