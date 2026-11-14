@@ -1639,3 +1639,78 @@ body.crm-main-page {
   .crmb-task-detail-page > .crm-access-card { padding: 17px 15px; }
   .crmb-task-detail-page .crmb-task-times { grid-template-columns: 1fr; }
 }
+
+
+/* Dashboard: compact daily status and manager activity feed, RTL-first. */
+.crmb-dashboard > .crmb-progress-summary { margin-top: 18px; padding: 23px 25px; }
+.crmb-progress-summary-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 17px; margin-bottom: 18px; border-bottom: 1px solid #eee7f5; }
+.crmb-progress-eyebrow { font-size: 11px; font-weight: 750; color: #8453c6; }
+.crmb-progress-summary-header h2 { font-size: 17px; margin: 3px 0 4px; color: #351a67; }
+.crmb-progress-summary-header p { color: #897e99; font-size: 12px; margin: 0; line-height: 1.8; }
+.crmb-progress-header-action { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; border: 1px solid #dcccfa; background: #f7f3ff; border-radius: 10px; color: #5f35a8; font-size: 12px; font-weight: 800; padding: 10px 14px; }
+.crmb-progress-header-action:hover { background: #efe6ff; }
+.crmb-progress-summary-layout { display: grid; grid-template-columns: minmax(260px, .94fr) minmax(0, 1.4fr); gap: 18px; align-items: stretch; }
+.crmb-progress-summary.is-personal .crmb-progress-summary-layout { display: block; }
+.crmb-progress-today { display: grid; grid-template-columns: 1fr; gap: 12px; align-content: start; min-width: 0; }
+.crmb-progress-summary.is-personal .crmb-progress-today { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.crmb-progress-info-card { background: #fcfbff; border: 1px solid #e9e2f4; border-radius: 12px; padding: 15px; min-width: 0; }
+.crmb-progress-info-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.crmb-progress-info-head > div { min-width: 0; flex: 1; }
+.crmb-progress-info-head h3 { margin: 0 0 3px; font-size: 13px; font-weight: 800; color: #39216c; }
+.crmb-progress-info-head p { margin: 0; color: #8e829b; font-size: 11px; }
+.crmb-progress-info-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; background: #ece4fb; color: #6d41be; font-size: 16px; }
+.crmb-progress-info-icon.is-timer { background: #e9f5ff; color: #386fa8; }
+.crmb-progress-info-icon.is-report { background: #f0e8ff; color: #6d40c6; }
+.crmb-progress-state { display: inline-flex; align-items: center; padding: 5px 9px; border-radius: 7px; font-size: 10px; font-weight: 750; white-space: nowrap; background: #f2eff7; color: #776b83; }
+.crmb-progress-state.is-active, .crmb-progress-state.is-report-reviewed { background: #e5f5eb; color: #267653; }
+.crmb-progress-state.is-report-submitted { background: #e9efff; color: #365b9e; }
+.crmb-progress-state.is-report-draft { background: #fff4e0; color: #95631d; }
+.crmb-progress-info-message { color: #6b5c79; font-size: 12px; line-height: 1.9; margin: 12px 0 8px; }
+.crmb-progress-task-name { display: block; font-weight: 800; text-decoration: none; color: #4b298b; font-size: 13px; margin-top: 13px; line-height: 1.7; }
+.crmb-progress-task-name:hover { text-decoration: underline; text-underline-offset: 4px; }
+.crmb-progress-inline-action { display: inline-flex; align-items: center; gap: 6px; color: #673baf; text-decoration: none; font-size: 12px; font-weight: 800; margin-top: 5px; }
+.crmb-progress-inline-action:hover { color: #4f238c; text-decoration: underline; }
+.crmb-progress-review-link { display: flex; align-items: center; gap: 11px; background: #f4efff; border: 1px solid #e6d9fc; border-radius: 11px; padding: 12px 14px; text-decoration: none; color: #512992; }
+.crmb-progress-review-link:hover { background: #ebe1ff; }
+.crmb-progress-review-link > span:nth-child(2) { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.crmb-progress-review-link strong { font-size: 12px; }
+.crmb-progress-review-link small { color: #7b6994; font-size: 10px; }
+.crmb-progress-review-icon { display: grid; place-items: center; border-radius: 9px; width: 34px; height: 34px; flex-shrink: 0; background: white; color: #6b42b6; }
+.crmb-progress-footnote { color: #94899f; font-size: 10px; line-height: 1.8; margin: 0; }
+.crmb-progress-summary.is-personal .crmb-progress-footnote { grid-column: 1 / -1; }
+.crmb-progress-team-activity { min-width: 0; padding: 16px; background: #fff; border: 1px solid #ece5f5; border-radius: 12px; }
+.crmb-progress-team-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding-bottom: 12px; margin-bottom: 3px; }
+.crmb-progress-team-header h3 { margin: 0 0 4px; font-size: 14px; font-weight: 800; color: #38216b; }
+.crmb-progress-team-header p { margin: 0; color: #8b7e98; font-size: 11px; }
+.crmb-progress-activity-count { display: inline-block; border-radius: 8px; padding: 7px 10px; background: #f6f1fd; color: #7754a6; font-size: 11px; white-space: nowrap; }
+.crmb-progress-activity-list { list-style: none; padding: 0; margin: 0; max-height: 465px; overflow-y: auto; scrollbar-width: thin; }
+.crmb-progress-activity-item { display: flex; gap: 12px; align-items: flex-start; padding: 11px 2px; border-top: 1px solid #f0ebf5; }
+.crmb-progress-activity-marker { display: grid; place-items: center; width: 27px; height: 27px; flex-shrink: 0; border-radius: 8px; background: #f2ecfb; color: #794dbd; font-size: 11px; margin-top: 2px; }
+.crmb-progress-activity-marker.is-done { color: #27815d; background: #e5f5ec; }
+.crmb-progress-activity-marker.is-blocker, .crmb-progress-activity-marker.is-cancelled { color: #ad4560; background: #ffedf1; }
+.crmb-progress-activity-marker.is-paused { color: #a57626; background: #fff2db; }
+.crmb-progress-activity-content { flex: 1; min-width: 0; }
+.crmb-progress-activity-line { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
+.crmb-progress-activity-title { font-size: 12px; font-weight: 800; line-height: 1.65; color: #3e246e; text-decoration: none; overflow-wrap: anywhere; }
+.crmb-progress-activity-title:hover { text-decoration: underline; }
+.crmb-progress-activity-type { padding: 4px 8px; font-size: 10px; font-weight: 750; background: #f2edfa; color: #7652a8; border-radius: 7px; white-space: nowrap; }
+.crmb-progress-activity-type.is-done { background: #eaf7ee; color: #267a55; }
+.crmb-progress-activity-type.is-blocker, .crmb-progress-activity-type.is-cancelled { background: #fff0f2; color: #af3f55; }
+.crmb-progress-activity-type.is-paused { background: #fff2e4; color: #97601f; }
+.crmb-progress-activity-meta { display: flex; flex-wrap: wrap; gap: 5px 12px; margin: 5px 0 0; color: #97899f; font-size: 10px; line-height: 1.7; }
+.crmb-progress-activity-description { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; color: #655771; line-height: 1.8; margin: 6px 0 0; font-size: 11px; overflow-wrap: anywhere; }
+.crmb-progress-activity-empty { padding: 25px 12px; text-align: center; color: #897c99; font-size: 12px; }
+.crmb-progress-header-action:focus-visible, .crmb-progress-inline-action:focus-visible, .crmb-progress-activity-title:focus-visible { outline: 2px solid #8a54d6; outline-offset: 3px; }
+@media (max-width: 1100px) {
+  .crmb-progress-summary-layout { grid-template-columns: minmax(0,1fr); }
+  .crmb-progress-today { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .crmb-progress-review-link, .crmb-progress-footnote { grid-column: 1/-1; }
+}
+@media (max-width: 670px) {
+  .crmb-dashboard > .crmb-progress-summary { padding: 16px 13px; }
+  .crmb-progress-summary-header { align-items: flex-start; }
+  .crmb-progress-summary.is-personal .crmb-progress-today, .crmb-progress-today { grid-template-columns: 1fr; }
+  .crmb-progress-review-link, .crmb-progress-footnote { grid-column: auto; }
+  .crmb-progress-team-activity { padding: 12px; }
+  .crmb-progress-activity-list { max-height: none; }
+}
