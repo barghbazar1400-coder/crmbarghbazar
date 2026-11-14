@@ -6,7 +6,7 @@ $id = crmb_work_id( $_GET, 'task_id' );
 $task = crmb_progress_task( $id );
 $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
 ?>
-<section class="crm-access-screen crmb-work" aria-labelledby="crmb-progress-title">
+<section class="crm-access-screen crmb-work crmb-task-detail-page" aria-labelledby="crmb-progress-title">
     <header class="crm-access-header"><h1 id="crmb-progress-title">روند انجام وظیفه</h1><p><a href="<?php echo esc_url( $base ); ?>">بازگشت به وظایف</a></p></header>
     <?php crmb_work_notice(); crmb_progress_notice(); ?>
     <?php if ( ! $task ) : ?><p role="status">وظیفه در دسترس نیست یا اجازه مشاهده آن را ندارید.</p></section><?php return; endif;
