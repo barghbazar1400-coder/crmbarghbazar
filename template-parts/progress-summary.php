@@ -43,7 +43,7 @@ if ( $manager ) {
     $events_ok = ! $wpdb->last_error;
 }
 ?>
-<section class="crm-access-card crmb-progress-summary <?php echo $manager ? 'has-team-activity' : 'is-personal'; ?>" aria-labelledby="crmb-progress-summary-title">
+<section class="crmb-progress-summary <?php echo $manager ? 'has-team-activity' : 'is-personal'; ?>" aria-labelledby="crmb-progress-summary-title">
     <header class="crmb-progress-summary-header">
         <div>
             <span class="crmb-progress-eyebrow">خلاصه فعالیت‌ها</span>
@@ -54,7 +54,7 @@ if ( $manager ) {
     </header>
     <div class="crmb-progress-summary-layout">
         <div class="crmb-progress-today">
-            <section class="crmb-progress-info-card">
+            <section class="crm-access-card crmb-progress-info-card crmb-progress-timer-card">
                 <div class="crmb-progress-info-head">
                     <span class="crmb-progress-info-icon is-timer"><i class="fa-solid fa-stopwatch" aria-hidden="true"></i></span>
                     <div><h3>وضعیت کار من</h3><p>زمان‌سنج فعالیت</p></div>
@@ -74,8 +74,9 @@ if ( $manager ) {
                     <p class="crmb-progress-info-message">در حال حاضر زمان‌سنج فعالی ندارید.</p>
                     <a class="crmb-progress-inline-action" href="<?php echo esc_url( add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) ) ); ?>">رفتن به وظایف من</a>
                 <?php endif; ?>
+                <p class="crmb-progress-footnote">زمان‌سنج با خروج از این صفحه یا ثبت خروج تردد متوقف نمی‌شود.</p>
             </section>
-            <section class="crmb-progress-info-card">
+            <section class="crm-access-card crmb-progress-info-card crmb-progress-report-card">
                 <div class="crmb-progress-info-head">
                     <span class="crmb-progress-info-icon is-report"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span>
                     <div><h3>گزارش امروز</h3><p>ثبت فعالیت‌های روزانه</p></div>
@@ -94,7 +95,6 @@ if ( $manager ) {
                 <a class="crmb-progress-inline-action" href="<?php echo esc_url( $report_url ); ?>">
                     <?php echo $report_ok && ! $report ? 'نوشتن گزارش امروز' : 'مشاهده گزارش امروز'; ?>
                 </a>
-            </section>
             <?php if ( $manager && null !== $pending ) : ?>
                 <a class="crmb-progress-review-link" href="<?php echo esc_url( add_query_arg( 'scope', 'team', $report_url ) ); ?>">
                     <span class="crmb-progress-review-icon"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i></span>
@@ -102,10 +102,10 @@ if ( $manager ) {
                     <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                 </a>
             <?php endif; ?>
-            <p class="crmb-progress-footnote">زمان‌سنج با خروج از این صفحه یا ثبت خروج تردد متوقف نمی‌شود.</p>
+            </section>
         </div>
         <?php if ( $manager ) : ?>
-        <section class="crmb-progress-team-activity" aria-labelledby="crmb-team-activity-title">
+        <section class="crm-access-card crmb-progress-team-activity" aria-labelledby="crmb-team-activity-title">
             <header class="crmb-progress-team-header">
                 <div><h3 id="crmb-team-activity-title">آخرین فعالیت‌های تیم</h3><p>تغییرات و گزارش‌های ثبت‌شده در وظایف</p></div>
                 <?php if ( $events_ok ) : ?><span class="crmb-progress-activity-count"><?php echo esc_html( (string) count( $events ?: array() ) ); ?> فعالیت اخیر</span><?php endif; ?>
