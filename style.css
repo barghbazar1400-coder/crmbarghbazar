@@ -1714,3 +1714,89 @@ body.crm-main-page {
   .crmb-progress-team-activity { padding: 12px; }
   .crmb-progress-activity-list { max-height: none; }
 }
+
+
+/* Dashboard v3: THREE independent cards, side by side without an outer enclosing box. */
+.crmb-dashboard > .crmb-progress-summary {
+  margin: 20px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.crmb-dashboard .crmb-progress-summary-header {
+  border: 0;
+  padding: 0;
+  margin: 0 0 14px;
+}
+.crmb-dashboard .crmb-progress-summary-layout,
+.crmb-dashboard .crmb-progress-summary.is-personal .crmb-progress-summary-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 14px;
+  align-items: start;
+}
+.crmb-dashboard .crmb-progress-summary.has-team-activity .crmb-progress-summary-layout {
+  grid-template-columns: minmax(0,.9fr) minmax(0,.9fr) minmax(0,1.4fr);
+}
+.crmb-dashboard .crmb-progress-today,
+.crmb-dashboard .crmb-progress-summary.is-personal .crmb-progress-today {
+  display: contents;
+}
+.crmb-dashboard .crmb-progress-info-card,
+.crmb-dashboard .crmb-progress-team-activity {
+  background: #fff;
+  border: 1px solid #e8e0f3;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 8px 25px rgba(63,29,115,.045);
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.crmb-dashboard .crmb-progress-info-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 175px;
+}
+.crmb-dashboard .crmb-progress-info-head { align-items: flex-start; }
+.crmb-dashboard .crmb-progress-info-message { margin: 0; }
+.crmb-dashboard .crmb-progress-inline-action { margin-top: auto; }
+.crmb-dashboard .crmb-progress-footnote {
+  margin: 2px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed #eee7f5;
+}
+.crmb-dashboard .crmb-progress-review-link {
+  margin-top: 6px;
+  padding: 10px;
+  box-shadow: none;
+}
+.crmb-dashboard .crmb-progress-team-activity {
+  display: flex;
+  flex-direction: column;
+  padding: 18px;
+}
+.crmb-dashboard .crmb-progress-team-header { margin: 0; }
+.crmb-dashboard .crmb-progress-activity-list {
+  max-height: 350px;
+  min-width: 0;
+  overflow: auto;
+}
+@media (max-width: 1450px) {
+  .crmb-dashboard .crmb-progress-summary.has-team-activity .crmb-progress-summary-layout {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+  .crmb-dashboard .crmb-progress-team-activity { grid-column: 1 / -1; }
+}
+@media (max-width: 710px) {
+  .crmb-dashboard .crmb-progress-summary.has-team-activity .crmb-progress-summary-layout,
+  .crmb-dashboard .crmb-progress-summary.is-personal .crmb-progress-summary-layout {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .crmb-dashboard .crmb-progress-team-activity { grid-column: auto; }
+  .crmb-dashboard .crmb-progress-info-card,
+  .crmb-dashboard .crmb-progress-team-activity { padding: 14px; }
+  .crmb-dashboard .crmb-progress-activity-list { max-height: none; }
+}
