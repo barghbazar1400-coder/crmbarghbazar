@@ -17,13 +17,13 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
     }
 }
 ?>
-<section class="crm-access-screen crmb-work" aria-labelledby="crmb-tasks-title">
+<section class="crm-access-screen crmb-work crmb-tasks-page" aria-labelledby="crmb-tasks-title">
     <header class="crm-access-header"><h1 id="crmb-tasks-title">وظایف</h1><p>پیگیری کارهای محول‌شده، اولویت و مهلت انجام</p></header>
     <?php crmb_work_notice(); ?>
     <?php if ( $work_admin ) : ?>
         <nav class="crm-access-tabs" aria-label="فیلتر وظایف"><a class="<?php echo $team ? '' : 'is-active'; ?>" href="<?php echo esc_url( add_query_arg( 'scope', 'mine', $base ) ); ?>">وظایف من</a><a class="<?php echo $team ? 'is-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( 'scope', 'team', $base ) ); ?>">همه وظایف تیم</a></nav>
         <?php if ( $tasks['ready'] ) : ?>
-        <section class="crm-access-card"><h2><?php echo $editing ? 'ویرایش وظیفه' : 'واگذاری وظیفه جدید'; ?></h2>
+        <details class="crm-access-card crmb-tasks-editor" <?php echo $editing ? 'open' : ''; ?>><summary><?php echo $editing ? 'ویرایش وظیفه' : '+ واگذاری وظیفه جدید'; ?></summary>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form">
                 <?php crmb_work_form_fields( 'save_task', $editing ? $editing->id : 0 ); ?>
                 <label for="task-title">عنوان</label><input id="task-title" name="title" required maxlength="60" value="<?php echo esc_attr( $editing ? $editing->title : '' ); ?>">
@@ -34,36 +34,110 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                 <button class="crm-access-primary" type="submit">ذخیره وظیفه</button>
                 <?php if ( $editing ) : ?><a href="<?php echo esc_url( $base ); ?>">انصراف از ویرایش</a><?php endif; ?>
             </form>
-        </section>
+        </details>
         <?php endif; ?>
     <?php endif; ?>
-    <section class="crm-access-card"><h2><?php echo $team ? 'وظایف تیم' : 'وظایف من'; ?></h2>
-    <?php if ( ! $tasks['ready'] ) : ?><p role="status">دریافت وظایف انجام نشد؛ دوباره تلاش کنید.</p>
-    <?php elseif ( ! $tasks['rows'] ) : ?><p class="crm-access-muted">وظیفه‌ای برای نمایش وجود ندارد.</p>
-    <?php else : ?>
-        <?php foreach ( $tasks['rows'] as $task ) :
-            $overdue = $task->due_day && $task->due_day < crmb_att_today() && in_array( $task->status, array( 'todo', 'doing', 'paused' ), true ); ?>
-            <article class="crmb-work-item" id="task-<?php echo esc_attr( $task->id ); ?>">
-                <h3><?php echo esc_html( $task->title ); ?></h3>
-                <p><a class="crmb-task-detail-link" href="<?php echo esc_url( add_query_arg( 'task_id', $task->id, $base ) ); ?>">شروع / پایان کار و مشاهده روند انجام</a></p>
-                <?php if ( ! empty( $task->timer_started_utc ) ) : ?><p class="crmb-task-running">زمان‌سنج در حال اجراست — شروع: <?php echo esc_html( crmb_work_date( $task->timer_started_utc ) ); ?></p><?php endif; ?>
-                <p class="crmb-work-body"><?php echo esc_html( $task->description ); ?></p>
-                <p class="crm-access-muted">مسئول: <?php echo esc_html( crmb_work_user_name( $task->assigned_to ) ); ?> | واگذارکننده: <?php echo esc_html( crmb_work_user_name( $task->created_by ) ); ?></p>
-                <p>اولویت: <?php echo esc_html( crmb_work_priorities()[ $task->priority ] ?? 'عادی' ); ?> | وضعیت: <?php echo esc_html( crmb_work_statuses()[ $task->status ] ?? 'نامشخص' ); ?> | مهلت: <?php echo esc_html( $task->due_day ? crmb_att_jdate( $task->due_day ) : 'بدون مهلت' ); ?> <?php if ( $overdue ) : ?><strong class="crmb-work-overdue">مهلت گذشته</strong><?php endif; ?></p>
-                <?php if ( $work_admin || 'cancelled' !== $task->status ) : ?>
-                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form crmb-work-inline">
-                        <?php crmb_work_form_fields( 'task_status', $task->id ); ?>
-                        <label for="status-<?php echo esc_attr( $task->id ); ?>">وضعیت جدید</label><select id="status-<?php echo esc_attr( $task->id ); ?>" name="status"><?php foreach ( crmb_work_statuses() as $key => $label ) : if ( ! $work_admin && 'cancelled' === $key ) { continue; } ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $task->status, $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select><button class="crm-access-primary" type="submit">ثبت وضعیت</button>
-                    </form>
-                <?php endif; ?>
-                <?php if ( $work_admin ) : ?><a href="<?php echo esc_url( add_query_arg( 'edit_task', $task->id, $base ) ); ?>">ویرایش شرح، مسئول و مهلت</a><?php endif; ?>
-            </article>
-        <?php endforeach; ?>
-        <nav class="crm-access-pages" aria-label="صفحات وظایف">
-            <?php if ( $page > 1 ) : ?><a href="<?php echo esc_url( add_query_arg( 'work_page', $page - 1, $base ) ); ?>">قبلی</a><?php endif; ?>
-            <span><?php echo esc_html( $page ); ?> / <?php echo esc_html( max( 1, ceil( $tasks['total'] / 20 ) ) ); ?></span>
-            <?php if ( $page * 20 < $tasks['total'] ) : ?><a href="<?php echo esc_url( add_query_arg( 'work_page', $page + 1, $base ) ); ?>">بعدی</a><?php endif; ?>
-        </nav>
-    <?php endif; ?>
+    <?php
+    $status_labels = crmb_work_statuses();
+    $priority_labels = crmb_work_priorities();
+    $page_active = 0;
+    $page_finished = 0;
+    if ( $tasks['ready'] ) {
+        foreach ( $tasks['rows'] as $item ) {
+            if ( in_array( $item->status, array( 'todo', 'doing', 'paused' ), true ) ) { ++$page_active; }
+            if ( 'done' === $item->status ) { ++$page_finished; }
+        }
+    }
+    ?>
+    <div class="crmb-tasks-overview" aria-label="خلاصه وظایف">
+        <div class="crmb-tasks-overview-item"><span class="crmb-tasks-overview-icon"><i class="fa-solid fa-list-check" aria-hidden="true"></i></span>
+            <div><span>کل وظایف <?php echo $team ? 'تیم' : 'من'; ?></span><strong><?php echo $tasks['ready'] ? esc_html( (string) $tasks['total'] ) : '—'; ?></strong></div>
+        </div>
+        <div class="crmb-tasks-overview-item"><span class="crmb-tasks-overview-icon is-active"><i class="fa-solid fa-clock" aria-hidden="true"></i></span>
+            <div><span>باز در این صفحه</span><strong><?php echo $tasks['ready'] ? esc_html( (string) $page_active ) : '—'; ?></strong></div>
+        </div>
+        <div class="crmb-tasks-overview-item"><span class="crmb-tasks-overview-icon is-done"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+            <div><span>تکمیل‌شده در این صفحه</span><strong><?php echo $tasks['ready'] ? esc_html( (string) $page_finished ) : '—'; ?></strong></div>
+        </div>
+    </div>
+    <section class="crmb-tasks-section" aria-labelledby="crmb-tasks-list-title">
+        <div class="crmb-tasks-section-heading">
+            <div><h2 id="crmb-tasks-list-title"><?php echo $team ? 'وظایف تیم' : 'وظایف من'; ?></h2>
+                <p>جزئیات هر کار، زمان‌بندی و تغییر وضعیت، همگی در دسترس شماست.</p></div>
+            <span class="crmb-tasks-section-count"><?php echo $tasks['ready'] ? esc_html( (string) count( $tasks['rows'] ) ) : '—'; ?> مورد در این صفحه</span>
+        </div>
+        <?php if ( ! $tasks['ready'] ) : ?>
+            <p class="crmb-tasks-empty" role="status">دریافت وظایف انجام نشد؛ لطفاً صفحه را دوباره بارگذاری کنید.</p>
+        <?php elseif ( ! $tasks['rows'] ) : ?>
+            <div class="crmb-tasks-empty"><span aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
+                <strong>فعلاً وظیفه‌ای برای نمایش ندارید.</strong>
+                <p>کارهای جدیدی که به شما محول می‌شوند در همین بخش ظاهر خواهند شد.</p>
+            </div>
+        <?php else : ?>
+            <div class="crmb-tasks-grid">
+            <?php foreach ( $tasks['rows'] as $task ) :
+                $status_key = isset( $status_labels[ $task->status ] ) ? $task->status : 'todo';
+                $priority_key = isset( $priority_labels[ $task->priority ] ) ? $task->priority : 'normal';
+                $is_open = in_array( $task->status, array( 'todo', 'doing', 'paused' ), true );
+                $overdue = $task->due_day && $task->due_day < crmb_att_today() && $is_open;
+                $due_today = $task->due_day && $task->due_day === crmb_att_today() && $is_open;
+                $task_url = add_query_arg( 'task_id', $task->id, $base );
+                ?>
+                <article class="crmb-task-card is-status-<?php echo esc_attr( $status_key ); ?>" id="task-<?php echo esc_attr( $task->id ); ?>">
+                    <div class="crmb-task-card-top">
+                        <span class="crmb-task-card-number">وظیفه #<?php echo esc_html( (string) $task->id ); ?></span>
+                        <div class="crmb-task-card-flags">
+                            <span class="crmb-task-card-priority is-priority-<?php echo esc_attr( $priority_key ); ?>"><?php echo esc_html( $priority_labels[ $priority_key ] ); ?></span>
+                            <span class="crmb-task-card-status is-<?php echo esc_attr( $status_key ); ?>"><?php echo esc_html( $status_labels[ $status_key ] ); ?></span>
+                        </div>
+                    </div>
+                    <h3 class="crmb-task-card-title"><a href="<?php echo esc_url( $task_url ); ?>"><?php echo esc_html( $task->title ); ?></a></h3>
+                    <?php if ( '' !== trim( (string) $task->description ) ) : ?>
+                        <p class="crmb-task-card-description"><?php echo esc_html( $task->description ); ?></p>
+                    <?php else : ?>
+                        <p class="crmb-task-card-description is-empty">توضیح بیشتری برای این وظیفه ثبت نشده است.</p>
+                    <?php endif; ?>
+                    <div class="crmb-task-card-info">
+                        <div><i class="fa-regular fa-calendar" aria-hidden="true"></i>
+                            <span><?php echo $overdue ? 'مهلت گذشته: ' : ( $due_today ? 'مهلت امروز: ' : 'مهلت انجام: ' ); ?>
+                            <strong class="<?php echo $overdue ? 'crmb-work-overdue' : ''; ?>"><?php echo esc_html( $task->due_day ? crmb_att_jdate( $task->due_day ) : 'تعیین نشده' ); ?></strong></span>
+                        </div>
+                        <div><i class="fa-solid fa-user-check" aria-hidden="true"></i>
+                            <span><?php echo $team ? 'مسئول: ' : 'واگذارکننده: '; ?><strong><?php echo esc_html( crmb_work_user_name( $team ? $task->assigned_to : $task->created_by ) ); ?></strong></span>
+                        </div>
+                    </div>
+                    <?php if ( ! empty( $task->timer_started_utc ) ) : ?>
+                        <div class="crmb-task-card-running"><span class="crmb-task-card-live-dot" aria-hidden="true"></span> زمان‌سنج فعال است؛ جزئیات زمان کار را ببینید.</div>
+                    <?php endif; ?>
+                    <div class="crmb-task-card-footer">
+                        <a class="crmb-task-card-action" href="<?php echo esc_url( $task_url ); ?>">
+                            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                            مشاهده و ثبت پیشرفت
+                        </a>
+                        <?php if ( $work_admin || 'cancelled' !== $task->status ) : ?>
+                            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crmb-task-card-status-form">
+                                <?php crmb_work_form_fields( 'task_status', $task->id ); ?>
+                                <label for="status-<?php echo esc_attr( $task->id ); ?>">تغییر وضعیت</label>
+                                <select id="status-<?php echo esc_attr( $task->id ); ?>" name="status">
+                                <?php foreach ( $status_labels as $key => $label ) :
+                                    if ( ! $work_admin && 'cancelled' === $key ) { continue; } ?>
+                                    <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $task->status, $key ); ?>><?php echo esc_html( $label ); ?></option>
+                                <?php endforeach; ?>
+                                </select><button type="submit">ذخیره</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ( $work_admin ) : ?>
+                        <a class="crmb-task-card-edit" href="<?php echo esc_url( add_query_arg( 'edit_task', $task->id, $base ) ); ?>">ویرایش توضیحات و مسئول</a>
+                    <?php endif; ?>
+                </article>
+            <?php endforeach; ?>
+            </div>
+            <nav class="crm-access-pages crmb-tasks-pagination" aria-label="صفحات وظایف">
+                <?php if ( $page > 1 ) : ?><a href="<?php echo esc_url( add_query_arg( 'work_page', $page - 1, $base ) ); ?>">صفحه قبل</a><?php endif; ?>
+                <span>صفحه <?php echo esc_html( (string) $page ); ?> از <?php echo esc_html( (string) max( 1, ceil( $tasks['total'] / 20 ) ) ); ?></span>
+                <?php if ( $page * 20 < $tasks['total'] ) : ?><a href="<?php echo esc_url( add_query_arg( 'work_page', $page + 1, $base ) ); ?>">صفحه بعد</a><?php endif; ?>
+            </nav>
+        <?php endif; ?>
     </section>
 </section>
