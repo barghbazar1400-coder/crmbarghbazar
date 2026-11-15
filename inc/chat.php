@@ -162,7 +162,7 @@ function crmb_chat_ajax() {
     if ( 'contacts' === $mode ) {
         wp_send_json_success( array( 'contacts' => crmb_chat_contacts() ) );
     }
-    $peer = isset( $_POST['peer'] ) ? absint( $_POST['peer'] ) : 0;
+    $peer = crmb_work_id( wp_unslash( $_POST ), 'peer' );
     if ( ! crmb_chat_peer( $peer ) ) {
         wp_send_json_error( array( 'message' => 'همکار انتخاب‌شده معتبر نیست.' ), 400 );
     }
@@ -188,8 +188,8 @@ function crmb_chat_ajax() {
         wp_send_json_success( array( 'status' => 'read' ) );
     }
     if ( 'thread' === $mode ) {
-        $before = isset( $_POST['before'] ) ? absint( $_POST['before'] ) : 0;
-        $after = isset( $_POST['after'] ) ? absint( $_POST['after'] ) : 0;
+        $before = crmb_work_id( wp_unslash( $_POST ), 'before' );
+        $after = crmb_work_id( wp_unslash( $_POST ), 'after' );
         if ( $before && $after ) {
             wp_send_json_error( array( 'message' => 'درخواست صفحه‌بندی نامعتبر است.' ), 400 );
         }
