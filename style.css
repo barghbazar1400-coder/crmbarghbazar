@@ -1918,3 +1918,93 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   .crmb-tasks-page .crmb-tasks-overview-copy { flex-direction: row; align-items: center; justify-content: space-between; }
   .crmb-tasks-page .crmb-tasks-grid { grid-auto-rows: auto; }
 }
+
+
+/* Employee task layout v4: equal height within each row, aligned actions, no masonry. */
+.crmb-tasks-page .crmb-tasks-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-flow: row;
+  grid-auto-rows: auto;
+  align-items: stretch;
+  align-content: start;
+  gap: 16px;
+}
+.crmb-tasks-page .crmb-tasks-grid > .crmb-task-card {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+  min-height: 280px;
+  height: 100%;
+  box-sizing: border-box;
+}
+.crmb-tasks-page .crmb-task-card-top {
+  min-height: 30px;
+}
+.crmb-tasks-page .crmb-task-card-title {
+  min-height: 3.2em;
+  margin-bottom: 12px !important;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.crmb-tasks-page .crmb-task-card-info {
+  margin-top: auto;
+  min-height: 54px;
+}
+.crmb-tasks-page .crmb-task-card-running {
+  margin-top: 8px;
+}
+.crmb-tasks-page .crmb-task-card-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 0;
+}
+.crmb-tasks-page .crmb-task-card-action {
+  width: 100%;
+  justify-content: center;
+  min-height: 40px;
+}
+.crmb-tasks-page .crmb-task-card-status-form {
+  display: grid;
+  grid-template-columns: auto minmax(90px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.crmb-tasks-page .crmb-task-card-status-form select {
+  min-width: 0;
+  max-width: none;
+  width: 100%;
+}
+.crmb-tasks-page .crmb-task-card-status-form button {
+  min-height: 38px;
+}
+.crmb-tasks-page .crmb-task-card-edit {
+  margin-top: 10px;
+}
+@media (max-width: 1190px) {
+  .crmb-tasks-page .crmb-tasks-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 720px) {
+  .crmb-tasks-page .crmb-tasks-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: auto;
+  }
+  .crmb-tasks-page .crmb-tasks-grid > .crmb-task-card {
+    min-height: 0;
+  }
+  .crmb-tasks-page .crmb-task-card-title {
+    min-height: 0;
+  }
+  .crmb-tasks-page .crmb-task-card-info {
+    min-height: 0;
+  }
+}
