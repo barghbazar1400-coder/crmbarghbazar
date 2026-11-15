@@ -2052,3 +2052,7 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   .crmb-task-timeline-entry { padding: 13px !important; }
   .crmb-task-note-gallery a { width: calc(50% - 5px); box-sizing: border-box; }
 }
+
+.crmb-task-editor-tools label { font-weight: 750; font-size: 11px; color: #615273; }
+.crmb-task-editor-tools input[type="number"] { width: 57px; min-width: 0; box-sizing: border-box; min-height: 35px; padding: 5px 7px; border: 1px solid #d9cbed; background: #fff; border-radius: 8px; font: inherit; text-align: center; }
+.crmb-task-editor-tools input[type="number"]:focus-visible { outline: 2px solid #7043ba; outline-offset: 2px; }
