@@ -1,0 +1,33 @@
+name: CRM Sales Partner Network
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/sales-partners.php'
+      - 'template-parts/sales-partners.php'
+      - 'tests/sales-partners.php'
+      - '.github/workflows/sales-partners-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  php-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring
+          coverage: none
+      - name: Lint sales-partner PHP
+        run: |
+          php -l inc/sales-partners.php
+          php -l template-parts/sales-partners.php
+          php -l tests/sales-partners.php
+      - name: Run partner tests
+        run: php tests/sales-partners.php
+      - name: Existing sales regressions
+        run: php tests/sales.php
