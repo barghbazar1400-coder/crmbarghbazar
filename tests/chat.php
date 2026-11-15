@@ -3,6 +3,7 @@
 define('ABSPATH', __DIR__);
 if(!extension_loaded('pdo_sqlite')) { fwrite(STDERR,"PDO SQLite required\n"); exit(2); }
 $logged=true; $uid=7; $work_ready=true; $nonce_ok=true; $checks=0; $last_mutation=null;
+$transients=array();
 function add_action($tag,$fn,$priority=10) {}
 function add_filter($tag,$fn) {}
 function is_user_logged_in() { global $logged; return $logged; }
@@ -14,11 +15,23 @@ function crmb_work_id($data,$key) {
     return is_scalar($value) && preg_match('/^[1-9][0-9]*$/D',(string)$value) ? absint($value) : 0;
 }
 function get_userdata($id) {
-    return in_array((int)$id,array(7,8,9,10),true) ? (object)array('ID'=>(int)$id,'display_name'=>'کارمند '.$id) : false;
+    return in_array((int)$id,array(7,8,9,10),true) ? (object)array(
+        'ID'=>(int)$id,'display_name'=>'کارمند '.$id,'user_login'=>'staff'.$id
+    ) : false;
 }
-function get_users($args=array()) {
-    return array_map('get_userdata',array(7,8,9,10));
+function get_users($args=array()) { return array_map('get_userdata',array(7,8,9,10)); }
+function get_user_by($field,$value) {
+    if($field!=='login')return false;
+    foreach(array(7,8,9,10) as $id){
+        $user=get_userdata($id);
+        if(strcasecmp($user->user_login,$value)===0)return $user;
+    }
+    return false;
 }
+function get_transient($key){global $transients;return $transients[$key]??false;}
+function set_transient($key,$val,$seconds){global $transients;$transients[$key]=$val;return true;}
+function wp_create_nonce($action){return 'token:'.$action;}
+function wp_verify_nonce($nonce,$action){return $nonce==='token:'.$action;}
 function crmb_work_tables() { return array('messages'=>'wp_crmb_messages'); }
 function crmb_work_date($v) { return (string)$v; }
 function crmb_notice_ready() { return true; }
@@ -66,6 +79,11 @@ class ChatTestDB {
         $this->last_error='';
         try { return $this->db->exec($sql); }
         catch(Throwable $err) {$this->last_error=$err->getMessage();return false;}
+    }
+    function get_var($sql) {
+        $this->last_error='';
+        try { return $this->db->query($sql)->fetchColumn(); }
+        catch(Throwable $err) {$this->last_error=$err->getMessage();return null;}
     }
     function get_row($sql) {
         $this->last_error='';
@@ -127,7 +145,17 @@ verify(30,count(crmb_chat_page(8,0,0,30)['rows']));
 $contacts=crmb_chat_contacts();
 verify(8,(int)$contacts[0]['id']);
 verify(43,(int)$contacts[0]['unread']);
-verify(true,count($contacts)>=3);
+verify(1,count($contacts)); // No automatic directory of users without conversations.
+verify('staff8',$contacts[0]['username']);
+verify('invalid',crmb_chat_lookup_username('staff9')['status']);
+verify('found',crmb_chat_lookup_username('@staff9')['status']);
+$found=crmb_chat_lookup_username('@staff9');
+verify(9,$found['id']);
+verify(false,$found['existing']);
+verify(false,crmb_chat_authorized_peer(9,''));
+verify(true,crmb_chat_authorized_peer(9,$found['start_token']));
+verify(false,crmb_chat_authorized_peer(10,$found['start_token']));
+verify('not_found',crmb_chat_lookup_username('@notreal')['status']);
 verify(true,crmb_chat_mark_read(8));
 verify(0,(int)$wpdb->db->query("SELECT COUNT(*) FROM wp_crmb_messages WHERE recipient_id=7 AND sender_id=8 AND read_utc IS NULL")->fetchColumn());
 verify(42,(int)$wpdb->db->query("SELECT COUNT(*) FROM wp_crmb_messages WHERE sender_id=7 AND recipient_id=8 AND read_utc IS NULL")->fetchColumn());
@@ -158,8 +186,13 @@ verify(false,'7' === $last_mutation['recipient_id']); // recipient must be curre
 verify('8',$last_mutation['recipient_id']);
 verify('پیام گفتگو',$last_mutation['subject']);
 verify(false,isset($last_mutation['sender_id']));
-verify(400,ajax('send',array('peer'=>'7','body'=>'mine'))->http);
-verify(400,ajax('thread',array('peer'=>'10','before'=>'23','after'=>'30'))->http);
+verify(403,ajax('send',array('peer'=>'7','body'=>'mine'))->http);
+verify(400,ajax('thread',array('peer'=>'8','before'=>'23','after'=>'30'))->http);
+verify(403,ajax('send',array('peer'=>'9','body'=>'new conversation without lookup'))->http);
+verify(200,ajax('send',array('peer'=>'9','body'=>'new conversation after lookup',
+    'start_token'=>$found['start_token']))->http);
+verify(200,ajax('lookup',array('username'=>'@staff10'))->http);
+verify('found',ajax('lookup',array('username'=>'@staff10'))->data['status']);
 verify(403,(function() use (&$logged) {$logged=false; $response=ajax('thread');$logged=true;return $response->http;})());
 $nonce_ok=false;
 try { ajax('thread');throw new RuntimeException('bad nonce permitted'); }
