@@ -25,6 +25,7 @@ function crmb_notice_install() {
         kind varchar(30) NOT NULL,
         title varchar(160) NOT NULL,
         summary varchar(255) NOT NULL DEFAULT '',
+        detail text NOT NULL,
         href varchar(255) NOT NULL,
         source_key varchar(160) NOT NULL,
         created_utc datetime NOT NULL,
@@ -63,21 +64,22 @@ add_filter( 'crmbarghbazar_menu_registry', function ( $items ) {
 function crmb_notice_url( $section, $params = array() ) {
     return add_query_arg( array_merge( array( 'crm_section' => $section ), $params ), home_url( '/main/' ) );
 }
-function crmb_notice_add( $user_id, $kind, $title, $summary, $href, $source_key, $actor_id = 0 ) {
+function crmb_notice_add( $user_id, $kind, $title, $summary, $href, $source_key, $actor_id = 0, $detail = '' ) {
     if ( ! crmb_notice_ready() || ! $user_id || ! get_userdata( $user_id ) || ! $source_key ) { return false; }
     if ( ! in_array( $kind, array( 'message', 'task', 'manager', 'task_done', 'announcement' ), true ) ) { return false; }
     // Private message content NEVER enters push payloads; shorten inbox text as well.
     $title = sanitize_text_field( $title );
     $summary = sanitize_text_field( $summary );
+    $detail = sanitize_textarea_field( $detail );
     $href = esc_url_raw( $href );
     if ( strlen( $title ) > 160 || strlen( $summary ) > 255 || strlen( $href ) > 255
-        || strlen( $source_key ) > 160 || ! wp_validate_redirect( $href, false ) ) { return false; }
+        || strlen( $source_key ) > 160 || strlen( $detail ) > 2000 || ! wp_validate_redirect( $href, false ) ) { return false; }
     global $wpdb;
     $t = crmb_notice_tables();
     $now = gmdate( 'Y-m-d H:i:s' );
     $inserted = $wpdb->query( $wpdb->prepare(
-        "INSERT IGNORE INTO {$t['notices']} (user_id,actor_id,kind,title,summary,href,source_key,created_utc,next_try_utc) VALUES (%d,%d,%s,%s,%s,%s,%s,%s,%s)",
-        (int) $user_id, (int) $actor_id, $kind, $title, $summary, $href, $source_key, $now, $now
+        "INSERT IGNORE INTO {$t['notices']} (user_id,actor_id,kind,title,summary,detail,href,source_key,created_utc,next_try_utc) VALUES (%d,%d,%s,%s,%s,%s,%s,%s,%s,%s)",
+        (int) $user_id, (int) $actor_id, $kind, $title, $summary, $detail, $href, $source_key, $now, $now
     ) );
     if ( 1 === $inserted ) {
         if ( ! wp_next_scheduled( 'crmb_notice_push_tick' ) ) { wp_schedule_single_event( time() + 10, 'crmb_notice_push_tick' ); }
@@ -95,7 +97,7 @@ add_action( 'crmb_task_assigned', function ( $task_id, $recipient, $actor, $prev
     $event = $previous ? 'reassigned' : 'assigned';
     crmb_notice_add( $recipient, 'task', $previous ? 'وظیفه جدید به شما منتقل شد' : 'وظیفه جدید به شما واگذار شد',
         'وظایف خود را بررسی کنید.', crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ),
-        'task:' . $task_id . ':' . $event . ':' . gmdate( 'YmdHis' ), $actor );
+        'task:' . $task_id . ':' . $event . ':' . wp_generate_uuid4(), $actor );
 }, 10, 4 );
 add_action( 'crmb_manager_guidance', function ( $task_id, $recipient, $actor, $event_id ) {
     if ( (int) $actor === (int) $recipient ) { return; }
@@ -120,7 +122,7 @@ function crmb_notice_list( $limit = 30 ) {
     global $wpdb;
     $t = crmb_notice_tables();
     return $wpdb->get_results( $wpdb->prepare(
-        "SELECT id,kind,title,summary,href,created_utc,read_utc FROM {$t['notices']} WHERE user_id=%d ORDER BY id DESC LIMIT %d",
+        "SELECT id,kind,title,summary,detail,href,created_utc,read_utc FROM {$t['notices']} WHERE user_id=%d ORDER BY id DESC LIMIT %d",
         get_current_user_id(), max( 1, min( 50, (int) $limit ) )
     ) ) ?: array();
 }
@@ -151,7 +153,7 @@ function crmb_notice_announce( $title, $body, $scope, $target ) {
     $url = crmb_notice_url( 'notifications' );
     $success = 0;
     foreach ( $users as $user ) {
-        if ( crmb_notice_add( (int) $user->ID, 'announcement', $title, $body, $url, $key, get_current_user_id() ) ) { ++$success; }
+        if ( crmb_notice_add( (int) $user->ID, 'announcement', $title, 'اطلاعیه جدید مدیریت منتشر شد.', $url, $key, get_current_user_id(), $body ) ) { ++$success; }
     }
     return $success ? 'saved' : 'empty';
 }
@@ -165,7 +167,8 @@ function crmb_notice_action() {
             isset( $_POST['title'] ) ? wp_unslash( $_POST['title'] ) : '',
             isset( $_POST['body'] ) ? wp_unslash( $_POST['body'] ) : '',
             isset( $_POST['scope'] ) ? sanitize_key( $_POST['scope'] ) : '',
-            isset( $_POST['target'] ) ? absint( $_POST['target'] ) : 0
+            isset( $_POST[ 'department' === ( $_POST['scope'] ?? '' ) ? 'target_department' : 'target_user' ] )
+                ? absint( $_POST[ 'department' === ( $_POST['scope'] ?? '' ) ? 'target_department' : 'target_user' ] ) : 0
         );
     } elseif ( 'read' === $mode || 'read_all' === $mode ) {
         $result = crmb_notice_read( isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0, 'read_all' === $mode ) ? 'read' : 'error';
