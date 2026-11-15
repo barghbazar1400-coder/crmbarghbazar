@@ -12,6 +12,7 @@ on:
       - 'template-parts/notifications.php'
       - 'tests/notifications.php'
       - 'tests/notifications-client.js'
+      - 'tests/messages-live.php'
       - 'tests/work.php'
       - 'page-main.php'
       - '.github/workflows/notifications-checks.yml'
@@ -50,5 +51,6 @@ jobs:
         run: |
           php tests/notifications.php
           php tests/work.php
+          php tests/messages-live.php
       - name: Test Windows notification polling and consent
         run: node tests/notifications-client.js
