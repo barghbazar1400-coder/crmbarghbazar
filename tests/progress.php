@@ -127,6 +127,8 @@ function admin_url($s) { return $s; }
 function add_query_arg($key,$value,$url='') { if(is_array($key)) return $value.'?'.http_build_query($key); return $url.'?'.$key.'='.$value; }
 function get_transient($key) { return false; }
 function wp_editor($body,$id,$settings) { echo '<textarea id="'.$id.'" name="'.$settings['textarea_name'].'">'.htmlspecialchars($body).'</textarea>'; }
+function selected($value,$current,$echo=true) { $result=$value===$current?' selected="selected"':''; if($echo)echo $result; return $result; }
+function get_template_directory() { return dirname(__DIR__); }
 function wp_nonce_field($action,$field) { echo '<input type="hidden" name="'.$field.'" value="test">'; }
 function wpautop($s) { return $s; }
 function wp_trim_words($s,$count) { return $s; }
@@ -141,6 +143,10 @@ $admin=true; $_GET=array('scope'=>'team','report'=>$rid); ob_start(); include __
 $admin=false; $uid=7; $_GET=array('task_id'=>$id); ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $html=ob_get_clean(); check(false,str_contains($html,'Need feedback')); check(true,str_contains($html,'اجازه'));
 $uid=8; $_GET=array('task_id'=>$id); ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $html=ob_get_clean(); check(true,str_contains($html,'Need feedback')); check(true,str_contains($html,'زمان کار ثبت‌شده'));
 check(true,str_contains($html,'crmbtaskeditor'));
+check(true,str_contains($html,'id="crmb-task-images"'));
+check(true,str_contains($html,'Ctrl'));
+check(true,str_contains($html,'crmb-task-image-paste-inline'));
+check(true,str_contains($html,'crmb-task-image-feedback'));
 $task_template = file_get_contents(__DIR__.'/../template-parts/task-progress.php');
 check(true,str_contains($task_template, "link,unlink,crmbtasktable,undo,redo"));
 check(false,str_contains($html,'crmb-task-table-rows'));
