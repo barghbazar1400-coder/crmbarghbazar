@@ -2056,3 +2056,73 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
 .crmb-task-editor-tools label { font-weight: 750; font-size: 11px; color: #615273; }
 .crmb-task-editor-tools input[type="number"] { width: 57px; min-width: 0; box-sizing: border-box; min-height: 35px; padding: 5px 7px; border: 1px solid #d9cbed; background: #fff; border-radius: 8px; font: inherit; text-align: center; }
 .crmb-task-editor-tools input[type="number"]:focus-visible { outline: 2px solid #7043ba; outline-offset: 2px; }
+
+
+/* Fullscreen-like private task image viewer. Dialog uses the browser top layer. */
+.crmb-task-image-modal {
+    box-sizing: border-box;
+    max-width: min(1100px, 95vw);
+    max-height: 94vh;
+    width: max-content;
+    padding: 0;
+    margin: auto;
+    border: 0;
+    border-radius: 16px;
+    background: transparent;
+    color: #fff;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, .35);
+    overflow: visible;
+}
+.crmb-task-image-modal::backdrop {
+    background: rgba(17, 10, 34, .84);
+    backdrop-filter: blur(3px);
+}
+.crmb-task-image-modal-content {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    max-width: 95vw;
+    padding: 12px;
+    border-radius: 16px;
+    background: #20152f;
+}
+.crmb-task-image-modal-close {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 7px 13px;
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 9px;
+    color: #fff;
+    background: rgba(255, 255, 255, .12);
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 750;
+}
+.crmb-task-image-modal-close:hover { background: rgba(255, 255, 255, .22); }
+.crmb-task-image-modal-close:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.crmb-task-image-modal-photo {
+    display: block;
+    max-width: min(1020px, calc(95vw - 24px));
+    max-height: calc(94vh - 85px);
+    width: auto;
+    height: auto;
+    min-width: 0;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #fff;
+}
+.crmb-task-note-gallery a[data-crmb-task-image] { cursor: zoom-in; }
+.crmb-task-note-gallery a[data-crmb-task-image]:focus-visible { outline: 2px solid #7244ca; outline-offset: 3px; }
+@media (max-width: 650px) {
+    .crmb-task-image-modal, .crmb-task-image-modal-content { max-width: 96vw; }
+    .crmb-task-image-modal-photo {
+        max-width: calc(96vw - 24px);
+        max-height: calc(90vh - 80px);
+    }
+}
