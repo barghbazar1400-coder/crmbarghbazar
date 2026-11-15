@@ -187,3 +187,15 @@ php -l template-parts/task-progress.php
 php -l tests/progress.php
 php tests/progress.php
 ```
+
+
+## رفع خطای بارگذاری دکمه جدول TinyMCE — ۱۵ نوامبر ۲۰۲۶
+
+| شناسه | خطای مشاهده‌شده | اصلاح | وضعیت |
+|---|---|---|---|
+| CRM-TASK-EDITOR-HOTFIX-09 | در صفحه روند انجام کار پیام `Failed to load plugin url: .../assets/js/crmb-task-table.js?ver=...` ظاهر می‌شد و ویرایشگر دکمه جدول را نداشت | وابستگی `mce_external_plugins` به درخواست HTTP فایل قالب حذف شد. افزونه `crmbtasktable` از `tiny_mce_before_init` فقط برای `crmbtaskeditor` به فهرست افزونه‌ها اضافه و کد JS در هوک `wp_tiny_mce_init` (بعد از بارگذاری TinyMCE و پیش از ساخت ادیتور) مستقیم چاپ می‌شود. دیگر هیچ درخواست جداگانه‌ای برای `assets/js/crmb-task-table.js` لازم نیست. | کدنویسی ثبت شد، تست سایت واقعی در انتظار |
+| CRM-TASK-EDITOR-HOTFIX-QA | پوشش رگرسیون عدم وابستگی به URL بیرونی وجود نداشت | تست افزودن افزونه به init، جلوگیری از افزودن دوباره، عدم تغییر ادیتورهای دیگر و خروجی ثبت inline JS در `tests/progress.php` اضافه شد | کدنویسی ثبت شد، آزمون PHP در انتظار |
+
+برای آزمون نهایی پس از انتشار و پاک‌سازی کش HTML: با حساب کارمند به `/main/?crm_section=tasks` بروید و روند یک کار باز را باز کنید؛ در تب «دیداری» باید ابزار جدول بدون خطای Failed to load ظاهر شود. در Network نباید برای فایل `assets/js/crmb-task-table.js` درخواستی انجام شود. در صورت استفاده از cache/minify در قالب یا nginx، نسخه قدیمی PHP/HTML باید invalidate شود.
+
+روش عیب‌یابی علت اصلی: از اسکرین‌شات مشخص است بارگذاری URL افزونه ناموفق بوده، ولی بدون status کد HTTP و پاسخ سرور نمی‌توان گفت علت قطعی 404، 403 یا بلوکه‌شدن توسط CDN است. این اصلاح، وابستگی را حذف می‌کند.
