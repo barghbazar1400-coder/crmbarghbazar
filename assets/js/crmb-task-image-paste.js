@@ -13,8 +13,7 @@
     var selected = [];
     var processing = 0;
     var working = Promise.resolve();
-    var suppress = false;
-    var editorWatcher = null;
+     var editorWatcher = null;
     var fileButton = form.querySelector('button[type="submit"]');
 
     function say(message, error) {
@@ -31,6 +30,7 @@
     }
     function syncInput() {
         if (typeof DataTransfer !== 'function') {
+            input.value = '';
             say('این مرورگر مدیریت چند تصویر را پشتیبانی نمی‌کند؛ Chrome یا Edge به‌روز را امتحان کنید.', true);
             return false;
         }
@@ -40,7 +40,8 @@
             input.files = transfer.files;
             return input.files.length === selected.length;
         } catch (_) {
-            say('انتقال تصویر به فرم انجام نشد. از انتخاب فایل دستی استفاده کنید.', true);
+            input.value = '';
+            say('انتقال تصویر به فرم انجام نشد. Chrome یا Edge به‌روز را امتحان کنید.', true);
             return false;
         }
     }
@@ -151,13 +152,15 @@
             say('افزودن تصویر انجام نشد؛ دوباره امتحان کنید.', true);
         }).finally(function () {
             processing--;
+            // The native picker temporarily replaces input.files, including
+            // when a chosen file was rejected. Restore ONLY validated items.
+            syncInput();
             if (fileButton) fileButton.disabled = processing > 0;
             render();
         });
     }
     input.addEventListener('change', function () {
-        if (suppress) return;
-        // File-picker normally replaces input.files. Keep previously pasted images.
+         // File-picker normally replaces input.files. Keep previously pasted images.
         var fresh = Array.from(input.files || []);
         addImages(fresh, false);
     });
@@ -204,7 +207,10 @@
             doc.addEventListener('paste', onPaste, true);
             attachedEditor = true;
         }
-        if (typeof editor.on === 'function') editor.on('init', attach);
+        if (!editor.__crmbTaskImageSetup) {
+            editor.__crmbTaskImageSetup = true;
+            if (typeof editor.on === 'function') editor.on('init', attach);
+        }
         if (editor.initialized) attach();
     }
     function watchEditor() {
