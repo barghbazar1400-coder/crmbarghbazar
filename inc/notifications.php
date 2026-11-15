@@ -139,7 +139,8 @@ function crmb_notice_read( $id = 0, $all = false ) {
         ? $wpdb->prepare( "UPDATE {$t['notices']} SET read_utc=%s WHERE user_id=%d AND read_utc IS NULL", gmdate( 'Y-m-d H:i:s' ), get_current_user_id() )
         : $wpdb->prepare( "UPDATE {$t['notices']} SET read_utc=%s WHERE id=%d AND user_id=%d AND read_utc IS NULL",
             gmdate( 'Y-m-d H:i:s' ), $id, get_current_user_id() );
-    return false !== $wpdb->query( $query );
+    $changed = $wpdb->query( $query );
+    return false !== $changed && ( $all || $changed > 0 );
 }
 function crmb_notice_announce( $title, $body, $scope, $target ) {
     if ( ! current_user_can( 'manage_options' ) || ! crmb_notice_ready() ) { return 'denied'; }
