@@ -9,6 +9,10 @@ function is_user_logged_in() { global $logged; return $logged; }
 function get_option($key) { global $work_ready; return $work_ready && $key==='crmb_work_schema_v1' ? '1' : false; }
 function get_current_user_id() { global $uid; return $uid; }
 function absint($number) { return abs((int)$number); }
+function crmb_work_id($data,$key) {
+    $value=$data[$key]??'';
+    return is_scalar($value) && preg_match('/^[1-9][0-9]*$/D',(string)$value) ? absint($value) : 0;
+}
 function get_userdata($id) {
     return in_array((int)$id,array(7,8,9,10),true) ? (object)array('ID'=>(int)$id,'display_name'=>'کارمند '.$id) : false;
 }
