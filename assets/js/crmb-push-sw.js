@@ -9,8 +9,16 @@ self.addEventListener('push', function (event) {
             url = target.pathname + target.search;
         }
     } catch (error) { /* Fall back to the CRM inbox. */ }
-    event.waitUntil(self.registration.showNotification('اعلان جدید CRM برق‌بازار', {
-        body: 'برای دیدن جزئیات وارد پنل شوید.',
+    var titles = {
+        message: 'پیام جدید داری',
+        task: 'وظیفه جدید در CRM',
+        manager: 'راهنمایی جدید مدیر',
+        task_done: 'یک وظیفه تکمیل شد',
+        announcement: 'اطلاعیه جدید مدیریت'
+    };
+    var title = Object.prototype.hasOwnProperty.call(titles, data.kind) ? titles[data.kind] : 'اعلان جدید CRM برق‌بازار';
+    event.waitUntil(self.registration.showNotification(title, {
+        body: 'برای مشاهده جزئیات وارد پنل CRM شوید.',
         tag: typeof data.tag === 'string' ? data.tag.substring(0, 80) : 'crmb',
         renotify: false,
         data: { url: url }
