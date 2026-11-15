@@ -211,15 +211,21 @@ verify(true,str_contains($js,'after: anchor'));
 // Native Windows file-picker regression: attachment control is a real button
 // immediately before Send, with a bundled SVG that cannot render blank.
 $composer=substr($template,strpos($template,'class="crmb-messenger-compose-row"'));
-verify(true,str_contains($composer,'type="button" class="crmb-chat-attach-button" id="crmb-chat-attach-label"'));
+verify(true,str_contains($composer,'<label class="crmb-chat-attach-button" id="crmb-chat-attach-label"'));
+verify(true,str_contains($composer,'name="attachments[]" multiple'));
+verify(false,str_contains(substr($composer,0,strpos($composer,'id="crmb-chat-send"')),'id="crmb-chat-attach-input" name="attachments[]" multiple disabled'));
 verify(true,str_contains($composer,'<svg xmlns="http://www.w3.org/2000/svg"'));
 verify(true,str_contains($composer,'type="file" id="crmb-chat-attach-input"'));
 verify(true,strpos($composer,'id="crmb-chat-input"')<strpos($composer,'id="crmb-chat-attach-label"'));
 verify(true,strpos($composer,'id="crmb-chat-attach-label"')<strpos($composer,'id="crmb-chat-send"'));
-verify(true,str_contains($js,"attachLabel.addEventListener('click'"));
-verify(true,str_contains($js,'fileInput.click()'));
+// Native file input is overlaid on the label and does not depend on JS .click().
+verify(false,str_contains($js,'fileInput.click()'));
+verify(true,str_contains($js,'fileInput.disabled = busySend'));
+verify(false,str_contains($js,'fileInput.disabled = !peer || busySend'));
 verify(true,str_contains($js,'queueFiles(this.files)'));
-verify(true,str_contains($js,'attachLabel.disabled = !peer || busySend'));
+verify(true,str_contains($js,'queueFiles(this.files)'));
 $style=file_get_contents(__DIR__.'/../style.css');
 verify(true,str_contains($style,'.crmb-messenger-compose-row .crmb-chat-attach-button svg'));
+verify(true,str_contains($style,'.crmb-messenger-compose-row .crmb-chat-attach-button > .crmb-chat-file-hidden'));
+verify(true,str_contains($style,'pointer-events:auto'));
 echo "$checks private chat, cursor, read, file-picker and paging checks passed\n";
