@@ -35,6 +35,8 @@ CREATE TABLE wp_crmb_push_devices (
 require __DIR__.'/../inc/notifications.php';
 require __DIR__.'/../inc/notifications-push.php';
 
+check(160, crmb_notice_length(str_repeat('آ',160)));
+check(2000, crmb_notice_length(str_repeat('ت',2000)));
 $target = crmb_notice_url('messages', array('message'=>1));
 check(true, crmb_notice_add(8,'message','پیام جدید داری','متن عمومی',$target,'message:1',7));
 check(false, crmb_notice_add(8,'message','پیام جدید داری','متن عمومی',$target,'message:1',7));
