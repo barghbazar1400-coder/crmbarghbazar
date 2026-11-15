@@ -32,17 +32,77 @@ function crmb_task_notes_install() {
 }
 add_action( 'init', 'crmb_task_notes_install', 12 );
 
-/** Load the table control only for the task-progress WordPress editor. */
-function crmb_task_table_mce_plugin( $plugins, $editor_id = '' ) {
-    if ( 'crmbtaskeditor' !== $editor_id ) { return $plugins; }
-    $relative = '/assets/js/crmb-task-table.js';
-    $source = get_template_directory_uri() . $relative;
-    $filepath = get_template_directory() . $relative;
-    $version = file_exists( $filepath ) ? (string) filemtime( $filepath ) : '1';
-    $plugins['crmbtasktable'] = add_query_arg( 'ver', $version, $source );
-    return $plugins;
+/**
+ * Register the table tool with the one CRM editor, without any TinyMCE external
+ * plugin URL. This avoids failures when the host/CDN doesn't serve theme JS.
+ */
+function crmb_task_table_mce_init( $settings, $editor_id ) {
+    if ( 'crmbtaskeditor' !== $editor_id ) { return $settings; }
+    $plugins = isset( $settings['plugins'] ) ? trim( (string) $settings['plugins'] ) : '';
+    $names = preg_split( '/[\s,]+/', $plugins, -1, PREG_SPLIT_NO_EMPTY );
+    if ( ! in_array( 'crmbtasktable', $names, true ) ) {
+        $names[] = 'crmbtasktable';
+    }
+    $settings['plugins'] = implode( ',', $names );
+    return $settings;
 }
-add_filter( 'mce_external_plugins', 'crmb_task_table_mce_plugin', 10, 2 );
+add_filter( 'tiny_mce_before_init', 'crmb_task_table_mce_init', 10, 2 );
+
+/** Called after TinyMCE loads but before WordPress creates its editors. */
+function crmb_task_table_mce_inline( $editors ) {
+    if ( ! isset( $editors['crmbtaskeditor'] ) ) { return; }
+    ?>
+    <script id="crmb-task-table-inline">
+    (function () {
+        "use strict";
+        if (!window.tinymce || !tinymce.PluginManager) return;
+        tinymce.PluginManager.add("crmbtasktable", function (editor) {
+            function tableHtml(rows, columns) {
+                var head = "";
+                var body = "";
+                for (var col = 1; col <= columns; col++) {
+                    head += "<th>ستون " + col + "</th>";
+                }
+                for (var row = 0; row < rows; row++) {
+                    body += "<tr>";
+                    for (var cell = 0; cell < columns; cell++) {
+                        body += "<td>متن</td>";
+                    }
+                    body += "</tr>";
+                }
+                return "<table><thead><tr>" + head + "</tr></thead><tbody>" +
+                    body + "</tbody></table><p></p>";
+            }
+            editor.addButton("crmbtasktable", {
+                text: "جدول",
+                tooltip: "درج جدول در گزارش پیشرفت",
+                onclick: function () {
+                    editor.windowManager.open({
+                        title: "درج جدول",
+                        body: [
+                            {type: "textbox", name: "rows", label: "تعداد ردیف", value: "3"},
+                            {type: "textbox", name: "columns", label: "تعداد ستون", value: "3"}
+                        ],
+                        onsubmit: function (event) {
+                            var rows = Number(event.data.rows);
+                            var columns = Number(event.data.columns);
+                            if (!Number.isInteger(rows) || !Number.isInteger(columns) ||
+                                rows < 1 || rows > 10 || columns < 1 || columns > 8) {
+                                editor.windowManager.alert("ردیف باید بین ۱ تا ۱۰ و ستون بین ۱ تا ۸ باشد.");
+                                return false;
+                            }
+                            editor.focus();
+                            editor.insertContent(tableHtml(rows, columns));
+                        }
+                    });
+                }
+            });
+        });
+    })();
+    </script>
+    <?php
+}
+add_action( 'wp_tiny_mce_init', 'crmb_task_table_mce_inline', 10, 1 );
 
 /** Permit formatting and basic HTML tables, but no inline src, scripts or arbitrary CSS. */
 function crmb_task_note_html( $html ) {
