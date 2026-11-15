@@ -97,8 +97,10 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
 
             <label for="crmb-task-images">تصاویر گزارش پیشرفت</label>
             <input type="file" id="crmb-task-images" name="images[]" accept="image/jpeg,image/png,image/webp" multiple>
-            <p class="crm-access-muted">تا ۳ تصویر JPG، PNG یا WebP (هرکدام حداکثر ۱ مگابایت). تصاویر فقط برای افراد مجاز همین کار قابل مشاهده‌اند و همراه گزارش در تاریخچه نمایش داده می‌شوند.</p>
-            <div id="crmb-task-image-preview" class="crmb-task-image-preview" aria-live="polite"></div>
+            <p class="crm-access-muted crmb-task-paste-hint"><i class="fa-solid fa-paste" aria-hidden="true"></i> <strong>افزودن سریع اسکرین‌شات:</strong> تصویر را با Win + Shift + S بگیرید، داخل کادر «شرح پیشرفت» کلیک کنید و <kbd>Ctrl</kbd> + <kbd>V</kbd> بزنید. تصویر به پیوست‌های پایین اضافه می‌شود و نیازی به ذخیره دستی فایل نیست.</p>
+            <p class="crm-access-muted">تا ۳ تصویر JPG، PNG یا WebP (هرکدام حداکثر ۱ مگابایت). تصاویر بزرگ چسبانده‌شده در صورت امکان کم‌حجم می‌شوند. تصاویر فقط برای افراد مجاز همین کار قابل مشاهده‌اند و همراه گزارش در تاریخچه نمایش داده می‌شوند.</p>
+            <div id="crmb-task-image-feedback" class="crmb-task-image-feedback" role="status" aria-live="polite"></div>
+            <div id="crmb-task-image-preview" class="crmb-task-image-preview" aria-label="تصاویر آماده ثبت"></div>
             <button type="submit" class="crm-access-primary">ثبت گزارش در تاریخچه</button>
         </form>
     </section>
@@ -175,22 +177,13 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
             if (lastTrigger && lastTrigger.isConnected) lastTrigger.focus();
         });
     }
-    const files = document.getElementById('crmb-task-images');
-    const preview = document.getElementById('crmb-task-image-preview');
-    if (files && preview) {
-        files.addEventListener('change', () => {
-            preview.replaceChildren();
-            const chosen = Array.from(files.files || []);
-            if (chosen.length > 3) {
-                preview.textContent = 'حداکثر ۳ تصویر انتخاب کنید.';
-                return;
-            }
-            chosen.forEach(file => {
-                const item = document.createElement('span');
-                item.textContent = file.name + ' (' + Math.ceil(file.size / 1024) + ' KB)';
-                preview.append(item);
-            });
-        });
-    }
 })();
 </script>
+<?php
+// Keep this feature scoped to authorized task-report pages and avoid a
+// remote script/CDN dependency or caching conflicts with the CRM shell.
+$paste_script = get_template_directory() . '/assets/js/crmb-task-image-paste.js';
+if ( is_readable( $paste_script ) ) : ?>
+<script id="crmb-task-image-paste-inline"><?php readfile( $paste_script ); ?></script>
+<?php endif; ?>
+
