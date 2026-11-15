@@ -174,7 +174,7 @@ function crmb_chat_lookup_username( $query ) {
         'start_token' => wp_create_nonce( crmb_chat_start_action( $user->ID ) ),
     );
 }
-function crmb_chat_public_message( $message ) {
+function crmb_chat_public_message( $message, $files = array() ) {
     return array(
         'id' => (int) $message->id,
         'mine' => (int) $message->sender_id === get_current_user_id(),
@@ -182,6 +182,7 @@ function crmb_chat_public_message( $message ) {
         'text' => (string) $message->body,
         'time' => crmb_work_date( $message->created_utc ),
         'read' => ! empty( $message->read_utc ),
+        'files' => $files,
     );
 }
 
@@ -210,7 +211,16 @@ function crmb_chat_ajax() {
     }
     if ( 'send' === $mode ) {
         $body = isset( $_POST['body'] ) && is_string( $_POST['body'] ) ? wp_unslash( $_POST['body'] ) : '';
-        // Reuse the existing validated message creation and notification hook.
+        // Multipart uploads follow the same sender/recipient permission checks,
+        // with private storage and an atomic message+metadata transaction.
+        if ( isset( $_FILES['attachments'] ) ) {
+            $saved = crmb_chat_send_files( $peer, $body, $_FILES['attachments'] );
+            if ( isset( $saved['error'] ) ) {
+                wp_send_json_error( array( 'message' => $saved['error'] ), 400 );
+            }
+            wp_send_json_success( array( 'status' => 'sent' ) );
+        }
+        // Text-only messages continue using the existing notification hook.
         // Never take sender/subject from user-supplied data.
         $result = crmb_work_mutate( array(
             'task' => 'send_message',
@@ -245,8 +255,13 @@ function crmb_chat_ajax() {
             // poll thread messages while the document is hidden.
             crmb_chat_mark_read( $peer );
         }
+        $file_map = crmb_chat_files_for_messages( $page['rows'] );
+        $messages = array();
+        foreach ( $page['rows'] as $message ) {
+            $messages[] = crmb_chat_public_message( $message, $file_map[ (int) $message->id ] ?? array() );
+        }
         wp_send_json_success( array(
-            'messages' => array_map( 'crmb_chat_public_message', $page['rows'] ),
+            'messages' => $messages,
             'has_more' => $page['has_more'],
             'direction' => $after ? 'newer' : 'older',
         ) );
