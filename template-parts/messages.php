@@ -120,19 +120,17 @@ if ( $selected && ! isset( $members_by_id[ $selected ] ) ) {
                     <label class="screen-reader-text" for="crmb-chat-input">نوشتن پیام</label>
                     <textarea id="crmb-chat-input" name="message" rows="1" maxlength="3000"
                         placeholder="پیام خود را بنویسید… (Enter برای ارسال)" <?php echo $selected ? '' : 'disabled'; ?>></textarea>
-                    <button type="button" class="crmb-chat-attach-button" id="crmb-chat-attach-label"
-                        title="انتخاب فایل از ویندوز" aria-label="پیوست فایل یا تصویر" aria-controls="crmb-chat-attach-input"
-                        <?php echo $selected ? '' : 'disabled'; ?>>
+                    <label class="crmb-chat-attach-button" id="crmb-chat-attach-label"
+                        title="انتخاب فایل از ویندوز">
+                        <input type="file" id="crmb-chat-attach-input" name="attachments[]" multiple
+                            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv,.docx,.xlsx,.pptx"
+                            class="crmb-chat-file-hidden" aria-label="پیوست فایل یا تصویر از ویندوز">
                         <svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" viewBox="0 0 24 24"
                             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                             stroke-linejoin="round" focusable="false" aria-hidden="true">
                             <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49L14.37 1.14a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l9.9-9.9"></path>
                         </svg>
-                    </button>
-                    <input type="file" id="crmb-chat-attach-input" name="attachments[]" multiple
-                        accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv,.docx,.xlsx,.pptx"
-                        class="crmb-chat-file-hidden" aria-label="فایل‌های پیوست گفتگو"
-                        <?php echo $selected ? '' : 'disabled'; ?>>
+                    </label>
                     <button type="submit" id="crmb-chat-send" <?php echo $selected ? '' : 'disabled'; ?> aria-label="ارسال پیام">
                         <i class="fa-solid fa-paper-plane" aria-hidden="true"></i><span>ارسال</span>
                     </button>
