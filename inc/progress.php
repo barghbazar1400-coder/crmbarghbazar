@@ -158,4 +158,4 @@ function crmb_progress_seconds( $task ) {
     return (int) $task->tracked_seconds + ( $task->timer_started_utc ? max( 0, time() - strtotime( $task->timer_started_utc . ' UTC' ) ) : 0 );
 }
 function crmb_progress_duration( $seconds ) { return sprintf( '%02d:%02d:%02d', floor( $seconds / 3600 ), floor( $seconds / 60 ) % 60, $seconds % 60 ); }
-function crmb_progress_event_labels() { return array( 'doing' => 'شروع / ادامه کار', 'paused' => 'توقف موقت', 'todo' => 'بازگشت به انجام‌نشده', 'done' => 'پایان کار', 'cancelled' => 'لغو توسط مدیر', 'note' => 'گزارش پیشرفت', 'blocker' => 'مانع / مشکل', 'edited' => 'ویرایش توسط مدیر' ); }
+function crmb_progress_event_labels() { return array( 'doing' => 'شروع / ادامه کار', 'paused' => 'توقف موقت', 'todo' => 'بازگشت به انجام‌نشده', 'done' => 'پایان کار', 'cancelled' => 'لغو توسط مدیر', 'note' => 'گزارش پیشرفت', 'blocker' => 'مانع / مشکل', 'rich_note' => 'گزارش پیشرفت', 'rich_blocker' => 'مانع / مشکل', 'manager_note' => 'راهنمایی مدیر', 'edited' => 'ویرایش توسط مدیر' ); }
