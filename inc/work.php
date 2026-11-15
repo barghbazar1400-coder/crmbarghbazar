@@ -97,6 +97,9 @@ function crmb_work_mutate( $data ) {
             $values += array( 'created_by' => $uid, 'status' => 'todo', 'created_utc' => $now );
             $result = $wpdb->insert( $t['tasks'], $values );
         }
+        if ( false !== $result && ! $id && function_exists( 'do_action' ) ) {
+            do_action( 'crmb_task_assigned', (int) $wpdb->insert_id, $assigned, $uid, 0 );
+        }
         return false === $result ? 'error' : 'saved';
     }
     if ( 'task_status' === $task ) {
@@ -117,6 +120,9 @@ function crmb_work_mutate( $data ) {
         $subject = crmb_work_text( $data, 'subject' ); $body = crmb_work_text( $data, 'body', true );
         if ( ! get_userdata( $recipient ) || $recipient === $uid || '' === $subject || strlen( $subject ) > 180 || '' === $body || strlen( $body ) > 10000 ) { return 'invalid'; }
         $result = $wpdb->insert( $t['messages'], array( 'sender_id' => $uid, 'recipient_id' => $recipient, 'subject' => $subject, 'body' => $body, 'created_utc' => $now ) );
+        if ( false !== $result && function_exists( 'do_action' ) ) {
+            do_action( 'crmb_message_sent', (int) $wpdb->insert_id, $recipient, $uid );
+        }
         return false === $result ? 'error' : 'sent';
     }
     if ( 'read_message' === $task && $id ) {
