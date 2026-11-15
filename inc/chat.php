@@ -156,7 +156,7 @@ function crmb_chat_authorized_peer( $peer_id, $token = '' ) {
 function crmb_chat_lookup_username( $query ) {
     $query = is_string( $query ) ? trim( $query ) : '';
     if ( ! crmb_chat_ready() || strlen( $query ) > 190
-        || ! preg_match( '/^@([\\p{L}\\p{N}_.-]{2,60})$/uD', $query, $m ) ) {
+        || ! preg_match( '/^@([\p{L}\p{N}_.-]{2,60})$/uD', $query, $m ) ) {
         return array( 'status' => 'invalid' );
     }
     $key = 'crmb_chat_lookup_' . get_current_user_id();
