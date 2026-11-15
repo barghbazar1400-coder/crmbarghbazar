@@ -121,24 +121,59 @@ function crmb_chat_contacts( $limit = 120 ) {
         $records[ $id ] = array(
             'id' => $id,
             'name' => $user->display_name,
+            'username' => $user->user_login,
             'last_id' => (int) $item->last_id,
             'unread' => (int) $item->unread,
         );
     }
 
-    // Include coworkers with no prior messages to allow starting conversations.
-    $members = get_users( array( 'orderby' => 'display_name', 'number' => $limit, 'fields' => array( 'ID', 'display_name' ) ) );
-    foreach ( $members as $user ) {
-        $id = (int) $user->ID;
-        if ( $id === $uid || isset( $records[ $id ] ) ) { continue; }
-        $records[ $id ] = array(
-            'id' => $id, 'name' => $user->display_name, 'last_id' => 0, 'unread' => 0,
-        );
-        if ( count( $records ) >= $limit ) { break; }
-    }
+    // Never show a directory of users who haven't actually exchanged messages.
     return array_values( $records );
 }
 
+/** A conversation exists only when either participant has sent a message. */
+function crmb_chat_has_history( $peer_id ) {
+    if ( ! crmb_chat_peer( $peer_id ) ) { return false; }
+    global $wpdb;
+    $table = crmb_work_tables()['messages'];
+    $uid = get_current_user_id();
+    return (bool) $wpdb->get_var( $wpdb->prepare(
+        "SELECT id FROM {$table} WHERE (sender_id=%d AND recipient_id=%d)
+        OR (sender_id=%d AND recipient_id=%d) ORDER BY id DESC LIMIT 1",
+        $uid, $peer_id, $peer_id, $uid
+    ) );
+}
+function crmb_chat_start_action( $peer_id ) {
+    return 'crmb_chat_start_' . get_current_user_id() . '_' . absint( $peer_id );
+}
+function crmb_chat_authorized_peer( $peer_id, $token = '' ) {
+    if ( ! crmb_chat_peer( $peer_id ) ) { return false; }
+    if ( crmb_chat_has_history( $peer_id ) ) { return true; }
+    return is_string( $token ) && '' !== $token &&
+        (bool) wp_verify_nonce( $token, crmb_chat_start_action( $peer_id ) );
+}
+/** Exact @username lookup (not autocomplete, no email/partial directory). */
+function crmb_chat_lookup_username( $query ) {
+    $query = is_string( $query ) ? trim( $query ) : '';
+    if ( ! crmb_chat_ready() || strlen( $query ) > 190
+        || ! preg_match( '/^@([\\p{L}\\p{N}_.-]{2,60})$/uD', $query, $m ) ) {
+        return array( 'status' => 'invalid' );
+    }
+    $key = 'crmb_chat_lookup_' . get_current_user_id();
+    $count = (int) get_transient( $key );
+    if ( $count >= 25 ) { return array( 'status' => 'limited' ); }
+    set_transient( $key, $count + 1, 600 );
+    $user = get_user_by( 'login', $m[1] );
+    if ( ! $user || (int) $user->ID === get_current_user_id() ) {
+        return array( 'status' => 'not_found' );
+    }
+    return array(
+        'status' => 'found', 'id' => (int) $user->ID,
+        'name' => (string) $user->display_name, 'username' => (string) $user->user_login,
+        'existing' => crmb_chat_has_history( (int) $user->ID ),
+        'start_token' => wp_create_nonce( crmb_chat_start_action( $user->ID ) ),
+    );
+}
 function crmb_chat_public_message( $message ) {
     return array(
         'id' => (int) $message->id,
@@ -162,9 +197,16 @@ function crmb_chat_ajax() {
     if ( 'contacts' === $mode ) {
         wp_send_json_success( array( 'contacts' => crmb_chat_contacts() ) );
     }
+    if ( 'lookup' === $mode ) {
+        $query = isset( $_POST['username'] ) && is_string( $_POST['username'] )
+            ? wp_unslash( $_POST['username'] ) : '';
+        wp_send_json_success( crmb_chat_lookup_username( $query ) );
+    }
     $peer = crmb_work_id( wp_unslash( $_POST ), 'peer' );
-    if ( ! crmb_chat_peer( $peer ) ) {
-        wp_send_json_error( array( 'message' => 'همکار انتخاب‌شده معتبر نیست.' ), 400 );
+    $start_token = isset( $_POST['start_token'] ) && is_string( $_POST['start_token'] )
+        ? wp_unslash( $_POST['start_token'] ) : '';
+    if ( ! crmb_chat_authorized_peer( $peer, $start_token ) ) {
+        wp_send_json_error( array( 'message' => 'ابتدا نام کاربری دقیق مخاطب را با @ جست‌وجو کنید.' ), 403 );
     }
     if ( 'send' === $mode ) {
         $body = isset( $_POST['body'] ) && is_string( $_POST['body'] ) ? wp_unslash( $_POST['body'] ) : '';
