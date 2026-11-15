@@ -44,6 +44,25 @@ $setup = isset( $_GET['push_setup'] ) ? sanitize_key( $_GET['push_setup'] ) : ''
             <button type="button" class="crmb-notices-secondary" id="crmb-push-background" hidden><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> فعال‌سازی پوش پس‌زمینه</button>
             <button type="button" class="crmb-notices-secondary" id="crmb-push-disable" hidden>غیرفعال‌سازی اعلان این حساب</button>
         </div>
+        <div class="crmb-notification-sound" aria-labelledby="crmb-notification-sound-heading">
+            <div class="crmb-notification-sound-copy">
+                <span class="crmb-notification-sound-icon"><i class="fa-solid fa-volume-high" aria-hidden="true"></i></span>
+                <div>
+                    <h3 id="crmb-notification-sound-heading">صدای اختصاصی پیام جدید</h3>
+                    <p>وقتی CRM در مرورگر باز است، برای پیام تازه یک زنگ کوتاه پخش می‌شود. این گزینه برای هر کارمند جداست.</p>
+                </div>
+            </div>
+            <div class="crmb-notification-sound-actions">
+                <button type="button" class="crmb-notices-secondary" id="crmb-sound-toggle" aria-pressed="false">
+                    <i class="fa-solid fa-volume-high" aria-hidden="true"></i> فعال‌سازی صدای پیام
+                </button>
+                <button type="button" class="crmb-notices-secondary" id="crmb-sound-test" hidden>
+                    <i class="fa-solid fa-play" aria-hidden="true"></i> امتحان صدا
+                </button>
+            </div>
+            <p id="crmb-sound-status" class="crmb-notification-sound-status" role="status">برای فعال‌سازی صدا، دکمه بالا را انتخاب کنید.</p>
+            <p class="crmb-notification-sound-note">مرورگر ممکن است تا اولین کلیک کارمند پخش صدا را محدود کند. با تب کاملاً بسته، صدای اعلان تابع تنظیمات ویندوز است.</p>
+        </div>
         <div class="crmb-desktop-notice-guide">
             <p><i class="fa-solid fa-desktop" aria-hidden="true"></i> <strong>وقتی تب CRM باز است:</strong> پیام‌ها با بررسی خودکار دریافت می‌شوند و پس از اجازه مرورگر اعلان ویندوز نمایش داده می‌شود.</p>
             <p><i class="fa-solid fa-cloud" aria-hidden="true"></i> <strong>وقتی تب کاملاً بسته است:</strong> ارسال اعلان نیازمند راه‌اندازی Web Push روی سرور است؛ مرورگر و اعلان‌های ویندوز هم باید مجاز باشند.</p>
