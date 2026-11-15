@@ -96,7 +96,7 @@ $wpdb->rows=array($task_row); $admin=false; $_GET=array();
 ob_start(); include __DIR__ . '/../template-parts/tasks.php'; $html=ob_get_clean();
 check(false,str_contains($html,'<script>')); check(true,str_contains($html,'&lt;script&gt;'));
 check(false,str_contains($html,'واگذاری وظیفه جدید')); check(false,str_contains($html,'value="cancelled"'));
-check(true,str_contains($html,'مهلت گذشته')); check(true,str_contains($html,'ثبت وضعیت'));
+check(true,str_contains($html,'مهلت گذشته')); check(true,str_contains($html,'تغییر وضعیت'));
 $admin=true; ob_start(); include __DIR__ . '/../template-parts/tasks.php'; $html=ob_get_clean();
 check(true,str_contains($html,'واگذاری وظیفه جدید')); check(true,str_contains($html,'value="cancelled"'));
 $wpdb->rows=array((object)array('id'=>5,'sender_id'=>8,'recipient_id'=>7,'subject'=>'<script>Message</script>','body'=>'<img src=x onerror=alert(1)>','created_utc'=>'2026-10-30 08:00:00','read_utc'=>null));
