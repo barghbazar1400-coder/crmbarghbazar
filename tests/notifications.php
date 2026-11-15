@@ -14,12 +14,11 @@ function crmb_department_members($id) { return array((object)array('ID'=>8), (ob
 function wp_generate_uuid4() { static $i=0; return 'test-uuid-'.(++$i); }
 function wp_next_scheduled($name) { return false; }
 function wp_schedule_single_event($time,$name) { return true; }
-function add_query_arg($args,$url) { return $url.'?'.http_build_query($args); }
+// The progress.php bootstrap already defines home_url() and add_query_arg().
 function wp_validate_redirect($url,$default=false) {
-    return str_starts_with($url, 'https://crmbarghbazar.com/main/') ? $url : $default;
+    return str_starts_with($url, '/main/') ? $url : $default;
 }
 function esc_url_raw($url) { return $url; }
-function home_url($path) { return 'https://crmbarghbazar.com'.$path; }
 function wp_http_validate_url($url) { return 0 === strpos($url,'https://') ? $url : false; }
 function wp_parse_url($url,$component) { return parse_url($url,$component); }
 
