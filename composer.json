@@ -1,0 +1,14 @@
+{
+  "name": "barghbazar/crm",
+  "description": "Optional encrypted browser Web Push transport for the CRM WordPress theme",
+  "type": "project",
+  "require": {
+    "php": ">=8.2",
+    "minishlink/web-push": "11.0.0"
+  },
+  "config": {
+    "sort-packages": true,
+    "platform-check": true,
+    "allow-plugins": false
+  }
+}
