@@ -1800,3 +1800,49 @@ body.crm-main-page {
   .crmb-dashboard .crmb-progress-team-activity { padding: 14px; }
   .crmb-dashboard .crmb-progress-activity-list { max-height: none; }
 }
+
+
+/* COO / CEO: compact priority list without stretched empty card space. */
+.crmb-leadership-layout { align-items: start; }
+.crmb-leadership-layout > .crm-access-card { align-self: start; height: auto; }
+.crmb-leadership-priorities { padding: 20px 22px; }
+.crmb-priorities-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 15px; }
+.crmb-priorities-heading { flex: 1; min-width: 0; }
+.crmb-priorities-heading h2 { margin: 0 0 6px; font-size: 17px; font-weight: 800; color: #38216d; line-height: 1.6; }
+.crmb-priorities-heading p { color: #8a7b99; font-size: 12px; line-height: 1.8; margin: 0; }
+.crmb-priorities-manage { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 7px 11px; border-radius: 9px; border: 1px solid #e1d4f2; background: #f8f4ff; font-size: 12px; font-weight: 750; color: #6238ad; text-decoration: none; white-space: nowrap; box-sizing: border-box; }
+.crmb-priorities-manage:hover { background: #eee6fc; }
+.crmb-priorities-count { display: inline-flex; padding: 5px 10px; border-radius: 7px; background: #f4f0fb; color: #7254a1; font-size: 11px; font-weight: 750; margin: 0 0 10px; }
+.crmb-priorities-list { padding: 0; margin: 0; list-style: none; max-height: 438px; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.crmb-priority-item { display: flex; justify-content: space-between; align-items: center; gap: 14px; background: #fcfbff; border: 1px solid #eee8f6; border-radius: 12px; margin-bottom: 9px; padding: 13px 14px; min-width: 0; }
+.crmb-priority-item:last-child { margin-bottom: 0; }
+.crmb-priority-item:hover { background: #f8f5ff; border-color: #d9c9f1; }
+.crmb-priority-main { flex: 1; min-width: 0; }
+.crmb-priority-title { color: #432276; font-size: 13px; font-weight: 800; line-height: 1.85; text-decoration: none; overflow-wrap: anywhere; }
+.crmb-priority-title:hover { color: #7042c4; text-decoration: underline; text-underline-offset: 3px; }
+.crmb-priority-meta { display: flex; gap: 8px 12px; align-items: center; flex-wrap: wrap; margin-top: 7px; color: #80728e; font-size: 11px; }
+.crmb-priority-meta > span:not(.crmb-priority-status) { display: inline-flex; align-items: center; gap: 6px; }
+.crmb-priority-meta i { color: #9a84bb; font-size: 10px; }
+.crmb-priority-status { display: inline-flex; background: #f0ebfa; color: #6d48a6; padding: 3px 8px; border-radius: 6px; font-weight: 700; white-space: nowrap; }
+.crmb-priority-status.is-doing { background: #eee7fc; color: #6b3bb2; }
+.crmb-priority-status.is-paused { background: #fff3e3; color: #985d1c; }
+.crmb-priority-status.is-todo { background: #edf2ff; color: #4f69a3; }
+.crmb-priority-side { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; flex: 0 0 auto; min-width: 104px; }
+.crmb-priority-due { display: inline-flex; gap: 6px; align-items: center; color: #81758e; font-size: 11px; white-space: nowrap; }
+.crmb-priority-due i { font-size: 11px; color: #a591c1; }
+.crmb-priority-due.is-overdue { color: #ac3b54; font-weight: 750; }
+.crmb-priority-due.is-overdue i { color: #ac3b54; }
+.crmb-priority-due.is-today { color: #aa6c21; font-weight: 750; }
+.crmb-priority-detail { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; color: #6941b2; font-size: 11px; font-weight: 800; }
+.crmb-priority-detail:hover { color: #432278; text-decoration: underline; text-underline-offset: 3px; }
+.crmb-priorities-empty { padding: 18px 12px; border: 1px dashed #ded2ef; background: #fcfaff; border-radius: 11px; color: #81708f; font-size: 12px; line-height: 1.9; text-align: center; }
+div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.crmb-priorities-empty i { font-size: 24px; color: #46a079; }
+.crmb-priorities-empty strong { color: #4a3270; }
+.crmb-priorities-manage:focus-visible, .crmb-priority-title:focus-visible, .crmb-priority-detail:focus-visible { outline: 2px solid #7347bb; outline-offset: 3px; }
+@media (max-width: 780px) {
+  .crmb-leadership-priorities { padding: 16px; }
+  .crmb-priority-item { align-items: flex-start; flex-wrap: wrap; gap: 9px; }
+  .crmb-priority-side { flex-direction: row; justify-content: space-between; align-items: center; width: 100%; min-width: 0; }
+  .crmb-priorities-list { max-height: none; }
+}
