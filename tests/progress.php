@@ -128,7 +128,9 @@ check(false,str_contains($html,'Daily result')); check(true,str_contains($html,'
 $admin=true; $_GET=array('scope'=>'team','report'=>$rid); ob_start(); include __DIR__.'/../template-parts/daily-reports.php'; $html=ob_get_clean(); check(true,str_contains($html,'Daily result'));
 $admin=false; $uid=7; $_GET=array('task_id'=>$id); ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $html=ob_get_clean(); check(false,str_contains($html,'Need feedback')); check(true,str_contains($html,'اجازه'));
 $uid=8; $_GET=array('task_id'=>$id); ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $html=ob_get_clean(); check(true,str_contains($html,'Need feedback')); check(true,str_contains($html,'زمان کار ثبت‌شده'));
-check(true,str_contains($html,'crmbtaskeditor')); check(true,str_contains($html,'crmbtasktable'));
+check(true,str_contains($html,'crmbtaskeditor'));
+$task_template = file_get_contents(__DIR__.'/../template-parts/task-progress.php');
+check(true,str_contains($task_template, "link,unlink,crmbtasktable,undo,redo"));
 check(false,str_contains($html,'crmb-task-table-rows'));
 check(true,str_contains($html,'id="crmb-task-image-modal"'));
 check(true,str_contains($html,'data-crmb-task-image'));
