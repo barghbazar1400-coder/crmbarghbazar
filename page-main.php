@@ -87,7 +87,7 @@ if ( ! empty( $crm_user->roles ) ) {
             $crm_nav_icons = array(
                 'dashboard' => 'fa-house', 'attendance' => 'fa-calendar-check',
                 'clock' => 'fa-fingerprint', 'departments' => 'fa-users',
-                'tasks' => 'fa-list-check', 'messages' => 'fa-envelope',
+                'tasks' => 'fa-list-check', 'messages' => 'fa-envelope', 'notifications' => 'fa-bell',
                 'reports' => 'fa-file-lines', 'seo' => 'fa-chart-line',
                 'ceo' => 'fa-crown', 'operations' => 'fa-clipboard-check',
                 'sales' => 'fa-cart-shopping',
@@ -137,9 +137,9 @@ if ( ! empty( $crm_user->roles ) ) {
     <main class="crm-main-workspace" id="crm-main-content" aria-label="محتوای اصلی CRM">
         <header class="crm-topbar" aria-label="نوار اعلان‌های پنل">
             <div class="crm-topbar-group">
-                <?php $crm_unread = crmb_work_unread_count(); ?>
-                <a class="crm-topbar-bell" href="<?php echo esc_url( add_query_arg( 'crm_section', 'messages', home_url( '/main/' ) ) ); ?>"
-                   aria-label="<?php echo esc_attr( null === $crm_unread ? 'پیام‌های داخلی' : $crm_unread . ' پیام خوانده‌نشده' ); ?>" title="پیام‌های داخلی">
+                <?php $crm_unread = crmb_notice_count(); ?>
+                <a class="crm-topbar-bell" href="<?php echo esc_url( add_query_arg( 'crm_section', 'notifications', home_url( '/main/' ) ) ); ?>"
+                   aria-label="<?php echo esc_attr( null === $crm_unread ? 'مرکز اعلان‌ها' : $crm_unread . ' اعلان خوانده‌نشده' ); ?>" title="مرکز اعلان‌ها">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
                          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
                         <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/>
@@ -174,6 +174,8 @@ if ( ! empty( $crm_user->roles ) ) {
             get_template_part( 'template-parts/tasks' );
         } elseif ( 'messages' === $crm_current_section && crmbarghbazar_can_view_section( 'messages' ) ) {
             get_template_part( 'template-parts/messages' );
+        } elseif ( 'notifications' === $crm_current_section && crmbarghbazar_can_view_section( 'notifications' ) ) {
+            get_template_part( 'template-parts/notifications' );
         } elseif ( 'reports' === $crm_current_section && crmbarghbazar_can_view_section( 'reports' ) ) {
             get_template_part( 'template-parts/daily-reports' );
         } elseif ( 'seo' === $crm_current_section && crmbarghbazar_can_view_section( 'seo' ) ) {
@@ -234,6 +236,19 @@ if ( ! empty( $crm_user->roles ) ) {
     window.setInterval(updateClock, 1000);
 })();
 </script>
+<?php
+$crmb_notice_client = get_template_directory() . '/assets/js/crmb-notices.js';
+if ( is_readable( $crmb_notice_client ) ) :
+    $crmb_notice_config = array(
+        'ajax' => admin_url( 'admin-ajax.php' ),
+        'nonce' => wp_create_nonce( 'crmb_notice_ajax' ),
+        'workerUrl' => add_query_arg( 'action', 'crmb_push_sw', admin_url( 'admin-ajax.php' ) ),
+        'publicKey' => crmb_push_public_key(),
+    );
+    ?>
+    <script>window.crmbNoticeConfig = <?php echo wp_json_encode( $crmb_notice_config, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP ); ?>;</script>
+    <script id="crmb-notice-client"><?php readfile( $crmb_notice_client ); ?></script>
+<?php endif; ?>
 <?php wp_footer(); ?>
 </body>
 </html>
