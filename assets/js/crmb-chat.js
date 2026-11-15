@@ -252,6 +252,11 @@
             if (item.kind !== 'file' || !item.type.startsWith('image/')) return;
             var file = item.getAsFile();
             if (!file) return;
+            if (['image/png', 'image/jpeg', 'image/gif', 'image/webp'].indexOf(item.type) === -1) {
+                say('فرمت این تصویر قابل چسباندن نیست. از PNG، JPG، GIF یا WebP استفاده کنید.', true);
+                event.preventDefault();
+                return;
+            }
             var ext = item.type === 'image/jpeg' ? 'jpg' : item.type === 'image/webp' ? 'webp'
                 : item.type === 'image/gif' ? 'gif' : 'png';
             pictures.push(new File([file], 'clipboard-' + Date.now() + '.' + ext, {
@@ -291,7 +296,12 @@
     });
     // Avoid browser navigation when a user drops an unsupported file on the chat.
     window.addEventListener('dragover', function (event) { if (draggedFiles(event)) event.preventDefault(); });
-    window.addEventListener('drop', function (event) { if (draggedFiles(event)) event.preventDefault(); });
+    window.addEventListener('drop', function (event) {
+        if (draggedFiles(event)) event.preventDefault();
+        dragDepth = 0;
+        dropOverlay.hidden = true;
+    });
+    window.addEventListener('blur', function () { dragDepth = 0; dropOverlay.hidden = true; });
     function say(message, isError) {
         status.textContent = message || '';
         status.classList.toggle('is-error', !!isError);
