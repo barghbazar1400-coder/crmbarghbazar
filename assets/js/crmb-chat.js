@@ -1,0 +1,412 @@
+/* Private CRM messenger: cursor pagination, lightweight live updates, safe DOM. */
+(function () {
+    'use strict';
+    var app = document.getElementById('crmb-messenger');
+    var cfg = window.crmbChatConfig || {};
+    if (!app || !cfg.ajax || !cfg.nonce) return;
+
+    var historyBox = document.getElementById('crmb-messenger-history');
+    var bubbles = document.getElementById('crmb-chat-bubbles');
+    var empty = document.getElementById('crmb-chat-empty');
+    var list = document.getElementById('crmb-messenger-contacts');
+    var search = document.getElementById('crmb-messenger-search-input');
+    var title = document.getElementById('crmb-messenger-partner');
+    var input = document.getElementById('crmb-chat-input');
+    var form = document.getElementById('crmb-chat-compose');
+    var send = document.getElementById('crmb-chat-send');
+    var status = document.getElementById('crmb-chat-status');
+    var older = document.getElementById('crmb-chat-older');
+    var olderButton = document.getElementById('crmb-chat-older-button');
+    var jump = document.getElementById('crmb-chat-jump');
+    var back = document.getElementById('crmb-chat-back');
+    var peer = Number(app.dataset.selectedPeer) || 0;
+    var oldest = 0;
+    var newest = 0;
+    var hasOlder = false;
+    var hasNewer = false;
+    var loaded = false;
+    var busyOlder = false;
+    var busyNewer = false;
+    var busyInitial = false;
+    var busySend = false;
+    var contactsBusy = false;
+    var generation = 0;
+    var lastContactRefresh = 0;
+    var ids = new Set();
+    var recentContactNames = new Map();
+    var MAX_RENDERED = 240;
+    var REFRESH_MS = 8500;
+
+    function post(mode, data) {
+        var params = new URLSearchParams();
+        params.set('action', 'crmb_chat');
+        params.set('nonce', cfg.nonce);
+        params.set('mode', mode);
+        Object.keys(data || {}).forEach(function (key) {
+            params.set(key, String(data[key]));
+        });
+        return fetch(cfg.ajax, {
+            method: 'POST',
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body: params.toString()
+        }).then(function (response) {
+            return response.json().then(function (json) {
+                if (!response.ok || !json.success) {
+                    throw new Error(json && json.data && json.data.message || 'دریافت اطلاعات انجام نشد.');
+                }
+                return json.data || {};
+            });
+        });
+    }
+    function say(message, isError) {
+        status.textContent = message || '';
+        status.classList.toggle('is-error', !!isError);
+    }
+    function otherName(id) {
+        if (recentContactNames.has(id)) return recentContactNames.get(id);
+        var item = list.querySelector('[data-peer="' + id + '"]');
+        return item ? item.dataset.name : 'همکار';
+    }
+    function currentContact() {
+        return list.querySelector('.crmb-messenger-contact[data-peer="' + peer + '"]');
+    }
+    function updateHeader() {
+        title.textContent = peer ? otherName(peer) : 'یک همکار را انتخاب کنید';
+        input.disabled = !peer;
+        send.disabled = !peer || busySend;
+        app.classList.toggle('has-active-peer', !!peer);
+        Array.prototype.forEach.call(list.querySelectorAll('.crmb-messenger-contact'), function (entry) {
+            var active = Number(entry.dataset.peer) === peer;
+            entry.classList.toggle('is-active', active);
+            entry.setAttribute('aria-current', active ? 'true' : 'false');
+        });
+    }
+    function updateFlags() {
+        older.hidden = !loaded || !hasOlder;
+        olderButton.disabled = busyOlder;
+        olderButton.textContent = busyOlder ? 'در حال دریافت پیام‌های قبلی…' : '↑ نمایش پیام‌های قدیمی‌تر';
+        jump.hidden = !loaded || !peer || (!hasNewer && historyBox.scrollHeight - historyBox.scrollTop - historyBox.clientHeight < 110);
+    }
+    function updateEdges() {
+        var nodes = bubbles.querySelectorAll('.crmb-chat-bubble');
+        if (!nodes.length) { oldest = 0; newest = 0; return; }
+        oldest = Number(nodes[0].dataset.id) || 0;
+        newest = Number(nodes[nodes.length - 1].dataset.id) || 0;
+    }
+    function makeBubble(item) {
+        var article = document.createElement('article');
+        article.className = 'crmb-chat-bubble ' + (item.mine ? 'is-mine' : 'is-theirs');
+        article.dataset.id = String(item.id);
+        article.setAttribute('dir', 'auto');
+        var inside = document.createElement('div');
+        inside.className = 'crmb-chat-bubble-inside';
+        if (item.subject && item.subject !== 'پیام گفتگو') {
+            var subject = document.createElement('strong');
+            subject.className = 'crmb-chat-message-subject';
+            subject.textContent = item.subject;
+            inside.appendChild(subject);
+        }
+        var body = document.createElement('p');
+        body.className = 'crmb-chat-message-text';
+        body.textContent = item.text;
+        inside.appendChild(body);
+        var meta = document.createElement('small');
+        meta.className = 'crmb-chat-message-meta';
+        meta.textContent = (item.time || '') + (item.mine && item.read ? '  ✓✓' : '');
+        inside.appendChild(meta);
+        article.appendChild(inside);
+        return article;
+    }
+    function appendBatch(messages, prepend) {
+        var fragment = document.createDocumentFragment();
+        var count = 0;
+        (messages || []).forEach(function (item) {
+            var id = Number(item.id);
+            if (!id || ids.has(id)) return;
+            ids.add(id);
+            fragment.appendChild(makeBubble(item));
+            count++;
+        });
+        if (prepend) bubbles.prepend(fragment);
+        else bubbles.appendChild(fragment);
+        updateEdges();
+        if (bubbles.children.length) empty.hidden = true;
+        return count;
+    }
+    function clearThread() {
+        bubbles.replaceChildren();
+        ids.clear();
+        oldest = 0;
+        newest = 0;
+        loaded = false;
+        hasOlder = false;
+        hasNewer = false;
+        busyOlder = false;
+        busyNewer = false;
+        busyInitial = false;
+        historyBox.scrollTop = 0;
+        empty.hidden = false;
+        empty.querySelector('strong').textContent = peer ? 'در حال دریافت پیام‌ها…' : 'یک همکار را انتخاب کنید';
+        updateFlags();
+    }
+    function atBottom() {
+        return historyBox.scrollHeight - historyBox.scrollTop - historyBox.clientHeight < 125;
+    }
+    function toBottom() {
+        historyBox.scrollTop = historyBox.scrollHeight;
+        updateFlags();
+    }
+    function trimSide(side) {
+        var removed = 0;
+        while (bubbles.children.length > MAX_RENDERED) {
+            var victim = side === 'newest' ? bubbles.lastElementChild : bubbles.firstElementChild;
+            if (!victim) break;
+            ids.delete(Number(victim.dataset.id));
+            victim.remove();
+            removed++;
+        }
+        if (removed) {
+            updateEdges();
+            if (side === 'newest') hasNewer = true;
+            else hasOlder = true;
+        }
+        return removed;
+    }
+    function initialThread() {
+        if (!peer) { clearThread(); return; }
+        var target = peer;
+        var current = ++generation;
+        clearThread();
+        busyInitial = true;
+        post('thread', { peer: target }).then(function (data) {
+            if (generation !== current || peer !== target) return;
+            appendBatch(data.messages, false);
+            hasOlder = !!data.has_more;
+            loaded = true;
+            if (!bubbles.children.length) empty.querySelector('strong').textContent = 'هنوز پیامی در این گفتگو وجود ندارد';
+            updateFlags();
+            toBottom();
+            say('');
+            refreshContacts(true);
+        }).catch(function (error) {
+            if (generation !== current) return;
+            empty.querySelector('strong').textContent = 'بارگذاری گفتگو ناموفق بود';
+            say(error.message, true);
+        }).finally(function () {
+            if (generation === current) busyInitial = false;
+        });
+    }
+    function loadOlder() {
+        if (!peer || !loaded || !hasOlder || busyOlder || busyInitial || !oldest) return;
+        var current = generation;
+        var target = peer;
+        var anchor = oldest;
+        var oldHeight = historyBox.scrollHeight;
+        var oldTop = historyBox.scrollTop;
+        busyOlder = true;
+        updateFlags();
+        post('thread', { peer: target, before: anchor }).then(function (data) {
+            if (generation !== current || target !== peer) return;
+            appendBatch(data.messages, true);
+            hasOlder = !!data.has_more;
+            var removed = trimSide('newest');
+            // After trimming the tail, preserve the original visual position.
+            historyBox.scrollTop = Math.max(0, oldTop + historyBox.scrollHeight - oldHeight);
+            if (removed) hasNewer = true;
+            updateFlags();
+        }).catch(function (error) {
+            if (generation === current) say(error.message, true);
+        }).finally(function () {
+            if (generation === current) { busyOlder = false; updateFlags(); }
+        });
+    }
+    function loadNewer() {
+        if (!peer || !loaded || busyNewer || busyInitial || !newest || document.hidden) return;
+        var current = generation;
+        var target = peer;
+        var anchor = newest;
+        var stick = atBottom();
+        busyNewer = true;
+        post('thread', { peer: target, after: anchor }).then(function (data) {
+            if (generation !== current || target !== peer) return;
+            var count = appendBatch(data.messages, false);
+            hasNewer = !!data.has_more;
+            var oldHeight = historyBox.scrollHeight;
+            var oldTop = historyBox.scrollTop;
+            var removed = trimSide('oldest');
+            if (removed && !stick) historyBox.scrollTop = Math.max(0, oldTop + historyBox.scrollHeight - oldHeight);
+            if (count && stick) toBottom();
+            if (count) refreshContacts(true);
+            updateFlags();
+        }).catch(function () { /* Offline: the next poll retries. */ })
+            .finally(function () { if (generation === current) busyNewer = false; });
+    }
+    function switchPeer(id, fromHistory) {
+        id = Number(id) || 0;
+        if (!id || !recentContactNames.has(id) && !list.querySelector('[data-peer="' + id + '"]')) return;
+        if (peer === id && loaded) {
+            app.classList.add('is-chat-visible');
+            return;
+        }
+        peer = id;
+        app.classList.add('is-chat-visible');
+        updateHeader();
+        if (!fromHistory) {
+            var newUrl = new URL(window.location.href);
+            newUrl.searchParams.set('crm_section', 'messages');
+            newUrl.searchParams.set('peer', String(id));
+            newUrl.searchParams.delete('message');
+            newUrl.searchParams.delete('box');
+            newUrl.searchParams.delete('work_page');
+            window.history.pushState({ crmbPeer: id }, '', newUrl.pathname + newUrl.search);
+        }
+        initialThread();
+    }
+    function refreshContacts(urgent) {
+        if (contactsBusy || (!urgent && Date.now() - lastContactRefresh < 20000)) return;
+        contactsBusy = true;
+        post('contacts').then(function (data) {
+            var contacts = data.contacts || [];
+            var filter = search.value.trim().toLocaleLowerCase();
+            var top = list.scrollTop;
+            var fragment = document.createDocumentFragment();
+            recentContactNames.clear();
+            contacts.forEach(function (contact) {
+                var id = Number(contact.id) || 0;
+                if (!id) return;
+                recentContactNames.set(id, contact.name);
+                var item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'crmb-messenger-contact' + (id === peer ? ' is-active' : '');
+                item.setAttribute('role', 'listitem');
+                item.setAttribute('aria-current', id === peer ? 'true' : 'false');
+                item.dataset.peer = String(id);
+                item.dataset.name = contact.name;
+                var avatar = document.createElement('span');
+                avatar.className = 'crmb-messenger-person-avatar';
+                avatar.setAttribute('aria-hidden', 'true');
+                var icon = document.createElement('i');
+                icon.className = 'fa-solid fa-user';
+                avatar.appendChild(icon);
+                var details = document.createElement('span');
+                details.className = 'crmb-messenger-contact-details';
+                var name = document.createElement('strong');
+                name.textContent = contact.name;
+                var sub = document.createElement('small');
+                sub.textContent = Number(contact.unread) ? 'پیام جدید دارید'
+                    : (Number(contact.last_id) ? 'گفتگوی قبلی' : 'شروع گفتگو');
+                details.append(name, sub);
+                item.append(avatar, details);
+                if (Number(contact.unread) > 0) {
+                    var unread = document.createElement('span');
+                    unread.className = 'crmb-messenger-contact-unread';
+                    unread.textContent = String(Math.min(99, Number(contact.unread)));
+                    item.appendChild(unread);
+                }
+                item.hidden = !!filter && !contact.name.toLocaleLowerCase().includes(filter);
+                fragment.appendChild(item);
+            });
+            list.replaceChildren(fragment);
+            list.scrollTop = top;
+            lastContactRefresh = Date.now();
+            updateHeader();
+        }).catch(function () { /* Keep server-rendered contacts on network failure. */ })
+            .finally(function () { contactsBusy = false; });
+    }
+
+    Array.prototype.forEach.call(list.querySelectorAll('[data-peer]'), function (node) {
+        recentContactNames.set(Number(node.dataset.peer), node.dataset.name);
+    });
+    updateHeader();
+    if (peer) {
+        initialThread();
+        app.classList.add('is-chat-visible');
+    } else {
+        clearThread();
+    }
+
+    list.addEventListener('click', function (event) {
+        var contact = event.target.closest('[data-peer]');
+        if (contact && list.contains(contact)) switchPeer(contact.dataset.peer, false);
+    });
+    search.addEventListener('input', function () {
+        var filter = search.value.trim().toLocaleLowerCase();
+        Array.prototype.forEach.call(list.children, function (item) {
+            item.hidden = !!filter && !String(item.dataset.name || '').toLocaleLowerCase().includes(filter);
+        });
+    });
+    back.addEventListener('click', function () { app.classList.remove('is-chat-visible'); });
+    olderButton.addEventListener('click', loadOlder);
+    jump.addEventListener('click', function () {
+        // Reset to the newest page: constant memory even after very long history.
+        if (hasNewer) initialThread();
+        else toBottom();
+    });
+    historyBox.addEventListener('scroll', function () {
+        updateFlags();
+        if (historyBox.scrollTop < 110 && hasOlder) loadOlder();
+        if (atBottom() && hasNewer) loadNewer();
+    }, { passive: true });
+    window.addEventListener('popstate', function () {
+        var id = Number(new URL(window.location.href).searchParams.get('peer')) || 0;
+        if (id && (list.querySelector('[data-peer="' + id + '"]') || recentContactNames.has(id))) switchPeer(id, true);
+    });
+
+    function sendMessage() {
+        var text = input.value.trim();
+        if (!peer || busySend || !text) return;
+        if (text.length > 3000) { say('متن پیام طولانی است.', true); return; }
+        var target = peer;
+        busySend = true;
+        send.disabled = true;
+        say('در حال ارسال…');
+        post('send', { peer: target, body: text }).then(function () {
+            if (target !== peer) return;
+            input.value = '';
+            input.style.height = '';
+            say('');
+            // A user reading older history must return to the most recent page
+            // to avoid a gap between loaded messages and this new message.
+            if (hasNewer) initialThread();
+            else loadNewer();
+            refreshContacts(true);
+        }).catch(function (error) {
+            if (target === peer) say(error.message, true);
+        }).finally(function () {
+            busySend = false;
+            send.disabled = !peer;
+            input.focus();
+        });
+    }
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        sendMessage();
+    });
+    input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+            event.preventDefault();
+            sendMessage();
+        }
+    });
+    input.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 132) + 'px';
+    });
+
+    window.setInterval(function () {
+        if (document.hidden || !peer) return;
+        if (hasNewer && !atBottom()) {
+            refreshContacts(false);
+            return;
+        }
+        if (!busyInitial) loadNewer();
+        refreshContacts(false);
+    }, REFRESH_MS);
+    document.addEventListener('visibilitychange', function () {
+        if (document.hidden) return;
+        if (hasNewer) refreshContacts(true);
+        else loadNewer();
+    });
+})();
