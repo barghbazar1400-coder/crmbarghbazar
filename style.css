@@ -1846,3 +1846,75 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   .crmb-priority-side { flex-direction: row; justify-content: space-between; align-items: center; width: 100%; min-width: 0; }
   .crmb-priorities-list { max-height: none; }
 }
+
+
+/* My work: actionable status tabs and equal-height task cards. */
+.crmb-tasks-page .crmb-tasks-overview {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 25px;
+}
+.crmb-tasks-page .crmb-tasks-overview-item {
+  display: flex;
+  position: relative;
+  align-items: center;
+  min-width: 0;
+  gap: 13px;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid #e9e0f4;
+  background: #fff;
+  border-radius: 13px;
+  padding: 15px 17px;
+  transition: border-color .18s, background .18s, box-shadow .18s;
+}
+.crmb-tasks-page .crmb-tasks-overview-item:hover {
+  border-color: #a889df; background: #faf7ff;
+}
+.crmb-tasks-page .crmb-tasks-overview-item.is-selected {
+  border-color: #7746d1;
+  background: #f6f1ff;
+  box-shadow: inset 0 0 0 1px #7746d1, 0 6px 18px rgba(82,45,151,.08);
+}
+.crmb-tasks-page .crmb-tasks-overview-copy {
+  display: flex; flex-direction: column; gap: 5px;
+  flex: 1; min-width: 0;
+}
+.crmb-tasks-page .crmb-tasks-overview-copy > span { color: #6d6080; font-size: 12px; font-weight: 700; line-height: 1.5; }
+.crmb-tasks-page .crmb-tasks-overview-copy > strong { color: #371d70; font-size: 24px; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.crmb-tasks-page .crmb-tasks-overview-icon.is-all { background: #eee8fc; color: #6d43bd; }
+.crmb-tasks-page .crmb-tasks-overview-icon.is-open { background: #fff1e4; color: #aa681e; }
+.crmb-tasks-page .crmb-tasks-overview-icon.is-done { background: #e5f5ed; color: #267d55; }
+.crmb-tasks-overview-arrow { color: #a295b2; font-size: 12px; }
+.crmb-tasks-page .crmb-tasks-overview-item.is-selected .crmb-tasks-overview-arrow { color: #6e3dbf; }
+.crmb-tasks-page .crmb-tasks-grid {
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+.crmb-tasks-page .crmb-task-card {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+}
+.crmb-tasks-page .crmb-task-card-title { margin-bottom: 16px !important; }
+.crmb-tasks-page .crmb-task-card-info { margin-top: auto; }
+.crmb-tasks-page .crmb-task-card-footer { margin-top: 0; }
+.crmb-tasks-page .crmb-task-card-edit { align-self: flex-start; }
+.crmb-tasks-page .crmb-tasks-overview-item:focus-visible {
+  outline: 2px solid #7746d1; outline-offset: 3px;
+}
+@media (max-width: 730px) {
+  .crmb-tasks-page .crmb-tasks-overview { gap: 8px; }
+  .crmb-tasks-page .crmb-tasks-overview-item { padding: 11px; gap: 9px; }
+  .crmb-tasks-page .crmb-tasks-overview-copy > span { font-size: 11px; }
+  .crmb-tasks-page .crmb-tasks-overview-copy > strong { font-size: 21px; }
+  .crmb-tasks-overview-arrow { display: none; }
+}
+@media (max-width: 520px) {
+  .crmb-tasks-page .crmb-tasks-overview { grid-template-columns: 1fr; }
+  .crmb-tasks-page .crmb-tasks-overview-item { padding: 12px 15px; }
+  .crmb-tasks-page .crmb-tasks-overview-copy { flex-direction: row; align-items: center; justify-content: space-between; }
+  .crmb-tasks-page .crmb-tasks-grid { grid-auto-rows: auto; }
+}
