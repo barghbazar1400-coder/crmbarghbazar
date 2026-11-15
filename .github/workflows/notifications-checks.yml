@@ -5,6 +5,7 @@ on:
     paths:
       - 'inc/notifications.php'
       - 'inc/chat.php'
+      - 'inc/chat-attachments.php'
       - 'inc/notifications-push.php'
       - 'assets/js/crmb-notices.js'
       - 'assets/js/crmb-chat.js'
@@ -16,6 +17,7 @@ on:
       - 'tests/notifications-client.js'
       - 'tests/messages-live.php'
       - 'tests/chat.php'
+      - 'tests/chat-attachments.php'
       - 'tests/work.php'
       - 'page-main.php'
       - '.github/workflows/notifications-checks.yml'
@@ -32,7 +34,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: pdo_sqlite,mbstring,curl,openssl
+          extensions: pdo_sqlite,mbstring,curl,openssl,zip,fileinfo
           coverage: none
       - uses: actions/setup-node@v4
         with:
@@ -41,6 +43,8 @@ jobs:
         run: |
           php -l inc/notifications.php
           php -l inc/chat.php
+          php -l inc/chat-attachments.php
+          php -l tests/chat-attachments.php
           php -l inc/notifications-push.php
           php -l template-parts/notifications.php
           php -l template-parts/messages.php
@@ -58,5 +62,6 @@ jobs:
           php tests/work.php
           php tests/messages-live.php
           php tests/chat.php
+          php tests/chat-attachments.php
       - name: Test Windows notification polling and consent
         run: node tests/notifications-client.js
