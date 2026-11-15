@@ -128,6 +128,9 @@ function crmb_work_mutate( $data ) {
     if ( 'read_message' === $task && $id ) {
         // A manager cannot mark another employee's messages as read.
         $result = $wpdb->query( $wpdb->prepare( "UPDATE {$t['messages']} SET read_utc = %s WHERE id = %d AND recipient_id = %d AND read_utc IS NULL", $now, $id, $uid ) );
+        if ( 1 === $result && function_exists( 'crmb_notice_read_message' ) ) {
+            crmb_notice_read_message( $id, $uid );
+        }
         return false === $result ? 'error' : ( 1 === $result ? 'read' : 'changed' );
     }
     return 'invalid';
