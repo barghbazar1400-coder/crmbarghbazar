@@ -103,7 +103,7 @@ $groups = array(
             <div class="crmb-supplier-profile-summary">
                 <span class="crmb-supplier-profile-kicker"><?php echo $create ? 'پروفایل جدید' : 'شماره پرونده ' . esc_html( $profile->id ); ?></span>
                 <h2><?php echo $create ? 'اطلاعات تأمین‌کننده جدید' : esc_html( $profile->supplier_name ); ?></h2>
-                <p><?php echo $create ? 'فیلدهای ضروری را وارد کنید؛ جزئیات دیگر را می‌توانید بعداً تکمیل کنید.' : esc_html( $profile->activity ?: 'زمینه فعالیت برای این تأمین‌کننده هنوز ثبت نشده است.' ); ?></p>
+                <p><?php echo $create ? 'فیلدهای ضروری را وارد کنید؛ جزئیات دیگر را می‌توانید بعداً تکمیل کنید.' : esc_html( $profile->activity ? wp_trim_words( $profile->activity, 24, '…' ) : 'زمینه فعالیت برای این تأمین‌کننده هنوز ثبت نشده است.' ); ?></p>
                 <?php if ( $profile ) : ?>
                     <span class="crmb-supplier-badge crmb-supplier-badge--<?php echo esc_attr( isset( $statuses[ $profile->status ] ) ? $profile->status : 'new' ); ?>">
                         <?php echo esc_html( $statuses[ $profile->status ] ?? 'در حال بررسی' ); ?>
