@@ -238,6 +238,14 @@
         });
         inside.appendChild(container);
     }
+    // Clicking this real button is a trusted user gesture, so Windows/Chrome
+    // can open the native file dialog without depending on an invisible label.
+    if (attachLabel && fileInput) {
+        attachLabel.addEventListener('click', function () {
+            if (!peer || busySend || fileInput.disabled) return;
+            fileInput.click();
+        });
+    }
     if (fileInput) {
         fileInput.addEventListener('change', function () {
             queueFiles(this.files);
@@ -319,6 +327,7 @@
         input.disabled = !peer;
         send.disabled = !peer || busySend;
         fileInput.disabled = !peer || busySend;
+        attachLabel.disabled = !peer || busySend;
         attachLabel.classList.toggle('is-disabled', !peer || busySend);
         app.classList.toggle('has-active-peer', !!peer);
         Array.prototype.forEach.call(list.querySelectorAll('.crmb-messenger-contact'), function (entry) {
@@ -685,6 +694,7 @@
         busySend = true;
         send.disabled = true;
         fileInput.disabled = true;
+        attachLabel.disabled = true;
         renderPendingFiles();
         say(files.length ? 'در حال آپلود فایل‌ها…' : 'در حال ارسال…');
         var data = { peer: target, body: text, start_token: startTokens.get(target) || '' };
@@ -706,6 +716,7 @@
             busySend = false;
             send.disabled = !peer;
             fileInput.disabled = !peer;
+            attachLabel.disabled = !peer;
             attachLabel.classList.toggle('is-disabled', !peer);
             renderPendingFiles();
             input.focus();
