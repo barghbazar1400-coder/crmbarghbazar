@@ -2008,3 +2008,47 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
     min-height: 0;
   }
 }
+
+
+/* Task detail: private rich progress reports and distinct manager guidance. */
+.crmb-task-detail-page .crmb-task-note-heading { display: flex; align-items: center; gap: 13px; margin-bottom: 18px; }
+.crmb-task-note-heading-icon { flex: 0 0 42px; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 12px; color: #a66c24; background: #fff1d9; font-size: 18px; }
+.crmb-task-note-heading-icon.is-progress { color: #6540ac; background: #efe7fd; }
+.crmb-task-note-heading h2 { margin: 0 0 4px !important; font-size: 17px; color: #372060; }
+.crmb-task-note-heading p { margin: 0; font-size: 12px; line-height: 1.8; color: #8a7d98; }
+.crmb-task-detail-page .crmb-task-manager-note { border-inline-start: 3px solid #dfac51; background: linear-gradient(125deg,#fffdf8 0%,#fff 40%); }
+.crmb-task-manager-note .crm-access-form button { align-self: flex-start; margin-top: 6px; }
+.crmb-task-rich-section .wp-editor-wrap { width: 100%; min-width: 0; direction: rtl; }
+.crmb-task-rich-section .wp-editor-container { border-radius: 0 0 10px 10px; overflow: hidden; }
+.crmb-task-rich-section .wp-editor-area { direction: rtl; box-sizing: border-box; width: 100%; background: #fff; min-height: 230px; }
+.crmb-task-rich-section .mce-tinymce { box-sizing: border-box; max-width: 100%; }
+.crmb-task-rich-section .quicktags-toolbar { padding: 9px; }
+.crmb-task-editor-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; color: #78678a; font-size: 11px; margin-top: 4px; }
+.crmb-task-insert-table { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; color: #6033a5; background: #f5f0fd; border: 1px solid #ddceef; padding: 9px 12px; border-radius: 8px; font: inherit; font-weight: 800; }
+.crmb-task-insert-table:hover { background: #e9defa; }
+.crmb-task-image-preview { display: flex; flex-wrap: wrap; gap: 7px; color: #645078; font-size: 12px; }
+.crmb-task-image-preview span { border-radius: 8px; border: 1px solid #e1d8ef; background: #faf8ff; padding: 8px 11px; overflow-wrap: anywhere; }
+.crmb-task-timeline-entry { border-bottom: 0; border: 1px solid #eee6f4; border-radius: 13px; background: #fff; padding: 16px !important; margin: 12px 0; }
+.crmb-task-timeline-entry:last-of-type { border: 1px solid #eee6f4; }
+.crmb-task-timeline-entry.is-manager-note { border-color: #eddbb6; background: #fffdf7; border-inline-start: 3px solid #dba14b; }
+.crmb-task-timeline-head { display: flex; gap: 12px; align-items: center; margin-bottom: 11px; }
+.crmb-task-timeline-icon { display: grid; flex: 0 0 34px; place-items: center; width: 34px; height: 34px; border-radius: 9px; color: #6f4bac; background: #eee8f9; }
+.crmb-task-timeline-entry.is-manager-note .crmb-task-timeline-icon { color: #af742a; background: #fff0d3; }
+.crmb-task-timeline-head h3 { margin: 0 0 5px !important; font-size: 13px; font-weight: 850; }
+.crmb-task-timeline-head p { margin: 0 !important; font-size: 11px; }
+.crmb-task-rich-body { color: #51445c; font-size: 13px; line-height: 2; white-space: pre-wrap; overflow-wrap: anywhere; }
+.crmb-task-rich-body > :first-child { margin-top: 0; }
+.crmb-task-rich-body > :last-child { margin-bottom: 0; }
+.crmb-task-rich-body a { color: #6037b4; text-decoration: underline; }
+.crmb-task-rich-body table { display: table; width: 100%; max-width: 100%; border-collapse: collapse; margin: 13px 0; }
+.crmb-task-rich-body th, .crmb-task-rich-body td { border: 1px solid #dcd1eb; padding: 9px 11px; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.crmb-task-rich-body th { background: #f6f1fc; color: #4b3074; }
+.crmb-task-note-gallery { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.crmb-task-note-gallery a { display: block; width: min(190px,100%); padding: 5px; border: 1px solid #e5daef; border-radius: 10px; background: #fff; }
+.crmb-task-note-gallery img { display: block; width: 100%; height: 125px; object-fit: contain; border-radius: 6px; }
+.crmb-task-note-gallery a:focus-visible, .crmb-task-insert-table:focus-visible { outline: 2px solid #7a4bd2; outline-offset: 3px; }
+@media (max-width: 670px) {
+  .crmb-task-detail-page .crmb-task-note-heading { align-items: flex-start; }
+  .crmb-task-timeline-entry { padding: 13px !important; }
+  .crmb-task-note-gallery a { width: calc(50% - 5px); box-sizing: border-box; }
+}
