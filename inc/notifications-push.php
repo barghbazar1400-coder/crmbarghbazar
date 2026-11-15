@@ -72,6 +72,12 @@ function crmb_push_subscription_action() {
     $t = crmb_notice_tables();
     $hash = hash( 'sha256', $endpoint );
     $uid = get_current_user_id();
+    if ( 'status' === $mode ) {
+        $count = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$t['devices']} WHERE user_id=%d AND endpoint_hash=%s", $uid, $hash
+        ) );
+        wp_send_json_success( array( 'subscribed' => (bool) $count ) );
+    }
     if ( 'unsubscribe' === $mode ) {
         // Browser may unsubscribe even if the server's record was already removed.
         $wpdb->delete( $t['devices'], array( 'user_id' => $uid, 'endpoint_hash' => $hash ) );
