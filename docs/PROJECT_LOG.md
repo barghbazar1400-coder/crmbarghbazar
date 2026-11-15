@@ -312,3 +312,28 @@ bash "$HOME/.crmbarghbazar-deploy/deploy.sh"
 **فایل‌ها:** `inc/sales-partners.php`، `template-parts/sales-partners.php`، `tests/sales-partners.php`، `inc/chat.php`، `assets/js/crmb-chat.js`، `template-parts/messages.php`، `style.css`، `functions.php`، `page-main.php` و workflow جدید.
 
 **گیت باقیمانده:** هیچ deploy روی هاست انجام نشده؛ پس از بکاپ و انتشار دستی باید ایجاد جدول‌های MySQL، ایجاد و ویرایش پروفایل، ثبت فاکتور و یادداشت بین دو کاربر فروش، ممانعت برای کاربر خارج فروش، بایگانی/بازگردانی و جست‌وجوی دقیق username را در مرورگر تأیید کرد. راهنما: `docs/SALES_PARTNERS.md`.
+
+
+## فایل و تصویر خصوصی در گفتگوی کارکنان CRM — ۱۵ نوامبر ۲۰۲۶
+
+| گیت | قابلیت / محدودیت | وضعیت |
+|---|---|---|
+| CRM-CHAT-FILE-01 | دکمه گیره و انتخاب چند فایل، پیش‌نمایش و حذف قبل از ارسال، تصویر از Clipboard با Ctrl+V و Drag & Drop روی گفتگو | کدنویسی تکمیل |
+| CRM-CHAT-FILE-02 | پیش‌نمایش تصویر در حباب گفتگو و لینک دانلود اسناد، با متن اختیاری و نمایش درصد پیشرفت آپلود | کدنویسی تکمیل |
+| CRM-CHAT-FILE-03 | سقف ۳ پیوست در پیام، ۸MB هرکدام و ۲۰MB مجموع؛ کنترل محتوا با fileinfo، getimagesize، PDF magic و ZIP Office؛ ممنوعیت SVG/HTML/PHP | کدنویسی تکمیل |
+| CRM-CHAT-FILE-04 | فایل در پوشه خصوصی خارج DocumentRoot با مسیر تصادفی و مجوز 0700/0600، جدول افزایشی `crmb_chat_files` و ارسال metadata در تراکنش همراه پیام | کدنویسی تکمیل |
+| CRM-CHAT-FILE-05 | دریافت فقط با ورود معتبر، nonce و JOIN بین پیوست و پیام برای تعیین دو طرف واقعی؛ no-store/nosniff و inline صرفاً تصاویر | کدنویسی تکمیل |
+| CRM-CHAT-FILE-06 | اتصال به مسیر پیام‌رسان قبلی بدون آسیب به ۳۰تایی بودن تاریخچه، جست‌وجوی `@username`، اعلان‌های داخلی و Push | کدنویسی تکمیل |
+| CRM-CHAT-FILE-07 | تست PHP 8.4 / SQLite فایل‌های معتبر/مخرب/سقف/دسترسی و تست **HTTP multipart واقعی** از Node.js روی PHP server با احراز فرستنده و گیرنده | **PASS — GitHub Actions** |
+| CRM-CHAT-FILE-08 | تست Chrome/Edge/Clipboard/DragDrop واقعی روی ویندوز و نصب MySQL، پیکربندی ذخیره‌سازی و PHP هاست | در انتظار استقرار و آزمون نهایی |
+
+**فایل‌ها:** `inc/chat-attachments.php`، `inc/chat.php`، `template-parts/messages.php`، `assets/js/crmb-chat.js`، `style.css`، `functions.php`، `tests/chat-attachments.php`، `tests/chat-uploads-router.php`، `tests/chat-uploads-http.js` و `.github/workflows/notifications-checks.yml`.
+
+**نیازمندی:** `fileinfo` برای همه فایل‌ها، `ZipArchive` برای Office و حد مناسب `post_max_size` و `upload_max_filesize` در PHP و وب‌سرور. در صورت ناتوانی هاست در ساخت پوشه خارج DocumentRoot، آپلود امن متوقف می‌شود و باید `CRMB_CHAT_PRIVATE_DIR` در `wp-config.php` با مسیر مطلق و خصوصی تنظیم شود.
+
+**پشتیبان:** از جدول فایل‌ها و **فولدر خصوصی باینری** هم‌زمان بکاپ تهیه شود. بکاپ فقط دیتابیس دیگر کافی نیست.
+
+**انتشار:** هیچ deploy روی CRM زنده انجام نشده و فایل واقعی کاربر در GitHub بارگذاری نشده؛ تست‌های CI یک سرور PHP محلی موقت با داده ساختگی هستند. دستور انتشار پس از بکاپ، فقط به درخواست مالک هاست:
+`bash "$HOME/.crmbarghbazar-deploy/deploy.sh"`.
+
+**پذیرش عملی:** عکس از Ctrl+V، drag-drop عکس و PDF، ارسال بدون متن، فایل نامعتبر و بیش‌از‌حد، نمایش برای گیرنده، عدم دانلود توسط کارمند سوم، نمایش صحیح تصویرها در موبایل، حجم POST و عدم نمایش مسیر عمومی ذخیره‌سازی. راهنما: `docs/CHAT_MESSENGER.md`.
