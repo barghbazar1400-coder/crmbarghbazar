@@ -107,7 +107,7 @@ $admin=false; ob_start(); include __DIR__ . '/../template-parts/messages.php'; $
 check(false,str_contains($html,'<img src=')); check(false,str_contains($html,'<script>Message</script>'));
 check(true,str_contains($html,'crmb-messenger'));
 check(true,str_contains($html,'crmb-chat-bubbles'));
-check(true,str_contains($html,'جست‌وجوی همکار'));
+check(true,str_contains($html,'@username'));
 $_GET['box']='sent'; ob_start(); include __DIR__ . '/../template-parts/messages.php'; $html=ob_get_clean();
 check(true,str_contains($html,'crmb-messenger')); check(false,str_contains($html,'<img src='));
 $logged=false; ob_start(); include __DIR__ . '/../template-parts/messages.php'; check('',ob_get_clean());
