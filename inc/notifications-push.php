@@ -25,6 +25,12 @@ function crmb_push_setup_action() {
         try {
             $keys = \Minishlink\WebPush\VAPID::createVapidKeys();
             $result = add_option( 'crmb_push_vapid', $keys, '', false ) ? 'enabled' : 'error';
+            if ( 'enabled' === $result && crmb_notice_ready() ) {
+                // Never replay old notifications once transport is activated.
+                global $wpdb;
+                $t = crmb_notice_tables();
+                $wpdb->query( "UPDATE {$t['notices']} SET push_state='skipped' WHERE push_state IN ('pending','retry')" );
+            }
         } catch ( \Throwable $e ) { $result = 'error'; }
     }
     wp_safe_redirect( add_query_arg( array( 'crm_section' => 'notifications', 'push_setup' => $result ), home_url( '/main/' ) ) );
@@ -89,6 +95,10 @@ function crmb_push_subscription_action() {
         $uid, $hash, $endpoint, $p256dh, $auth, gmdate( 'Y-m-d H:i:s' )
     ) );
     if ( false === $result ) { wp_send_json_error( array( 'message' => 'db_error' ), 500 ); }
+    // The first opt-in must never flood a desktop with old unread events.
+    $wpdb->query( $wpdb->prepare(
+        "UPDATE {$t['notices']} SET push_state='skipped' WHERE user_id=%d AND push_state IN ('pending','retry')", $uid
+    ) );
     wp_send_json_success( array( 'subscribed' => true ) );
 }
 add_action( 'wp_ajax_crmb_push_device', 'crmb_push_subscription_action' );
@@ -180,3 +190,4 @@ function crmb_push_worker() {
     }
 }
 add_action( 'crmb_notice_push_tick', 'crmb_push_worker' );
+add_action( 'crmb_notice_push_immediate', 'crmb_push_worker' );
