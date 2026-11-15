@@ -3574,21 +3574,48 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   opacity:0;
   pointer-events:none;
 }
-.crmb-chat-attach-button {
+/* Deliberately stronger selector than the general purple compose-button style. */
+.crmb-messenger-compose-row .crmb-chat-attach-button {
   display:grid;
   place-items:center;
-  flex:0 0 45px;
-  height:45px;
+  flex:0 0 46px;
+  width:46px;
+  min-width:46px;
+  height:46px;
+  min-height:46px;
+  margin:0;
+  padding:0;
   border-radius:12px;
-  color:#7952b1;
-  background:#f4effb;
-  border:1px solid #e5dcf0;
+  border:1px solid #d9cbea;
+  color:#6c419f;
+  background:#f2eafa;
   cursor:pointer;
-  font-size:18px;
+  box-shadow:none;
+  transition:background-color .15s ease, border-color .15s ease;
 }
-.crmb-chat-attach-button:hover { background:#ece2f8; }
-.crmb-chat-attach-button.is-disabled { pointer-events:none; opacity:.45; }
-.crmb-chat-attach-button:focus-within { outline:2px solid #7952b1; }
+.crmb-messenger-compose-row .crmb-chat-attach-button svg {
+  display:block;
+  width:23px;
+  height:23px;
+  stroke:currentColor;
+  fill:none;
+  pointer-events:none;
+}
+.crmb-messenger-compose-row .crmb-chat-attach-button:hover:not(:disabled) {
+  color:#552c8d;
+  border-color:#b99dd6;
+  background:#e6d8f7;
+}
+.crmb-messenger-compose-row .crmb-chat-attach-button:disabled,
+.crmb-messenger-compose-row .crmb-chat-attach-button.is-disabled {
+  opacity:.45;
+  pointer-events:none;
+  cursor:not-allowed;
+}
+.crmb-messenger-compose-row .crmb-chat-attach-button:focus-visible {
+  outline:2px solid #7652b8;
+  outline-offset:2px;
+}
 .crmb-chat-attachment-help {
   display:flex;
   align-items:center;
@@ -3728,7 +3755,9 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
 @media (max-width:740px) {
   .crmb-messenger-composer { gap:7px; padding:10px; }
   .crmb-messenger-compose-row { gap:7px; }
-  .crmb-chat-attach-button { flex-basis:40px; height:43px; }
+  .crmb-messenger-compose-row .crmb-chat-attach-button {
+    flex-basis:43px; min-width:43px; width:43px; height:43px; min-height:43px;
+  }
   .crmb-chat-attachment-help { font-size:9px; }
   .crmb-chat-pending-file { flex:1 1 185px; }
   .crmb-chat-file-card { max-width:240px; }
