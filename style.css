@@ -2126,3 +2126,47 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
         max-height: calc(90vh - 80px);
     }
 }
+
+
+/* CRM notifications and desktop push settings. */
+.crmb-notifications-page { max-width: 1050px; }
+.crmb-push-panel { border-inline-start: 3px solid #7456b7; }
+.crmb-notices-actions, .crmb-notice-entry-actions, .crmb-notices-title-row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+}
+.crmb-notices-title-row { justify-content: space-between; margin-bottom: 12px; }
+.crmb-notices-title-row h2 { margin: 0 !important; }
+.crmb-notices-secondary {
+    display: inline-flex; justify-content: center; align-items: center;
+    padding: 8px 13px; min-height: 36px;
+    border: 1px solid #d6c9e8; border-radius: 9px;
+    background: #fff; color: #543575; cursor: pointer;
+    font: inherit; font-size: 12px; font-weight: 700;
+}
+.crmb-notices-secondary:hover { background: #f3edfb; }
+.crmb-notices-secondary:focus-visible,
+.crmb-notice-entry-actions a:focus-visible { outline: 2px solid #7043ba; outline-offset: 3px; }
+.crmb-notices-page [hidden], .crmb-notices-actions [hidden] { display: none !important; }
+.crmb-notices-page .crm-access-form > div:not(.crmb-task-note-heading) label { display: block; margin: 12px 0 6px; }
+.crmb-notice-entry {
+    display: flex; gap: 18px; justify-content: space-between; align-items: flex-start;
+    padding: 15px; margin: 10px 0; border: 1px solid #e7e0ee;
+    border-radius: 12px; background: #fff; overflow-wrap: anywhere;
+}
+.crmb-notice-entry.is-unread { background: #faf7ff; border-inline-start: 4px solid #7956c2; }
+.crmb-notice-entry-main { flex: 1; min-width: 0; }
+.crmb-notice-entry h3 { font-size: 14px; margin: 6px 0; color: #392b50; }
+.crmb-notice-entry p { margin: 5px 0 10px; color: #564d60; font-size: 13px; line-height: 1.9; white-space: normal; }
+.crmb-notice-entry .crmb-notice-detail {
+    white-space: pre-wrap; border-radius: 9px; padding: 11px 13px;
+    background: #f7f4fb; border: 1px solid #e8e0f2;
+}
+.crmb-notice-kind { display: inline-block; background: #efe8f9; border-radius: 20px; color: #62458e; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+.crmb-notice-entry-actions { justify-content: flex-end; flex: 0 0 auto; }
+.crmb-notice-entry-actions a { color: #633caa; font-size: 12px; font-weight: 750; }
+.crmb-notice-entry-actions form, .crmb-notices-title-row form { margin: 0; }
+@media (max-width: 680px) {
+    .crmb-notice-entry { flex-direction: column; gap: 12px; }
+    .crmb-notice-entry-actions { width: 100%; justify-content: flex-start; }
+    .crmb-notifications-page .crm-access-card { min-width: 0; }
+}
