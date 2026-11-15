@@ -14,7 +14,10 @@ function crmb_push_keys() {
 }
 function crmb_push_public_key() {
     $keys = crmb_push_keys();
-    return crmb_push_library() && ! empty( $keys['publicKey'] ) ? $keys['publicKey'] : '';
+    // Avoid loading Composer (and querying the filesystem) for every message
+    // or when the server has not yet created its VAPID keys.
+    if ( empty( $keys['publicKey'] ) ) { return ''; }
+    return crmb_push_library() ? $keys['publicKey'] : '';
 }
 function crmb_push_setup_action() {
     if ( ! current_user_can( 'manage_options' ) ) { wp_die( 'دسترسی ندارید.', '', array( 'response' => 403 ) ); }
