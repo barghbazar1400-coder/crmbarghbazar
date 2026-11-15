@@ -3734,3 +3734,82 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   .crmb-chat-file-card { max-width:240px; }
   .crmb-chat-inline-image { max-height:190px; }
 }
+
+
+/* Per-user message chime settings in the CRM notifications workspace. */
+.crmb-notification-sound {
+  display:grid;
+  gap:13px;
+  padding:17px 19px;
+  margin:17px 0;
+  border:1px solid #e5dcf2;
+  border-radius:13px;
+  background:linear-gradient(120deg,#fcfaff,#f7f2ff);
+}
+.crmb-notification-sound-copy {
+  display:flex;
+  gap:12px;
+  align-items:flex-start;
+}
+.crmb-notification-sound-icon {
+  display:grid;
+  place-items:center;
+  flex:0 0 40px;
+  width:40px;
+  height:40px;
+  border-radius:11px;
+  background:#eee4fb;
+  color:#8055b7;
+  font-size:17px;
+}
+.crmb-notification-sound-copy h3 {
+  margin:0 0 6px;
+  color:#503667;
+  font-size:14px;
+  font-weight:850;
+}
+.crmb-notification-sound-copy p {
+  margin:0;
+  color:#786989;
+  font-size:11px;
+  line-height:1.9;
+}
+.crmb-notification-sound-actions {
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+}
+.crmb-notification-sound-actions button {
+  display:inline-flex;
+  gap:8px;
+  align-items:center;
+  justify-content:center;
+  min-height:39px;
+  font-size:11px;
+  font-weight:800;
+}
+.crmb-notification-sound-actions button[aria-pressed="true"] {
+  border-color:#cdb5e9;
+  background:#f3ebfc;
+  color:#663e9b;
+}
+.crmb-notification-sound-actions button:disabled { opacity:.5; cursor:not-allowed; }
+.crmb-notification-sound-status {
+  margin:0;
+  color:#675078;
+  font-size:11px;
+  font-weight:700;
+  line-height:1.7;
+}
+.crmb-notification-sound-note {
+  margin:0;
+  padding-top:9px;
+  border-top:1px solid #e9e0f1;
+  color:#8b7d99;
+  font-size:10px;
+  line-height:1.9;
+}
+@media(max-width:600px) {
+  .crmb-notification-sound { padding:14px; }
+  .crmb-notification-sound-actions > button { flex:1 1 100%; }
+}
