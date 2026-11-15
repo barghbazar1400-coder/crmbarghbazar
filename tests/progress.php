@@ -128,7 +128,15 @@ check(false,str_contains($html,'Daily result')); check(true,str_contains($html,'
 $admin=true; $_GET=array('scope'=>'team','report'=>$rid); ob_start(); include __DIR__.'/../template-parts/daily-reports.php'; $html=ob_get_clean(); check(true,str_contains($html,'Daily result'));
 $admin=false; $uid=7; $_GET=array('task_id'=>$id); ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $html=ob_get_clean(); check(false,str_contains($html,'Need feedback')); check(true,str_contains($html,'اجازه'));
 $uid=8; $_GET=array('task_id'=>$id); ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $html=ob_get_clean(); check(true,str_contains($html,'Need feedback')); check(true,str_contains($html,'زمان کار ثبت‌شده'));
-check(true,str_contains($html,'crmbtaskeditor')); check(true,str_contains($html,'درج جدول'));
+check(true,str_contains($html,'crmbtaskeditor')); check(true,str_contains($html,'crmbtasktable'));
+check(false,str_contains($html,'crmb-task-table-rows'));
+check(true,str_contains($html,'id="crmb-task-image-modal"'));
+check(true,str_contains($html,'data-crmb-task-image'));
+check(true,str_contains($html,'modal.showModal()'));
+check(false,str_contains($html,'target="_blank"'));
+$plugin_source = file_get_contents(__DIR__.'/../assets/js/crmb-task-table.js');
+check(true,is_string($plugin_source) && str_contains($plugin_source,'PluginManager.add("crmbtasktable"'));
+check(true,is_string($plugin_source) && str_contains($plugin_source,'windowManager.open'));
 check(true,str_contains($html,'راهنمایی مدیر')); check(false,str_contains($html,'id="crmb-manager-note"'));
 check(true,str_contains($html,'crmb_task_note_image'));
 $admin=true; ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $admin_html=ob_get_clean();
