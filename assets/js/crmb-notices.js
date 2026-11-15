@@ -36,8 +36,9 @@
         try { window.localStorage.setItem(key, String(value)); } catch (err) { /* Private browsing. */ }
     }
     function enabled() {
+        var saved = safeGet(consentKey);
         return desktopSupported && window.Notification.permission === 'granted'
-            && (volatileConsent || safeGet(consentKey) === '1');
+            && (saved === null ? volatileConsent : saved === '1');
     }
     function storeConsent(allow) {
         volatileConsent = allow;
@@ -207,6 +208,12 @@
     });
     window.addEventListener('focus', poll);
     window.addEventListener('online', poll);
+    window.addEventListener('storage', function (event) {
+        if (event.key === consentKey) {
+            volatileConsent = event.newValue === '1';
+            setButtons();
+        }
+    });
 
     function getPushSubscription() {
         if (!pushSupported) return Promise.resolve(null);
