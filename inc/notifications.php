@@ -86,7 +86,17 @@ function crmb_notice_add( $user_id, $kind, $title, $summary, $href, $source_key,
         (int) $user_id, (int) $actor_id, $kind, $title, $summary, $detail, $href, $source_key, $now, $now
     ) );
     if ( 1 === $inserted ) {
-        if ( ! wp_next_scheduled( 'crmb_notice_push_immediate' ) ) { wp_schedule_single_event( time() + 10, 'crmb_notice_push_immediate' ); }
+        // Queue at once, and best-effort spawn background WordPress cron after
+        // this admin-post handler; regular WP-Cron would otherwise wait for
+        // another page view before processing the event.
+        if ( function_exists( 'crmb_push_public_key' ) && crmb_push_public_key() ) {
+            if ( ! wp_next_scheduled( 'crmb_notice_push_immediate' ) ) {
+                wp_schedule_single_event( time(), 'crmb_notice_push_immediate' );
+            }
+            if ( function_exists( 'spawn_cron' ) && ! ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) ) {
+                spawn_cron( time() );
+            }
+        }
         return true;
     }
     return false;
@@ -206,11 +216,29 @@ function crmb_notice_ajax() {
     $mode = isset( $_POST['mode'] ) ? sanitize_key( wp_unslash( $_POST['mode'] ) ) : 'poll';
     if ( 'poll' === $mode ) {
         $items = array();
-        foreach ( crmb_notice_list( 8 ) as $item ) {
+        foreach ( crmb_notice_list( 20 ) as $item ) {
             $items[] = array( 'id' => (int) $item->id, 'kind' => $item->kind,
                 'title' => $item->title, 'href' => $item->href, 'read' => (bool) $item->read_utc );
         }
         wp_send_json_success( array( 'count' => crmb_notice_count(), 'items' => $items ) );
+    }
+    if ( 'messages_html' === $mode ) {
+        // Re-render only the recipient's private inbox. The compose form is
+        // outside this fragment, so incoming messages never erase a draft.
+        if ( ! function_exists( 'crmb_work_list' ) ) {
+            wp_send_json_error( array( 'message' => 'unavailable' ), 503 );
+        }
+        $sent = false;
+        $page = 1;
+        $messages = crmb_work_list( 'messages', $page, 20, false, false, false, 0 );
+        if ( ! $messages['ready'] ) {
+            wp_send_json_error( array( 'message' => 'unavailable' ), 503 );
+        }
+        $base = add_query_arg( array( 'crm_section' => 'messages', 'box' => 'inbox' ), home_url( '/main/' ) );
+        ob_start();
+        include get_template_directory() . '/template-parts/messages-list.php';
+        $html = ob_get_clean();
+        wp_send_json_success( array( 'html' => $html, 'total' => (int) $messages['total'] ) );
     }
     if ( 'read' === $mode ) {
         $id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
