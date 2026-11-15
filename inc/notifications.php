@@ -142,6 +142,18 @@ function crmb_notice_read( $id = 0, $all = false ) {
     $changed = $wpdb->query( $query );
     return false !== $changed && ( $all || $changed > 0 );
 }
+/** Keep a message's notification in sync with the receiver's explicit read action. */
+function crmb_notice_read_message( $message_id, $user_id ) {
+    if ( ! crmb_notice_ready() || ! $message_id || ! $user_id ) { return false; }
+    global $wpdb;
+    $t = crmb_notice_tables();
+    $result = $wpdb->query( $wpdb->prepare(
+        "UPDATE {$t['notices']} SET read_utc=%s WHERE user_id=%d AND source_key=%s AND read_utc IS NULL",
+        gmdate( 'Y-m-d H:i:s' ), $user_id, 'message:' . $message_id
+    ) );
+    return false !== $result;
+}
+
 function crmb_notice_announce( $title, $body, $scope, $target ) {
     if ( ! current_user_can( 'manage_options' ) || ! crmb_notice_ready() ) { return 'denied'; }
     $title = trim( sanitize_text_field( $title ) );
