@@ -132,7 +132,12 @@ function crmb_progress_transition( $id, $status ) {
     if ( 'done' === $status ) { $values['completed_utc'] = $now; }
     if ( in_array( $status, array( 'todo', 'paused', 'cancelled' ), true ) ) { $values['completed_utc'] = null; }
     if ( false === $wpdb->update( $t['tasks'], $values, array( 'id' => $id ) ) || ! crmb_progress_event( $id, $status ) ) { return crmb_progress_fail(); }
-    return crmb_progress_commit();
+    $event_id = (int) $wpdb->insert_id;
+    $result = crmb_progress_commit();
+    if ( 'saved' === $result && 'done' === $status && function_exists( 'do_action' ) ) {
+        do_action( 'crmb_task_completed', $id, (int) $task->created_by, $uid, $event_id );
+    }
+    return $result;
 }
 /** Editing is serialized with timer writes; reassigning a running task is refused. */
 function crmb_progress_edit_task( $id, $values ) {
@@ -143,7 +148,11 @@ function crmb_progress_edit_task( $id, $values ) {
     if ( ! $task ) { return crmb_progress_fail( 'invalid' ); }
     if ( $task->timer_started_utc && (int) $task->assigned_to !== (int) $values['assigned_to'] ) { return crmb_progress_fail( 'running' ); }
     if ( false === $wpdb->update( $t['tasks'], $values, array( 'id' => $id ) ) || ! crmb_progress_event( $id, 'edited', 'اطلاعات وظیفه به‌روزرسانی شد.' ) ) { return crmb_progress_fail(); }
-    return crmb_progress_commit();
+    $result = crmb_progress_commit();
+    if ( 'saved' === $result && (int) $task->assigned_to !== (int) $values['assigned_to'] && function_exists( 'do_action' ) ) {
+        do_action( 'crmb_task_assigned', $id, (int) $values['assigned_to'], get_current_user_id(), (int) $task->assigned_to );
+    }
+    return $result;
 }
 function crmb_progress_note( $id, $type, $body ) {
     if ( ! is_user_logged_in() || ! crmb_progress_ready() ) { return 'denied'; }
