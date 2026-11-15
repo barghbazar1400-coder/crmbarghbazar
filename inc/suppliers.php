@@ -154,8 +154,8 @@ function crmb_suppliers_search($search='',$status='',$page=1,$archived=false) {
     if($search) {
         $like='%'.$wpdb->esc_like(crmb_suppliers_search_digits($search)).'%';
         $where.=$wpdb->prepare(
-            ' AND (supplier_name LIKE %s OR family_name LIKE %s OR contact_first_name LIKE %s OR activity LIKE %s OR mobile LIKE %s OR mobile_search LIKE %s OR landline LIKE %s OR landline_search LIKE %s OR website_social LIKE %s OR address LIKE %s OR tags LIKE %s OR notes LIKE %s OR email LIKE %s)',
-            ...array_fill(0,13,$like)
+            ' AND (supplier_name LIKE %s OR family_name LIKE %s OR contact_first_name LIKE %s OR activity LIKE %s OR mobile LIKE %s OR mobile_search LIKE %s OR landline LIKE %s OR landline_search LIKE %s OR website_social LIKE %s OR address LIKE %s OR tags LIKE %s OR notes LIKE %s OR email LIKE %s OR source LIKE %s)',
+            ...array_fill(0,14,$like)
         );
     }
     $total=$wpdb->get_var("SELECT COUNT(*) FROM {$t} WHERE {$where}");
