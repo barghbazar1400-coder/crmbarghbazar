@@ -24,8 +24,10 @@ function crmb_suppliers_install() {
         contact_first_name varchar(140) NOT NULL DEFAULT '',
         activity text NOT NULL,
         mobile varchar(255) NOT NULL DEFAULT '',
+        mobile_search varchar(255) NOT NULL DEFAULT '',
         website_social text NOT NULL,
         landline varchar(255) NOT NULL DEFAULT '',
+        landline_search varchar(255) NOT NULL DEFAULT '',
         address text NOT NULL,
         notes longtext NOT NULL,
         supplier_type varchar(16) NOT NULL DEFAULT 'unknown',
@@ -75,6 +77,13 @@ function crmb_suppliers_fields() {
 function crmb_suppliers_strlen($text) {
     return function_exists('mb_strlen') ? mb_strlen($text,'UTF-8') : preg_match_all('/./us',$text);
 }
+/** Normalize Persian and Arabic digits only for lookup; displayed values remain original. */
+function crmb_suppliers_search_digits($value) {
+    return strtr((string)$value, array(
+        '۰'=>'0','۱'=>'1','۲'=>'2','۳'=>'3','۴'=>'4','۵'=>'5','۶'=>'6','۷'=>'7','۸'=>'8','۹'=>'9',
+        '٠'=>'0','١'=>'1','٢'=>'2','٣'=>'3','٤'=>'4','٥'=>'5','٦'=>'6','٧'=>'7','٨'=>'8','٩'=>'9'
+    ));
+}
 function crmb_suppliers_clean($data) {
     $out=array();
     foreach(crmb_suppliers_fields() as $key=>$config) {
@@ -89,6 +98,8 @@ function crmb_suppliers_clean($data) {
     $status=isset($data['status'])&&is_string($data['status'])?$data['status']:'new';
     if (!isset(crmb_suppliers_types()[$type]) || !isset(crmb_suppliers_statuses()[$status])) return false;
     $out['supplier_type']=$type; $out['status']=$status;
+    $out['mobile_search']=crmb_suppliers_search_digits($out['mobile']);
+    $out['landline_search']=crmb_suppliers_search_digits($out['landline']);
     return $out;
 }
 function crmb_suppliers_get($id,$include_deleted=false) {
@@ -141,10 +152,10 @@ function crmb_suppliers_search($search='',$status='',$page=1,$archived=false) {
     }
     $search=trim(sanitize_text_field($search));
     if($search) {
-        $like='%'.$wpdb->esc_like($search).'%';
+        $like='%'.$wpdb->esc_like(crmb_suppliers_search_digits($search)).'%';
         $where.=$wpdb->prepare(
-            ' AND (supplier_name LIKE %s OR family_name LIKE %s OR contact_first_name LIKE %s OR activity LIKE %s OR mobile LIKE %s OR landline LIKE %s OR website_social LIKE %s OR address LIKE %s OR tags LIKE %s OR notes LIKE %s OR email LIKE %s)',
-            ...array_fill(0,11,$like)
+            ' AND (supplier_name LIKE %s OR family_name LIKE %s OR contact_first_name LIKE %s OR activity LIKE %s OR mobile LIKE %s OR mobile_search LIKE %s OR landline LIKE %s OR landline_search LIKE %s OR website_social LIKE %s OR address LIKE %s OR tags LIKE %s OR notes LIKE %s OR email LIKE %s)',
+            ...array_fill(0,13,$like)
         );
     }
     $total=$wpdb->get_var("SELECT COUNT(*) FROM {$t} WHERE {$where}");
