@@ -4,8 +4,10 @@ on:
     branches: [main]
     paths:
       - 'inc/notifications.php'
+      - 'inc/chat.php'
       - 'inc/notifications-push.php'
       - 'assets/js/crmb-notices.js'
+      - 'assets/js/crmb-chat.js'
       - 'assets/js/crmb-push-sw.js'
       - 'template-parts/messages.php'
       - 'template-parts/messages-list.php'
@@ -13,6 +15,7 @@ on:
       - 'tests/notifications.php'
       - 'tests/notifications-client.js'
       - 'tests/messages-live.php'
+      - 'tests/chat.php'
       - 'tests/work.php'
       - 'page-main.php'
       - '.github/workflows/notifications-checks.yml'
@@ -37,6 +40,7 @@ jobs:
       - name: Lint PHP templates and event backend
         run: |
           php -l inc/notifications.php
+          php -l inc/chat.php
           php -l inc/notifications-push.php
           php -l template-parts/notifications.php
           php -l template-parts/messages.php
@@ -45,6 +49,7 @@ jobs:
       - name: Lint browser and service worker JavaScript
         run: |
           node --check assets/js/crmb-notices.js
+          node --check assets/js/crmb-chat.js
           node --check assets/js/crmb-push-sw.js
           node --check tests/notifications-client.js
       - name: Test PHP event permissions and message handling
@@ -52,5 +57,6 @@ jobs:
           php tests/notifications.php
           php tests/work.php
           php tests/messages-live.php
+          php tests/chat.php
       - name: Test Windows notification polling and consent
         run: node tests/notifications-client.js
