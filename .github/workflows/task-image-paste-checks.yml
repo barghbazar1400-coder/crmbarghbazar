@@ -1,0 +1,37 @@
+name: CRM Task Screenshot Paste
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'template-parts/task-progress.php'
+      - 'assets/js/crmb-task-image-paste.js'
+      - 'tests/task-image-paste.js'
+      - 'tests/progress.php'
+      - '.github/workflows/task-image-paste-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  task-screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring,fileinfo
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Lint task progress and screenshot script
+        run: |
+          php -l template-parts/task-progress.php
+          node --check assets/js/crmb-task-image-paste.js
+          node --check tests/task-image-paste.js
+      - name: Run existing report storage regressions
+        run: php tests/progress.php
+      - name: Verify screenshot paste and file input
+        run: node tests/task-image-paste.js
