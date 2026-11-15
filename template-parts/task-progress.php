@@ -95,10 +95,14 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
                 )
             ); ?>
             <div class="crmb-task-editor-tools">
+                <label for="crmb-task-table-rows">ردیف</label>
+                <input type="number" id="crmb-task-table-rows" min="1" max="10" value="3">
+                <label for="crmb-task-table-columns">ستون</label>
+                <input type="number" id="crmb-task-table-columns" min="1" max="8" value="3">
                 <button type="button" id="crmb-task-insert-table" class="crmb-task-insert-table">
-                    <i class="fa-solid fa-table" aria-hidden="true"></i> درج جدول ۲×۲
+                    <i class="fa-solid fa-table" aria-hidden="true"></i> درج جدول
                 </button>
-                <span>بعد از درج، متن سلول‌ها را در ویرایشگر تغییر دهید.</span>
+                <span>جدول قابل ویرایش است و همراه گزارش ذخیره می‌شود.</span>
             </div>
             <label for="crmb-task-images">تصاویر گزارش پیشرفت</label>
             <input type="file" id="crmb-task-images" name="images[]" accept="image/jpeg,image/png,image/webp" multiple>
@@ -153,9 +157,13 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
     const insert = document.getElementById('crmb-task-insert-table');
     if (insert) {
         insert.addEventListener('click', () => {
-            const html = '<table><thead><tr><th>عنوان اول</th><th>عنوان دوم</th></tr></thead>' +
-                '<tbody><tr><td>مورد اول</td><td>توضیح</td></tr>' +
-                '<tr><td>مورد دوم</td><td>توضیح</td></tr></tbody></table><p></p>';
+            const rows = Math.max(1, Math.min(10, Number(document.getElementById('crmb-task-table-rows').value) || 3));
+            const columns = Math.max(1, Math.min(8, Number(document.getElementById('crmb-task-table-columns').value) || 3));
+            const head = '<tr>' + Array.from({length:columns}, (_,i) => '<th>ستون ' + (i+1) + '</th>').join('') + '</tr>';
+            const body = Array.from({length:rows}, () =>
+                '<tr>' + Array.from({length:columns}, () => '<td>متن</td>').join('') + '</tr>'
+            ).join('');
+            const html = '<table><thead>' + head + '</thead><tbody>' + body + '</tbody></table><p></p>';
             const editor = window.tinymce && window.tinymce.get('crmbtaskeditor');
             if (editor && !editor.isHidden()) {
                 editor.focus();
