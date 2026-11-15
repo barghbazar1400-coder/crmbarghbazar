@@ -61,6 +61,10 @@ add_filter( 'crmbarghbazar_menu_registry', function ( $items ) {
     return $items;
 } );
 
+/** Validate character limits correctly for Persian text even without mbstring. */
+function crmb_notice_length( $value ) {
+    return function_exists( 'mb_strlen' ) ? mb_strlen( $value, 'UTF-8' ) : preg_match_all( '/./us', $value );
+}
 function crmb_notice_url( $section, $params = array() ) {
     return add_query_arg( array_merge( array( 'crm_section' => $section ), $params ), home_url( '/main/' ) );
 }
@@ -72,8 +76,8 @@ function crmb_notice_add( $user_id, $kind, $title, $summary, $href, $source_key,
     $summary = sanitize_text_field( $summary );
     $detail = sanitize_textarea_field( $detail );
     $href = esc_url_raw( $href );
-    if ( strlen( $title ) > 160 || strlen( $summary ) > 255 || strlen( $href ) > 255
-        || strlen( $source_key ) > 160 || strlen( $detail ) > 2000 || ! wp_validate_redirect( $href, false ) ) { return false; }
+    if ( crmb_notice_length( $title ) > 160 || crmb_notice_length( $summary ) > 255 || strlen( $href ) > 255
+        || strlen( $source_key ) > 160 || crmb_notice_length( $detail ) > 2000 || ! wp_validate_redirect( $href, false ) ) { return false; }
     global $wpdb;
     $t = crmb_notice_tables();
     $now = gmdate( 'Y-m-d H:i:s' );
@@ -158,7 +162,7 @@ function crmb_notice_announce( $title, $body, $scope, $target ) {
     if ( ! current_user_can( 'manage_options' ) || ! crmb_notice_ready() ) { return 'denied'; }
     $title = trim( sanitize_text_field( $title ) );
     $body = trim( sanitize_textarea_field( $body ) );
-    if ( '' === $title || '' === $body || strlen( $title ) > 160 || strlen( $body ) > 2000 ) { return 'invalid'; }
+    if ( '' === $title || '' === $body || crmb_notice_length( $title ) > 160 || crmb_notice_length( $body ) > 2000 ) { return 'invalid'; }
     if ( ! in_array( $scope, array( 'all', 'user', 'department' ), true ) ) { return 'invalid'; }
     if ( 'user' === $scope && ! get_userdata( $target ) ) { return 'invalid'; }
     if ( 'department' === $scope && ! crmb_department( $target ) ) { return 'invalid'; }
