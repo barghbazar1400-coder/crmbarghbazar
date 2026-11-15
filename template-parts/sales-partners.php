@@ -227,7 +227,7 @@ $alerts=array('saved'=>'پروفایل همکار ذخیره شد.','archived'=>
                             <strong><?php echo esc_html($row->name); ?></strong>
                             <small><?php echo esc_html(($row->city?:'شهر مشخص نشده').' · '.($types[$row->partner_type]??'سایر')); ?></small>
                             <p><?php echo esc_html($row->products?wp_trim_words($row->products,16,'…'):'هنوز کالایی ثبت نشده است.'); ?></p>
-                            <div class="crmb-partner-card-bottom"><span><?php echo esc_html($row->mobile?:$row->phone?:'تلفن ثبت نشده'); ?></span><b>مشاهده پرونده <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></b></div>
+                            <div class="crmb-partner-card-bottom"><span><?php echo esc_html($row->mobile ? $row->mobile : ($row->phone ? $row->phone : 'تلفن ثبت نشده')); ?></span><b>مشاهده پرونده <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></b></div>
                         </a>
                     <?php endforeach; ?>
                 </div>
