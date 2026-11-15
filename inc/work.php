@@ -50,7 +50,7 @@ function crmb_work_install() {
 }
 add_action( 'init', 'crmb_work_install', 8 );
 add_filter( 'crmbarghbazar_menu_registry', function ( $items ) {
-    $items['tasks'] = array( 'label' => 'وظایف', 'always_visible' => true );
+    $items['tasks'] = array( 'label' => 'کارهای من', 'always_visible' => true );
     $items['messages'] = array( 'label' => 'پیام‌ها', 'always_visible' => true );
     return $items;
 } );
@@ -141,7 +141,7 @@ function crmb_work_handle_post() {
 add_action( 'admin_post_crmb_work', 'crmb_work_handle_post' );
 
 /** Fixed-scope lists; team tasks are explicitly administrator-only. */
-function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = false, $active = false, $focus = 0 ) {
+function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = false, $active = false, $focus = 0, $status_view = 'all' ) {
     $empty = array( 'rows' => array(), 'total' => 0, 'ready' => false );
     if ( ! is_user_logged_in() || '1' !== get_option( 'crmb_work_schema_v1' ) || ! in_array( $kind, array( 'tasks', 'messages' ), true ) ) { return $empty; }
     global $wpdb;
@@ -149,8 +149,11 @@ function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = f
     $limit = max( 1, min( 20, (int) $limit ) ); $page = max( 1, min( 100000, (int) $page ) );
     if ( 'tasks' === $kind ) {
         $where = $team && crmb_work_manage_team() ? '1=1' : $wpdb->prepare( 'assigned_to = %d', $uid );
-        if ( $active ) { $where .= " AND status IN ('todo','doing','paused')"; }
-        $order = "CASE WHEN status IN ('todo','doing','paused') THEN 0 ELSE 1 END, due_day IS NULL, due_day ASC, id DESC";
+        if ( $active || 'open' === $status_view ) { $where .= " AND status IN ('todo','doing','paused')"; }
+        elseif ( 'done' === $status_view ) { $where .= " AND status = 'done'"; }
+        $order = 'done' === $status_view && ! $active
+            ? 'updated_utc DESC, id DESC'
+            : "CASE WHEN status IN ('todo','doing','paused') THEN 0 ELSE 1 END, due_day IS NULL, due_day ASC, id DESC";
     } else {
         $where = $wpdb->prepare( $sent ? 'sender_id = %d' : 'recipient_id = %d', $uid );
         if ( $active ) { $where .= ' AND read_utc IS NULL'; }
@@ -162,6 +165,27 @@ function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = f
     $rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t[$kind]} WHERE {$where} ORDER BY {$order} LIMIT %d OFFSET %d", $limit, ( $page - 1 ) * $limit ) );
     if ( ! $count_ok || $wpdb->last_error ) { return $empty; }
     return array( 'rows' => $rows ?: array(), 'total' => (int) $total, 'ready' => true );
+}
+/**
+ * Scope-safe totals for the three employee task filters.
+ * Cancelled tasks remain discoverable through "all" but not open/done.
+ */
+function crmb_work_task_counts( $team = false ) {
+    $empty = array( 'ready' => false, 'all' => null, 'open' => null, 'done' => null );
+    if ( ! is_user_logged_in() || '1' !== get_option( 'crmb_work_schema_v1' ) ) { return $empty; }
+    global $wpdb;
+    $t = crmb_work_tables();
+    $where = $team && crmb_work_manage_team() ? '1=1' : $wpdb->prepare( 'assigned_to = %d', get_current_user_id() );
+    $rows = $wpdb->get_results( "SELECT status, COUNT(*) AS total FROM {$t['tasks']} WHERE {$where} GROUP BY status" );
+    if ( $wpdb->last_error || ! is_array( $rows ) ) { return $empty; }
+    $totals = array( 'ready' => true, 'all' => 0, 'open' => 0, 'done' => 0 );
+    foreach ( $rows as $row ) {
+        $count = (int) $row->total;
+        $totals['all'] += $count;
+        if ( in_array( $row->status, array( 'todo', 'doing', 'paused' ), true ) ) { $totals['open'] += $count; }
+        elseif ( 'done' === $row->status ) { $totals['done'] += $count; }
+    }
+    return $totals;
 }
 function crmb_work_notice() {
     $code = isset( $_GET['work_notice'] ) && is_string( $_GET['work_notice'] ) ? sanitize_key( $_GET['work_notice'] ) : '';
