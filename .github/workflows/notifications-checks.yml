@@ -18,6 +18,8 @@ on:
       - 'tests/messages-live.php'
       - 'tests/chat.php'
       - 'tests/chat-attachments.php'
+      - 'tests/chat-uploads-router.php'
+      - 'tests/chat-uploads-http.js'
       - 'tests/work.php'
       - 'page-main.php'
       - '.github/workflows/notifications-checks.yml'
@@ -45,6 +47,7 @@ jobs:
           php -l inc/chat.php
           php -l inc/chat-attachments.php
           php -l tests/chat-attachments.php
+          php -l tests/chat-uploads-router.php
           php -l inc/notifications-push.php
           php -l template-parts/notifications.php
           php -l template-parts/messages.php
@@ -56,6 +59,7 @@ jobs:
           node --check assets/js/crmb-chat.js
           node --check assets/js/crmb-push-sw.js
           node --check tests/notifications-client.js
+          node --check tests/chat-uploads-http.js
       - name: Test PHP event permissions and message handling
         run: |
           php tests/notifications.php
@@ -65,3 +69,5 @@ jobs:
           php tests/chat-attachments.php
       - name: Test Windows notification polling and consent
         run: node tests/notifications-client.js
+      - name: Test true HTTP multipart upload and private download
+        run: node tests/chat-uploads-http.js
