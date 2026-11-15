@@ -167,7 +167,11 @@ function crmb_task_rich_save( $id, $type, $raw_body, $files = array() ) {
             return crmb_progress_fail();
         }
     }
-    return crmb_progress_commit();
+    $result = crmb_progress_commit();
+    if ( 'saved' === $result && 'manager_note' === $type && function_exists( 'do_action' ) ) {
+        do_action( 'crmb_manager_guidance', $id, (int) $task->assigned_to, get_current_user_id(), $event_id );
+    }
+    return $result;
 }
 
 /** Return a gallery map using one database query per visible history page. */
