@@ -69,7 +69,10 @@ $uid=7;
 $rich_events=$wpdb->get_results("SELECT event_type FROM wp_crmb_task_events WHERE event_type IN ('rich_note','manager_note') ORDER BY id");
 check('rich_note',$rich_events[0]->event_type); check('manager_note',$rich_events[1]->event_type);
 check(true, isset(crmb_progress_event_labels()['manager_note']));
+check(true, isset($allowed_html['table']));
+check(true, isset($allowed_html['td']));
 check(false, isset($allowed_html['img']));
+check(false, str_contains(crmb_task_note_html('<script>bad</script><p>safe</p>'), '<script>'));
 
 $wpdb->fail_table='wp_crmb_task_events'; check('error',crmb_progress_transition($id,'done')); check('doing',crmb_progress_task($id)->status); check(true,(bool)crmb_progress_task($id)->timer_started_utc); $wpdb->fail_table='';
 check('saved',crmb_progress_transition($id,'done')); check(true,(bool)crmb_progress_task($id)->completed_utc); check(null,crmb_progress_task($id)->timer_started_utc);
@@ -120,6 +123,11 @@ check(false,str_contains($html,'Daily result')); check(true,str_contains($html,'
 $admin=true; $_GET=array('scope'=>'team','report'=>$rid); ob_start(); include __DIR__.'/../template-parts/daily-reports.php'; $html=ob_get_clean(); check(true,str_contains($html,'Daily result'));
 $admin=false; $uid=7; $_GET=array('task_id'=>$id); ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $html=ob_get_clean(); check(false,str_contains($html,'Need feedback')); check(true,str_contains($html,'اجازه'));
 $uid=8; $_GET=array('task_id'=>$id); ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $html=ob_get_clean(); check(true,str_contains($html,'Need feedback')); check(true,str_contains($html,'زمان کار ثبت‌شده'));
+check(true,str_contains($html,'crmbtaskeditor')); check(true,str_contains($html,'درج جدول'));
+check(true,str_contains($html,'راهنمایی مدیر')); check(false,str_contains($html,'id="crmb-manager-note"'));
+$admin=true; ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $admin_html=ob_get_clean();
+check(true,str_contains($admin_html,'id="crmb-manager-note"'));
+$admin=false;
 $uid=7; $logged=false; ob_start(); include __DIR__.'/../template-parts/daily-reports.php'; check('',ob_get_clean());
 $logged=true;
 function wp_die($m,$title,$args) { throw new RuntimeException((string)$args['response']); }
