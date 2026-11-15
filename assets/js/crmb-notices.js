@@ -10,6 +10,7 @@
     var enable = document.getElementById('crmb-push-enable');
     var disable = document.getElementById('crmb-push-disable');
     var test = document.getElementById('crmb-push-test');
+    var background = document.getElementById('crmb-push-background');
     var username = String(cfg.userId);
     var consentKey = 'crmb-desktop-consent:' + username;
     var notifiedKey = 'crmb-desktop-notified:' + username;
@@ -28,6 +29,7 @@
     var volatileConsent = false;
     var volatileNotified = 0;
     var inboxBusy = false;
+    var pushLinked = false;
 
     function safeGet(key) {
         try { return window.localStorage.getItem(key); } catch (err) { return null; }
@@ -55,6 +57,7 @@
         }
         if (disable) disable.hidden = !isEnabled;
         if (test) test.hidden = !isEnabled;
+        if (background) background.hidden = !isEnabled || !serverReady || !pushSupported || pushLinked;
     }
     function post(action, mode, additional) {
         var form = new URLSearchParams();
@@ -249,15 +252,37 @@
                 subscription: JSON.stringify(subscription.toJSON())
             }).then(function (data) { return !!data.subscribed; });
         }).then(function (registered) {
-            if (!registered) return;
-            storeConsent(true);
+            pushLinked = !!registered;
+            if (registered) storeConsent(true);
             setButtons();
-            setStatus('اعلان ویندوز و Web Push برای این حساب فعال هستند.');
+            if (registered) {
+                setStatus('اعلان ویندوز و Web Push برای این حساب فعال هستند.');
+            } else if (enabled() && serverReady) {
+                setStatus('اعلان با تب باز فعال است؛ برای دریافت پیام با تب بسته، دکمه «فعال‌سازی پوش پس‌زمینه» را بزنید.');
+            }
         }).catch(function () {
             if (enabled()) setStatus('مجوز ویندوز فعال است، اما وضعیت ارسال پوش سرور مشخص نیست.');
         });
     }
 
+    function registerPush() {
+        return navigator.serviceWorker.register(cfg.workerUrl, { scope: '/' }).then(function (registration) {
+            return registration.pushManager.getSubscription().then(function (existing) {
+                return existing || registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: keyBytes(cfg.publicKey)
+                });
+            });
+        }).then(function (subscription) {
+            return post('crmb_push_device', 'subscribe', {
+                subscription: JSON.stringify(subscription.toJSON())
+            });
+        }).then(function () {
+            pushLinked = true;
+            setButtons();
+            setStatus('اعلان ویندوز و Web Push برای این حساب فعال شدند؛ مرورگر را برای دریافت پیام با تب بسته هم آزمایش کنید.');
+        });
+    }
     function enableDesktop() {
         if (!desktopSupported || !enable) return;
         enable.disabled = true;
@@ -276,20 +301,7 @@
                 return;
             }
             setStatus('مجوز صادر شد؛ در حال ثبت این مرورگر برای پیام‌های پس‌زمینه…');
-            return navigator.serviceWorker.register(cfg.workerUrl, { scope: '/' }).then(function (registration) {
-                return registration.pushManager.getSubscription().then(function (existing) {
-                    return existing || registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: keyBytes(cfg.publicKey)
-                    });
-                });
-            }).then(function (subscription) {
-                return post('crmb_push_device', 'subscribe', {
-                    subscription: JSON.stringify(subscription.toJSON())
-                });
-            }).then(function () {
-                setStatus('اعلان ویندوز و Web Push برای این حساب فعال شدند.');
-            }).catch(function () {
+            return registerPush().catch(function () {
                 setStatus('اعلان هنگام باز بودن CRM فعال است؛ ثبت Push برای تب بسته ناموفق بود. مدیر باید سرور و سرویس‌ورکر را بررسی کند.');
             });
         }).catch(function () {
@@ -301,9 +313,18 @@
         });
     }
     if (enable) enable.addEventListener('click', enableDesktop);
+    if (background) background.addEventListener('click', function () {
+        if (!enabled() || !pushSupported || !serverReady) return;
+        background.disabled = true;
+        setStatus('در حال ثبت این مرورگر برای ارسال پوش در پس‌زمینه…');
+        registerPush().catch(function () {
+            setStatus('فعال‌سازی پوش پس‌زمینه ناموفق بود؛ سرویس‌ورکر، کلید VAPID و دسترسی HTTPS را بررسی کنید.');
+        }).finally(function () { background.disabled = false; });
+    });
     if (disable) disable.addEventListener('click', function () {
         disable.disabled = true;
         storeConsent(false);
+        pushLinked = false;
         // Remove the account's push subscription; never remove another account's record.
         getPushSubscription().then(function (subscription) {
             if (!subscription) return;
