@@ -172,3 +172,5 @@ require_once get_template_directory() . '/inc/seo-media.php';
 require_once get_template_directory() . '/inc/leadership.php';
 require_once get_template_directory() . '/inc/sales.php';
 require_once get_template_directory() . '/inc/sales-operations.php';
+require_once get_template_directory() . '/inc/suppliers.php';
+require_once get_template_directory() . '/inc/suppliers-csv.php';
