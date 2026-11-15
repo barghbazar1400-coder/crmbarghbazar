@@ -32,25 +32,52 @@ $metrics = array(
         <?php endforeach; ?>
     </div>
     <div class="crmb-leadership-layout">
-        <section class="crm-access-card">
-            <div class="crmb-leadership-heading"><h2>اولویت‌های اجرایی</h2><a href="<?php echo esc_url( $task_url ); ?>">مدیریت تمام وظایف</a></div>
-            <?php if ( null === $stats['recent'] ) : ?>
-                <p role="status">داده‌های وظایف در دسترس نیست؛ عدد ساختگی نمایش داده نمی‌شود.</p>
-            <?php elseif ( ! $stats['recent'] ) : ?>
-                <p class="crm-access-muted">فعلاً وظیفه بازی در تیم ثبت نشده است.</p>
-            <?php else : ?>
-                <div class="crmb-leadership-worklist">
-                    <?php foreach ( $stats['recent'] as $task ) :
-                        $overdue = $task->due_day && $task->due_day < crmb_att_today(); ?>
-                        <div class="crmb-leadership-workrow">
-                            <div><a href="<?php echo esc_url( add_query_arg( 'task_id', $task->id, $task_url ) ); ?>"><?php echo esc_html( $task->title ); ?></a>
-                            <small><?php echo esc_html( crmb_work_user_name( $task->assigned_to ) ); ?> · <?php echo esc_html( crmb_work_statuses()[ $task->status ] ?? 'نامشخص' ); ?></small></div>
-                            <span class="<?php echo $overdue ? 'crmb-work-overdue' : ''; ?>"><?php echo esc_html( $task->due_day ? crmb_att_jdate( $task->due_day ) : 'بدون مهلت' ); ?></span>
-                        </div>
-                    <?php endforeach; ?>
+        <section class="crm-access-card crmb-leadership-priorities" aria-labelledby="crmb-priorities-title">
+            <header class="crmb-priorities-header">
+                <div class="crmb-priorities-heading">
+                    <h2 id="crmb-priorities-title">اولویت‌های اجرایی</h2>
+                    <p>پیگیری کارهای باز تیم بر اساس نزدیک‌ترین مهلت</p>
                 </div>
+                <a class="crmb-priorities-manage" href="<?php echo esc_url( $task_url ); ?>">
+                    مدیریت وظایف <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                </a>
+            </header>
+            <?php if ( null === $stats['recent'] ) : ?>
+                <p class="crmb-priorities-empty" role="status">داده‌های وظایف در دسترس نیست. برای بررسی مجدد، فهرست وظایف را باز کنید.</p>
+            <?php elseif ( ! $stats['recent'] ) : ?>
+                <div class="crmb-priorities-empty">
+                    <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                    <strong>وظیفه بازی برای پیگیری وجود ندارد.</strong>
+                    <span>برای شروع، از بخش مدیریت وظایف کار جدیدی تعریف کنید.</span>
+                </div>
+            <?php else : ?>
+                <div class="crmb-priorities-count"><?php echo esc_html( (string) count( $stats['recent'] ) ); ?> وظیفه در فهرست پیگیری</div>
+                <ol class="crmb-priorities-list">
+                    <?php foreach ( $stats['recent'] as $task ) :
+                        $overdue = $task->due_day && $task->due_day < crmb_att_today();
+                        $due_today = $task->due_day && $task->due_day === crmb_att_today();
+                        $detail_url = add_query_arg( 'task_id', $task->id, $task_url );
+                        $status = crmb_work_statuses()[ $task->status ] ?? 'نامشخص';
+                        ?>
+                        <li class="crmb-priority-item">
+                            <div class="crmb-priority-main">
+                                <a class="crmb-priority-title" href="<?php echo esc_url( $detail_url ); ?>"><?php echo esc_html( $task->title ); ?></a>
+                                <div class="crmb-priority-meta">
+                                    <span><i class="fa-solid fa-user" aria-hidden="true"></i><?php echo esc_html( crmb_work_user_name( $task->assigned_to ) ); ?></span>
+                                    <span class="crmb-priority-status is-<?php echo esc_attr( $task->status ); ?>"><?php echo esc_html( $status ); ?></span>
+                                </div>
+                            </div>
+                            <div class="crmb-priority-side">
+                                <span class="crmb-priority-due <?php echo $overdue ? 'is-overdue' : ( $due_today ? 'is-today' : '' ); ?>">
+                                    <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+                                    <?php echo esc_html( $overdue ? 'عقب‌افتاده: ' . crmb_att_jdate( $task->due_day ) : ( $due_today ? 'مهلت امروز' : ( $task->due_day ? crmb_att_jdate( $task->due_day ) : 'بدون مهلت' ) ) ); ?>
+                                </span>
+                                <a class="crmb-priority-detail" href="<?php echo esc_url( $detail_url ); ?>" aria-label="<?php echo esc_attr( 'مشاهده وظیفه ' . $task->title ); ?>">پیگیری <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                </ol>
             <?php endif; ?>
-            <a class="crm-access-primary crmb-dashboard-link" href="<?php echo esc_url( $task_url ); ?>">واگذاری یا پیگیری وظیفه</a>
         </section>
         <section class="crm-access-card">
             <h2>دسترسی سریع</h2>
