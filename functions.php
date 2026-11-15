@@ -163,6 +163,7 @@ require_once get_template_directory() . '/inc/departments.php';
 require_once get_template_directory() . '/inc/dashboard.php';
 require_once get_template_directory() . '/inc/work.php';
 require_once get_template_directory() . '/inc/chat.php';
+require_once get_template_directory() . '/inc/chat-attachments.php';
 require_once get_template_directory() . '/inc/progress.php';
 require_once get_template_directory() . '/inc/daily-reports.php';
 require_once get_template_directory() . '/inc/task-rich-notes.php';
