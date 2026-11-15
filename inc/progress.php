@@ -134,8 +134,13 @@ function crmb_progress_transition( $id, $status ) {
     if ( false === $wpdb->update( $t['tasks'], $values, array( 'id' => $id ) ) || ! crmb_progress_event( $id, $status ) ) { return crmb_progress_fail(); }
     $event_id = (int) $wpdb->insert_id;
     $result = crmb_progress_commit();
-    if ( 'saved' === $result && 'done' === $status && function_exists( 'do_action' ) ) {
-        do_action( 'crmb_task_completed', $id, (int) $task->created_by, $uid, $event_id );
+    if ( 'saved' === $result && function_exists( 'do_action' ) ) {
+        if ( 'done' === $status ) {
+            do_action( 'crmb_task_completed', $id, (int) $task->created_by, $uid, $event_id );
+        }
+        if ( $admin && ! $owner ) {
+            do_action( 'crmb_task_status_updated', $id, (int) $task->assigned_to, $uid, $event_id );
+        }
     }
     return $result;
 }
