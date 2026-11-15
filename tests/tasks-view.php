@@ -1,26 +1,29 @@
 <?php
-/** Render-only regression for the employee and manager task cards.
- * Run with php tests/tasks-view.php (WordPress not required).
- */
+/** Render regressions for the default open tasks, completed archive and team access. */
 define( 'ABSPATH', __DIR__ );
-$as_manager = false;
-$checks = 0;
+$as_manager = false; $checks = 0;
 function is_user_logged_in() { return true; }
 function crmb_work_manage_team() { global $as_manager; return $as_manager; }
-function crmb_work_list( $kind, $page, $limit, $team ) {
+function crmb_work_task_counts( $team ) {
+    return array( 'ready' => true, 'all' => 2, 'open' => 1, 'done' => 1 );
+}
+function crmb_work_list( $kind, $page, $limit, $team, $sent = false, $active = false, $focus = 0, $view = 'all' ) {
     if ( $kind !== 'tasks' ) { throw new RuntimeException( 'Unexpected list' ); }
-    return array(
-        'ready' => true, 'total' => 2, 'rows' => array(
-            (object) array( 'id' => 42, 'title' => 'مانیتورهای سوزوکی',
-                'description' => 'بررسی وضعیت قیمت و موجودی <script>alert(1)</script>',
-                'priority' => 'high', 'status' => 'todo', 'due_day' => '2026-11-11',
-                'assigned_to' => 3, 'created_by' => 1, 'timer_started_utc' => null ),
-            (object) array( 'id' => 43, 'title' => 'تکمیل گزارش',
-                'description' => 'گزارش آماده شد',
-                'priority' => 'normal', 'status' => 'done', 'due_day' => null,
-                'assigned_to' => 3, 'created_by' => 1, 'timer_started_utc' => null ),
-        ),
+    $rows = array(
+        (object) array( 'id' => 42, 'title' => 'مانیتورهای سوزوکی',
+            'description' => 'شرح محرمانه <script>alert(1)</script>',
+            'priority' => 'high', 'status' => 'todo', 'due_day' => '2026-11-11',
+            'assigned_to' => 3, 'created_by' => 1, 'timer_started_utc' => null ),
+        (object) array( 'id' => 43, 'title' => 'تکمیل گزارش',
+            'description' => 'گزارش آماده شد',
+            'priority' => 'normal', 'status' => 'done', 'due_day' => null,
+            'assigned_to' => 3, 'created_by' => 1, 'timer_started_utc' => null ),
     );
+    $rows = array_values( array_filter( $rows, static function ( $r ) use ( $view ) {
+        return 'all' === $view || ( 'open' === $view && in_array( $r->status, array( 'todo', 'doing', 'paused' ), true ) )
+            || ( 'done' === $view && 'done' === $r->status );
+    } ) );
+    return array( 'ready' => true, 'total' => count( $rows ), 'rows' => $rows );
 }
 function crmb_work_statuses() { return array( 'todo' => 'انجام‌نشده', 'doing' => 'در حال انجام', 'paused' => 'توقف موقت', 'done' => 'انجام‌شده', 'cancelled' => 'لغوشده' ); }
 function crmb_work_priorities() { return array( 'normal' => 'عادی', 'high' => 'مهم', 'urgent' => 'فوری' ); }
@@ -50,27 +53,38 @@ function verify( $condition, $name ) {
     ++$checks;
     if ( ! $condition ) { throw new RuntimeException( 'Task template assertion ' . $checks . ': ' . $name ); }
 }
-function render( $team = false ) {
+function render( $team = false, $view = null ) {
     global $as_manager;
     $as_manager = $team;
     $_GET = $team ? array( 'scope' => 'team' ) : array();
+    if ( null !== $view ) { $_GET['view'] = $view; }
     ob_start();
     include __DIR__ . '/../template-parts/tasks.php';
     return ob_get_clean();
 }
-$employee = render( false );
-verify( str_contains( $employee, 'crmb-tasks-overview' ), 'Employee overview exists' );
-verify( substr_count( $employee, '<article class="crmb-task-card' ) === 2, 'One card for each task' );
-verify( str_contains( $employee, 'is-priority-high' ), 'Priority badge' );
+$employee = render();
+verify( str_contains( $employee, '>کارهای من</h1>' ), 'Renamed employee view' );
+verify( str_contains( $employee, 'crmb-tasks-overview' ), 'Filter navigation exists' );
+verify( str_contains( $employee, 'aria-current="page"' ), 'Active filter accessible' );
+verify( str_contains( $employee, 'کارهای باز' ), 'Open filter label' );
+verify( str_contains( $employee, 'کارهای تکمیل‌شده' ), 'Completed archive label' );
+verify( substr_count( $employee, '<article class="crmb-task-card' ) === 1, 'Default excludes completed task' );
+verify( str_contains( $employee, 'مانیتورهای سوزوکی' ), 'Open task present' );
+verify( ! str_contains( $employee, 'تکمیل گزارش' ), 'Completed task absent' );
+verify( ! str_contains( $employee, 'شرح محرمانه' ), 'Description stays in task detail' );
 verify( str_contains( $employee, 'مهلت گذشته' ), 'Overdue warning' );
-verify( str_contains( $employee, 'مشاهده و ثبت پیشرفت' ), 'Progress action' );
-verify( str_contains( $employee, '&lt;script&gt;' ), 'Description escaped' );
-verify( ! str_contains( $employee, '<script>' ), 'Unsafe markup not rendered' );
+verify( str_contains( $employee, 'مشاهده جزئیات و ثبت پیشرفت' ), 'Detail action' );
 verify( ! str_contains( $employee, 'value="cancelled"' ), 'Employee cannot cancel' );
 verify( ! str_contains( $employee, 'واگذاری وظیفه جدید' ), 'No manager assignment form' );
+$archive = render( false, 'done' );
+verify( substr_count( $archive, '<article class="crmb-task-card' ) === 1, 'Archive displays completed only' );
+verify( str_contains( $archive, 'تکمیل گزارش' ), 'Archive item' );
+verify( ! str_contains( $archive, 'مانیتورهای سوزوکی' ), 'Archive excludes open tasks' );
+$all = render( false, 'all' );
+verify( substr_count( $all, '<article class="crmb-task-card' ) === 2, 'All tasks shows both' );
 $manager = render( true );
-verify( str_contains( $manager, '<details class="crm-access-card crmb-tasks-editor"' ), 'Collapsed assignment form' );
-verify( str_contains( $manager, 'همه وظایف تیم' ), 'Team scope' );
-verify( str_contains( $manager, 'value="cancelled"' ), 'Manager status options' );
+verify( str_contains( $manager, '<details class="crm-access-card crmb-tasks-editor"' ), 'Manager assignment form' );
+verify( str_contains( $manager, 'کارهای تیم' ), 'Team navigation' );
+verify( str_contains( $manager, 'value="cancelled"' ), 'Manager status rights' );
 verify( str_contains( $manager, 'مسئول:' ), 'Manager sees assignee' );
 echo "$checks task view checks passed\n";
