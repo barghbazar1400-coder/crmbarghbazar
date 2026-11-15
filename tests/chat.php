@@ -208,4 +208,18 @@ $js=file_get_contents(__DIR__.'/../assets/js/crmb-chat.js');
 verify(true,str_contains($js,'MAX_RENDERED = 240'));
 verify(true,str_contains($js,'before: anchor'));
 verify(true,str_contains($js,'after: anchor'));
-echo "$checks private chat, cursor, read and paging checks passed\n";
+// Native Windows file-picker regression: attachment control is a real button
+// immediately before Send, with a bundled SVG that cannot render blank.
+$composer=substr($template,strpos($template,'class="crmb-messenger-compose-row"'));
+verify(true,str_contains($composer,'type="button" class="crmb-chat-attach-button" id="crmb-chat-attach-label"'));
+verify(true,str_contains($composer,'<svg xmlns="http://www.w3.org/2000/svg"'));
+verify(true,str_contains($composer,'type="file" id="crmb-chat-attach-input"'));
+verify(true,strpos($composer,'id="crmb-chat-input"')<strpos($composer,'id="crmb-chat-attach-label"'));
+verify(true,strpos($composer,'id="crmb-chat-attach-label"')<strpos($composer,'id="crmb-chat-send"'));
+verify(true,str_contains($js,"attachLabel.addEventListener('click'"));
+verify(true,str_contains($js,'fileInput.click()'));
+verify(true,str_contains($js,'queueFiles(this.files)'));
+verify(true,str_contains($js,'attachLabel.disabled = !peer || busySend'));
+$style=file_get_contents(__DIR__.'/../style.css');
+verify(true,str_contains($style,'.crmb-messenger-compose-row .crmb-chat-attach-button svg'));
+echo "$checks private chat, cursor, read, file-picker and paging checks passed\n";
