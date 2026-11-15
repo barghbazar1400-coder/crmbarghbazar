@@ -33,16 +33,21 @@ $setup = isset( $_GET['push_setup'] ) ? sanitize_key( $_GET['push_setup'] ) : ''
     <section class="crm-access-card crmb-push-panel" aria-labelledby="crmb-push-heading">
         <div class="crmb-task-note-heading">
             <span class="crmb-task-note-heading-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></span>
-            <div><h2 id="crmb-push-heading">اعلان روی کامپیوتر</h2>
-                <p>با اجازه خودتان، پیام‌های جدید حتی هنگام بسته بودن تب CRM از طریق مرورگر نمایش داده می‌شوند.</p>
+            <div><h2 id="crmb-push-heading">اعلان ویندوز، کنار ساعت سیستم</h2>
+                <p>برای پیام جدید و رویدادهای مهم، اعلان بومی ویندوز دریافت کنید؛ بدون اینکه لازم باشد صفحه CRM را رفرش کنید.</p>
             </div>
         </div>
         <p class="crm-access-muted" id="crmb-push-status" role="status">در حال بررسی پشتیبانی مرورگر...</p>
         <div class="crmb-notices-actions">
-            <button type="button" class="crm-access-primary" id="crmb-push-enable">فعال‌سازی پوش روی این سیستم</button>
-            <button type="button" class="crmb-notices-secondary" id="crmb-push-disable" hidden>غیرفعال‌سازی روی این سیستم</button>
+            <button type="button" class="crm-access-primary" id="crmb-push-enable"><i class="fa-solid fa-bell" aria-hidden="true"></i> فعال‌سازی اعلان ویندوز</button>
+            <button type="button" class="crmb-notices-secondary" id="crmb-push-test" hidden><i class="fa-solid fa-vial" aria-hidden="true"></i> نمایش اعلان آزمایشی</button>
+            <button type="button" class="crmb-notices-secondary" id="crmb-push-disable" hidden>غیرفعال‌سازی اعلان این حساب</button>
         </div>
-        <p class="crm-access-muted">نمایش اعلان به مجوز مرورگر، HTTPS و سرویس پوش فعال وابسته است. متن خصوصی پیام در اعلان دسکتاپ نشان داده نمی‌شود.</p>
+        <div class="crmb-desktop-notice-guide">
+            <p><i class="fa-solid fa-desktop" aria-hidden="true"></i> <strong>وقتی تب CRM باز است:</strong> پیام‌ها با بررسی خودکار دریافت می‌شوند و پس از اجازه مرورگر اعلان ویندوز نمایش داده می‌شود.</p>
+            <p><i class="fa-solid fa-cloud" aria-hidden="true"></i> <strong>وقتی تب کاملاً بسته است:</strong> ارسال اعلان نیازمند راه‌اندازی Web Push روی سرور است؛ مرورگر و اعلان‌های ویندوز هم باید مجاز باشند.</p>
+            <p><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> متن خصوصی پیام روی صفحه قفل یا اعلان ویندوز نمایش داده نمی‌شود. محل قرارگیری اعلان را خود ویندوز تعیین می‌کند.</p>
+        </div>
         <?php if ( current_user_can( 'manage_options' ) && ! crmb_push_public_key() ) : ?>
             <p class="crm-access-muted">راه‌اندازی سرور: ابتدا وابستگی Composer نصب شود، سپس کلیدهای VAPID از همین صفحه ایجاد شوند.</p>
             <?php if ( crmb_push_library() ) : ?>
