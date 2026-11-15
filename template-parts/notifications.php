@@ -41,6 +41,7 @@ $setup = isset( $_GET['push_setup'] ) ? sanitize_key( $_GET['push_setup'] ) : ''
         <div class="crmb-notices-actions">
             <button type="button" class="crm-access-primary" id="crmb-push-enable"><i class="fa-solid fa-bell" aria-hidden="true"></i> فعال‌سازی اعلان ویندوز</button>
             <button type="button" class="crmb-notices-secondary" id="crmb-push-test" hidden><i class="fa-solid fa-vial" aria-hidden="true"></i> نمایش اعلان آزمایشی</button>
+            <button type="button" class="crmb-notices-secondary" id="crmb-push-background" hidden><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i> فعال‌سازی پوش پس‌زمینه</button>
             <button type="button" class="crmb-notices-secondary" id="crmb-push-disable" hidden>غیرفعال‌سازی اعلان این حساب</button>
         </div>
         <div class="crmb-desktop-notice-guide">
