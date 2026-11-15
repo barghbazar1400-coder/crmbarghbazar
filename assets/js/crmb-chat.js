@@ -10,6 +10,9 @@
     var empty = document.getElementById('crmb-chat-empty');
     var list = document.getElementById('crmb-messenger-contacts');
     var search = document.getElementById('crmb-messenger-search-input');
+    var find = document.getElementById('crmb-chat-find');
+    var lookupResult = document.getElementById('crmb-chat-lookup-result');
+    var initialListEmpty = document.getElementById('crmb-chat-list-empty');
     var title = document.getElementById('crmb-messenger-partner');
     var input = document.getElementById('crmb-chat-input');
     var form = document.getElementById('crmb-chat-compose');
@@ -34,6 +37,8 @@
     var lastContactRefresh = 0;
     var ids = new Set();
     var recentContactNames = new Map();
+    var lookedUpUsers = new Map();
+    var startTokens = new Map();
     var MAX_RENDERED = 240;
     var REFRESH_MS = 8500;
 
@@ -67,7 +72,7 @@
     function otherName(id) {
         if (recentContactNames.has(id)) return recentContactNames.get(id);
         var item = list.querySelector('[data-peer="' + id + '"]');
-        return item ? item.dataset.name : 'همکار';
+        return item ? item.dataset.name : (lookedUpUsers.get(id) || 'همکار');
     }
     function currentContact() {
         return list.querySelector('.crmb-messenger-contact[data-peer="' + peer + '"]');
@@ -180,7 +185,7 @@
         var current = ++generation;
         clearThread();
         busyInitial = true;
-        post('thread', { peer: target }).then(function (data) {
+        post('thread', { peer: target, start_token: startTokens.get(target) || '' }).then(function (data) {
             if (generation !== current || peer !== target) return;
             appendBatch(data.messages, false);
             hasOlder = !!data.has_more;
@@ -207,7 +212,7 @@
         var oldTop = historyBox.scrollTop;
         busyOlder = true;
         updateFlags();
-        post('thread', { peer: target, before: anchor }).then(function (data) {
+        post('thread', { peer: target, before: anchor, start_token: startTokens.get(target) || '' }).then(function (data) {
             if (generation !== current || target !== peer) return;
             appendBatch(data.messages, true);
             hasOlder = !!data.has_more;
@@ -230,7 +235,7 @@
             var emptyPeer = peer;
             var emptyGeneration = generation;
             busyNewer = true;
-            post('thread', { peer: emptyPeer }).then(function (data) {
+            post('thread', { peer: emptyPeer, start_token: startTokens.get(emptyPeer) || '' }).then(function (data) {
                 if (emptyGeneration !== generation || peer !== emptyPeer) return;
                 if (data.messages && data.messages.length) {
                     appendBatch(data.messages, false);
@@ -249,7 +254,7 @@
         var anchor = newest;
         var stick = atBottom();
         busyNewer = true;
-        post('thread', { peer: target, after: anchor }).then(function (data) {
+        post('thread', { peer: target, after: anchor, start_token: startTokens.get(target) || '' }).then(function (data) {
             if (generation !== current || target !== peer) return;
             var count = appendBatch(data.messages, false);
             hasNewer = !!data.has_more;
@@ -265,12 +270,16 @@
     }
     function switchPeer(id, fromHistory) {
         id = Number(id) || 0;
-        if (!id || !recentContactNames.has(id) && !list.querySelector('[data-peer="' + id + '"]')) return;
+        if (!id || (!recentContactNames.has(id) && !lookedUpUsers.has(id)
+            && !list.querySelector('[data-peer="' + id + '"]'))) return;
         if (peer === id && loaded) {
             app.classList.add('is-chat-visible');
             return;
         }
         peer = id;
+        lookupResult.hidden = true;
+        search.value = '';
+        Array.prototype.forEach.call(list.children, function (entry) { entry.hidden = false; });
         app.classList.add('is-chat-visible');
         updateHeader();
         if (!fromHistory) {
@@ -293,6 +302,7 @@
             var top = list.scrollTop;
             var fragment = document.createDocumentFragment();
             recentContactNames.clear();
+            if (initialListEmpty) initialListEmpty.hidden = contacts.length > 0;
             contacts.forEach(function (contact) {
                 var id = Number(contact.id) || 0;
                 if (!id) return;
@@ -316,7 +326,7 @@
                 name.textContent = contact.name;
                 var sub = document.createElement('small');
                 sub.textContent = Number(contact.unread) ? 'پیام جدید دارید'
-                    : (Number(contact.last_id) ? 'گفتگوی قبلی' : 'شروع گفتگو');
+                    : '@' + String(contact.username || '');
                 details.append(name, sub);
                 item.append(avatar, details);
                 if (Number(contact.unread) > 0) {
@@ -325,7 +335,8 @@
                     unread.textContent = String(Math.min(99, Number(contact.unread)));
                     item.appendChild(unread);
                 }
-                item.hidden = !!filter && !contact.name.toLocaleLowerCase().includes(filter);
+                item.hidden = !!filter && !filter.startsWith('@')
+                    && !contact.name.toLocaleLowerCase().includes(filter);
                 fragment.appendChild(item);
             });
             list.replaceChildren(fragment);
@@ -351,10 +362,56 @@
         var contact = event.target.closest('[data-peer]');
         if (contact && list.contains(contact)) switchPeer(contact.dataset.peer, false);
     });
+    function lookupExactUsername() {
+        var name = search.value.trim();
+        if (!name.startsWith('@') || name.length < 3) {
+            lookupResult.textContent = 'برای پیدا کردن همکار جدید نام کاربری کامل را با @ بنویسید.';
+            lookupResult.hidden = false;
+            return;
+        }
+        find.disabled = true;
+        lookupResult.hidden = false;
+        lookupResult.textContent = 'در حال جست‌وجوی نام کاربری…';
+        post('lookup', { username: name }).then(function (data) {
+            lookupResult.replaceChildren();
+            if (data.status !== 'found') {
+                lookupResult.textContent = data.status === 'limited'
+                    ? 'تعداد جست‌وجوها زیاد است؛ کمی بعد دوباره تلاش کنید.'
+                    : 'نام کاربری موردنظر پیدا نشد. نام کامل و دقیق را بررسی کنید.';
+                return;
+            }
+            var id = Number(data.id);
+            if (!id) return;
+            lookedUpUsers.set(id, String(data.name));
+            startTokens.set(id, String(data.start_token || ''));
+            var card = document.createElement('div');
+            card.className = 'crmb-chat-lookup-card';
+            var label = document.createElement('span');
+            label.className = 'crmb-chat-lookup-name';
+            label.textContent = String(data.name) + ' (@' + String(data.username) + ')';
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = data.existing ? 'بازکردن گفتگو' : 'شروع گفتگو';
+            button.addEventListener('click', function () { switchPeer(id, false); });
+            card.append(label, button);
+            lookupResult.appendChild(card);
+        }).catch(function () {
+            lookupResult.textContent = 'جست‌وجو انجام نشد؛ اتصال و وضعیت ورود را بررسی کنید.';
+        }).finally(function () { find.disabled = false; });
+    }
+    find.addEventListener('click', lookupExactUsername);
+    search.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            if (search.value.trim().startsWith('@')) lookupExactUsername();
+        }
+    });
     search.addEventListener('input', function () {
         var filter = search.value.trim().toLocaleLowerCase();
+        lookupResult.hidden = true;
         Array.prototype.forEach.call(list.children, function (item) {
-            item.hidden = !!filter && !String(item.dataset.name || '').toLocaleLowerCase().includes(filter);
+            item.hidden = filter.startsWith('@') || (!!filter &&
+                !String(item.dataset.name || '').toLocaleLowerCase().includes(filter));
         });
     });
     back.addEventListener('click', function () { app.classList.remove('is-chat-visible'); });
@@ -382,7 +439,7 @@
         busySend = true;
         send.disabled = true;
         say('در حال ارسال…');
-        post('send', { peer: target, body: text }).then(function () {
+        post('send', { peer: target, body: text, start_token: startTokens.get(target) || '' }).then(function () {
             if (target !== peer) return;
             input.value = '';
             input.style.height = '';
@@ -416,7 +473,9 @@
     });
 
     window.setInterval(function () {
-        if (document.hidden || !peer) return;
+        if (document.hidden) return;
+        refreshContacts(false);
+        if (!peer) return;
         if (hasNewer && !atBottom()) {
             refreshContacts(false);
             return;
