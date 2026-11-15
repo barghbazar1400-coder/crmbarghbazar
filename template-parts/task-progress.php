@@ -88,22 +88,13 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
                     'quicktags' => true,
                     'tinymce' => array(
                         'directionality' => 'rtl',
-                        'toolbar1' => 'formatselect,bold,italic,underline,bullist,numlist,blockquote,link,unlink,undo,redo',
+                        'toolbar1' => 'formatselect,bold,italic,underline,bullist,numlist,blockquote,link,unlink,crmbtasktable,undo,redo',
                         'toolbar2' => 'removeformat,hr',
                         'block_formats' => 'پاراگراف=p;عنوان ۲=h2;عنوان ۳=h3;عنوان ۴=h4',
                     ),
                 )
             ); ?>
-            <div class="crmb-task-editor-tools">
-                <label for="crmb-task-table-rows">ردیف</label>
-                <input type="number" id="crmb-task-table-rows" min="1" max="10" value="3">
-                <label for="crmb-task-table-columns">ستون</label>
-                <input type="number" id="crmb-task-table-columns" min="1" max="8" value="3">
-                <button type="button" id="crmb-task-insert-table" class="crmb-task-insert-table">
-                    <i class="fa-solid fa-table" aria-hidden="true"></i> درج جدول
-                </button>
-                <span>جدول قابل ویرایش است و همراه گزارش ذخیره می‌شود.</span>
-            </div>
+
             <label for="crmb-task-images">تصاویر گزارش پیشرفت</label>
             <input type="file" id="crmb-task-images" name="images[]" accept="image/jpeg,image/png,image/webp" multiple>
             <p class="crm-access-muted">تا ۳ تصویر JPG، PNG یا WebP (هرکدام حداکثر ۱ مگابایت). تصاویر فقط برای افراد مجاز همین کار قابل مشاهده‌اند و همراه گزارش در تاریخچه نمایش داده می‌شوند.</p>
@@ -141,6 +132,12 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
         <?php endforeach; ?>
         <nav class="crm-access-pages" aria-label="صفحات تاریخچه"><?php if ( $event_page > 1 ) : ?><a href="<?php echo esc_url( add_query_arg( 'history_page', $event_page - 1, $detail ) ); ?>">قبلی</a><?php endif; ?><?php if ( $more ) : ?><a href="<?php echo esc_url( add_query_arg( 'history_page', $event_page + 1, $detail ) ); ?>">بعدی</a><?php endif; ?></nav>
     </section>
+    <dialog id="crmb-task-image-modal" class="crmb-task-image-modal" aria-label="نمایش تصویر گزارش پیشرفت">
+        <div class="crmb-task-image-modal-content">
+            <button type="button" class="crmb-task-image-modal-close" aria-label="بستن تصویر"><i class="fa-solid fa-xmark" aria-hidden="true"></i> بستن</button>
+            <img class="crmb-task-image-modal-photo" alt="تصویر گزارش پیشرفت">
+        </div>
+    </dialog>
 </section>
 <script>
 (function () {
@@ -154,28 +151,28 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
     window.setInterval(update, 1000);
 })();
 (function () {
-    const insert = document.getElementById('crmb-task-insert-table');
-    if (insert) {
-        insert.addEventListener('click', () => {
-            const rows = Math.max(1, Math.min(10, Number(document.getElementById('crmb-task-table-rows').value) || 3));
-            const columns = Math.max(1, Math.min(8, Number(document.getElementById('crmb-task-table-columns').value) || 3));
-            const head = '<tr>' + Array.from({length:columns}, (_,i) => '<th>ستون ' + (i+1) + '</th>').join('') + '</tr>';
-            const body = Array.from({length:rows}, () =>
-                '<tr>' + Array.from({length:columns}, () => '<td>متن</td>').join('') + '</tr>'
-            ).join('');
-            const html = '<table><thead>' + head + '</thead><tbody>' + body + '</tbody></table><p></p>';
-            const editor = window.tinymce && window.tinymce.get('crmbtaskeditor');
-            if (editor && !editor.isHidden()) {
-                editor.focus();
-                editor.insertContent(html);
-                return;
-            }
-            const field = document.getElementById('crmbtaskeditor');
-            if (field) {
-                field.setRangeText(html, field.selectionStart, field.selectionEnd, 'end');
-                field.dispatchEvent(new Event('input', { bubbles: true }));
-                field.focus();
-            }
+    const modal = document.getElementById('crmb-task-image-modal');
+    const modalImage = modal && modal.querySelector('.crmb-task-image-modal-photo');
+    const closeButton = modal && modal.querySelector('.crmb-task-image-modal-close');
+    let lastTrigger = null;
+    if (modal && modalImage && closeButton && typeof modal.showModal === 'function') {
+        document.querySelectorAll('.crmb-task-note-gallery [data-crmb-task-image]').forEach(link => {
+            link.addEventListener('click', event => {
+                event.preventDefault();
+                lastTrigger = link;
+                modalImage.src = link.href;
+                modalImage.alt = link.querySelector('img')?.alt || 'تصویر گزارش پیشرفت';
+                modal.showModal();
+                closeButton.focus();
+            });
+        });
+        closeButton.addEventListener('click', () => modal.close());
+        modal.addEventListener('click', event => {
+            if (event.target === modal) modal.close();
+        });
+        modal.addEventListener('close', () => {
+            modalImage.removeAttribute('src');
+            if (lastTrigger && lastTrigger.isConnected) lastTrigger.focus();
         });
     }
     const files = document.getElementById('crmb-task-images');
