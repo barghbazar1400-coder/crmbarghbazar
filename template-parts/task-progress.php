@@ -7,7 +7,7 @@ $task = crmb_progress_task( $id );
 $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
 ?>
 <section class="crm-access-screen crmb-work crmb-task-detail-page" aria-labelledby="crmb-progress-title">
-    <header class="crm-access-header"><h1 id="crmb-progress-title">روند انجام وظیفه</h1><p><a href="<?php echo esc_url( $base ); ?>">بازگشت به وظایف</a></p></header>
+    <header class="crm-access-header"><h1 id="crmb-progress-title">روند انجام کار</h1><p><a href="<?php echo esc_url( $base ); ?>">بازگشت به کارهای من</a></p></header>
     <?php crmb_work_notice(); crmb_progress_notice(); ?>
     <?php if ( ! $task ) : ?><p role="status">وظیفه در دسترس نیست یا اجازه مشاهده آن را ندارید.</p></section><?php return; endif;
     global $wpdb; $tables = crmb_progress_tables();
@@ -36,7 +36,7 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
             <?php endforeach; ?>
             </div>
         <?php endif; ?>
-        <?php if ( $owner || $admin ) : ?><p class="crm-access-muted">برای بازگشایی یا تغییر دیگر وضعیت‌ها از فهرست وظایف استفاده کنید؛ شروع زمان‌سنج فقط توسط مسئول انجام می‌شود.</p><?php endif; ?>
+        <?php if ( $owner || $admin ) : ?><p class="crm-access-muted">برای بازگشایی یا تغییر دیگر وضعیت‌ها از فهرست کارهای من استفاده کنید؛ شروع زمان‌سنج فقط توسط مسئول انجام می‌شود.</p><?php endif; ?>
     </section>
     <section class="crm-access-card"><h2>ثبت پیشرفت یا مانع</h2>
         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form">
