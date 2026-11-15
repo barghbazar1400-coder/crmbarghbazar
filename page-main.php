@@ -90,7 +90,7 @@ if ( ! empty( $crm_user->roles ) ) {
                 'tasks' => 'fa-list-check', 'messages' => 'fa-envelope', 'notifications' => 'fa-bell',
                 'reports' => 'fa-file-lines', 'seo' => 'fa-chart-line',
                 'ceo' => 'fa-crown', 'operations' => 'fa-clipboard-check',
-                'sales' => 'fa-cart-shopping', 'suppliers' => 'fa-truck-fast',
+                'sales' => 'fa-cart-shopping', 'suppliers' => 'fa-truck-fast', 'sales_partners' => 'fa-people-arrows-left-right',
             );
             $crm_child_icons = array(
                 'overview' => 'fa-gauge-high', 'projects' => 'fa-layer-group',
@@ -184,6 +184,8 @@ if ( ! empty( $crm_user->roles ) ) {
             get_template_part( 'template-parts/sales-v2' );
         } elseif ( 'suppliers' === $crm_current_section && crmbarghbazar_can_view_section( 'suppliers' ) ) {
             get_template_part( 'template-parts/suppliers' );
+        } elseif ( 'sales_partners' === $crm_current_section && crmbarghbazar_can_view_section( 'sales_partners' ) ) {
+            get_template_part( 'template-parts/sales-partners' );
         }
         ?>
     </main>
