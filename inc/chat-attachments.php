@@ -95,6 +95,10 @@ function crmb_chat_check_files( $uploads ) {
             finfo_close( $finfo );
             return array( 'error' => 'هر فایل حداکثر ۸ مگابایت و مجموع حداکثر ۲۰ مگابایت است.' );
         }
+        if ( ! preg_match( '//u', $upload['name'] ) ) {
+            finfo_close( $finfo );
+            return array( 'error' => 'نام فایل معتبر نیست.' );
+        }
         $name = crmb_chat_clean_filename( $upload['name'] );
         $ext = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
         $types = crmb_chat_file_types();
@@ -190,7 +194,8 @@ function crmb_chat_private_directory() {
         }
     }
     @chmod( $real, 0700 );
-    return is_writable( $real ) && ( ( fileperms( $real ) & 0007 ) === 0 ) ? $real : false;
+    clearstatcache( true, $real );
+    return is_writable( $real ) && ( ( fileperms( $real ) & 0077 ) === 0 ) ? $real : false;
 }
 function crmb_chat_file_download_url( $id ) {
     return add_query_arg( array(
@@ -252,6 +257,12 @@ function crmb_chat_send_files( $peer, $body, $input ) {
             return array( 'error' => 'نگهداری فایل در فضای خصوصی انجام نشد.' );
         }
         @chmod( $file['path'], 0600 );
+        clearstatcache( true, $file['path'] );
+        if ( ( fileperms( $file['path'] ) & 0077 ) !== 0 ) {
+            @unlink( $file['path'] );
+            crmb_chat_cleanup_files( $staged );
+            return array( 'error' => 'سطح دسترسی امن فایل در سرور قابل تنظیم نیست.' );
+        }
         $staged[] = $file;
     }
     global $wpdb;
