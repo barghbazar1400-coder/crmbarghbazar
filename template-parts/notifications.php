@@ -86,8 +86,8 @@ $setup = isset( $_GET['push_setup'] ) ? sanitize_key( $_GET['push_setup'] ) : ''
                     <label for="crmb-notice-dept">انتخاب واحد</label>
                     <select id="crmb-notice-dept" name="target_department" disabled>
                         <option value="">انتخاب کنید</option>
-                        <?php foreach ( get_terms( array( 'taxonomy' => 'crmb_department', 'hide_empty' => false ) ) ?: array() as $department ) : ?>
-                            <?php if ( is_wp_error( $department ) ) { continue; } ?>
+                        <?php $crmb_units = get_terms( array( 'taxonomy' => 'crmb_department', 'hide_empty' => false ) ); ?>
+                        <?php foreach ( is_array( $crmb_units ) ? $crmb_units : array() as $department ) : ?>
                             <option value="<?php echo esc_attr( $department->term_id ); ?>"><?php echo esc_html( $department->name ); ?></option>
                         <?php endforeach; ?>
                     </select>
