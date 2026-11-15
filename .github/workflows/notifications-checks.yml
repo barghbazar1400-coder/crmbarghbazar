@@ -1,0 +1,54 @@
+name: CRM Live Notifications
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/notifications.php'
+      - 'inc/notifications-push.php'
+      - 'assets/js/crmb-notices.js'
+      - 'assets/js/crmb-push-sw.js'
+      - 'template-parts/messages.php'
+      - 'template-parts/messages-list.php'
+      - 'template-parts/notifications.php'
+      - 'tests/notifications.php'
+      - 'tests/notifications-client.js'
+      - 'tests/work.php'
+      - 'page-main.php'
+      - '.github/workflows/notifications-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  notifications:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure PHP CLI
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring,curl,openssl
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Lint PHP templates and event backend
+        run: |
+          php -l inc/notifications.php
+          php -l inc/notifications-push.php
+          php -l template-parts/notifications.php
+          php -l template-parts/messages.php
+          php -l template-parts/messages-list.php
+          php -l page-main.php
+      - name: Lint browser and service worker JavaScript
+        run: |
+          node --check assets/js/crmb-notices.js
+          node --check assets/js/crmb-push-sw.js
+          node --check tests/notifications-client.js
+      - name: Test PHP event permissions and message handling
+        run: |
+          php tests/notifications.php
+          php tests/work.php
+      - name: Test Windows notification polling and consent
+        run: node tests/notifications-client.js
