@@ -25,10 +25,11 @@ class WorkDB {
     function update($table, $data, $where) { $this->writes[] = array($table, $data, $where); return $this->fail ? false : $this->affected; }
     function query($sql) { $this->queries[] = $sql; return $this->fail ? false : $this->affected; }
     function get_var($sql) { $this->queries[] = $sql; $this->last_error = $this->fail ? 'failed' : ''; return $this->fail ? null : 2; }
-    function get_results($sql) { $this->queries[] = $sql; $this->last_error = $this->fail ? 'failed' : ''; if (str_contains($sql, 'GROUP BY status')) return $this->fail ? array() : array((object)array('status'=>'todo','total'=>2),(object)array('status'=>'done','total'=>1),(object)array('status'=>'cancelled','total'=>1)); return $this->rows; }
+    function get_results($sql) { $this->queries[] = $sql; $this->last_error = $this->fail ? 'failed' : ''; if (str_contains($sql, 'GROUP BY status')) return $this->fail ? array() : array((object)array('status'=>'todo','total'=>2),(object)array('status'=>'done','total'=>1),(object)array('status'=>'cancelled','total'=>1)); if (str_contains($sql,'AS peer_id')) return array(); return $this->rows; }
 }
 $wpdb = new WorkDB();
 require __DIR__ . '/../inc/work.php';
+require __DIR__ . '/../inc/chat.php';
 function check($expected, $actual) { global $checks; if ($expected !== $actual) { throw new RuntimeException('Check ' . ($checks + 1) . ' failed: ' . var_export($actual, true)); } $checks++; }
 $create = array('task'=>'save_task','title'=>'Task','description'=>'Body','assigned_to'=>'8','priority'=>'high','due_day'=>'1405-08-08');
 $logged = false; check('denied', crmb_work_mutate($create)); check(false, crmb_work_list('tasks')['ready']);
@@ -91,6 +92,8 @@ function get_users($args) { return array((object)array('ID'=>8,'display_name'=>'
 function crmb_att_today() { return '2026-10-30'; }
 function crmb_att_timezone() { return new DateTimeZone('Asia/Tehran'); }
 function crmb_att_jdate($s) { return $s; }
+function number_format_i18n($n) { return number_format($n); }
+function get_template_directory() { return __DIR__.'/not_an_asset_directory'; }
 $task_row = (object)array('id'=>3,'title'=>'<script>Task</script>','description'=>'<img src=x onerror=alert(1)>','assigned_to'=>7,'created_by'=>8,'priority'=>'high','due_day'=>'2026-10-29','status'=>'todo');
 $wpdb->rows=array($task_row); $admin=false; $_GET=array();
 ob_start(); include __DIR__ . '/../template-parts/tasks.php'; $html=ob_get_clean();
@@ -101,8 +104,12 @@ $admin=true; ob_start(); include __DIR__ . '/../template-parts/tasks.php'; $html
 check(true,str_contains($html,'واگذاری وظیفه جدید')); check(true,str_contains($html,'value="cancelled"'));
 $wpdb->rows=array((object)array('id'=>5,'sender_id'=>8,'recipient_id'=>7,'subject'=>'<script>Message</script>','body'=>'<img src=x onerror=alert(1)>','created_utc'=>'2026-10-30 08:00:00','read_utc'=>null));
 $admin=false; ob_start(); include __DIR__ . '/../template-parts/messages.php'; $html=ob_get_clean();
-check(false,str_contains($html,'<script>')); check(false,str_contains($html,'<img src=')); check(true,str_contains($html,'خواندم'));
-$_GET['box']='sent'; ob_start(); include __DIR__ . '/../template-parts/messages.php'; $html=ob_get_clean(); check(false,str_contains($html,'خواندم'));
+check(false,str_contains($html,'<img src=')); check(false,str_contains($html,'<script>Message</script>'));
+check(true,str_contains($html,'crmb-messenger'));
+check(true,str_contains($html,'crmb-chat-bubbles'));
+check(true,str_contains($html,'جست‌وجوی همکار'));
+$_GET['box']='sent'; ob_start(); include __DIR__ . '/../template-parts/messages.php'; $html=ob_get_clean();
+check(true,str_contains($html,'crmb-messenger')); check(false,str_contains($html,'<img src='));
 $logged=false; ob_start(); include __DIR__ . '/../template-parts/messages.php'; check('',ob_get_clean());
 ob_start(); include __DIR__ . '/../template-parts/tasks.php'; check('',ob_get_clean());
 function wp_die($message, $title, $args) { throw new RuntimeException((string)$args['response']); }
