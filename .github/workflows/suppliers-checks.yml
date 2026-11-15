@@ -1,0 +1,33 @@
+name: CRM Supplier Regression
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/suppliers.php'
+      - 'inc/suppliers-csv.php'
+      - 'template-parts/suppliers.php'
+      - 'tests/suppliers.php'
+      - '.github/workflows/suppliers-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  php-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP 8.4 with SQLite
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite
+          coverage: none
+      - name: Lint supplier PHP files
+        run: |
+          php -l inc/suppliers.php
+          php -l inc/suppliers-csv.php
+          php -l template-parts/suppliers.php
+          php -l tests/suppliers.php
+      - name: Run supplier tests
+        run: php tests/suppliers.php
