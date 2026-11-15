@@ -11,9 +11,14 @@
     var disable = document.getElementById('crmb-push-disable');
     var test = document.getElementById('crmb-push-test');
     var background = document.getElementById('crmb-push-background');
+    var soundToggle = document.getElementById('crmb-sound-toggle');
+    var soundTest = document.getElementById('crmb-sound-test');
+    var soundStatus = document.getElementById('crmb-sound-status');
     var username = String(cfg.userId);
     var consentKey = 'crmb-desktop-consent:' + username;
     var notifiedKey = 'crmb-desktop-notified:' + username;
+    var soundKey = 'crmb-message-sound:' + username;
+    var soundNotifiedKey = 'crmb-message-sound-last:' + username;
     var seenId = null;
     var requestBusy = false;
     var lastCount = null;
@@ -30,6 +35,10 @@
     var volatileNotified = 0;
     var inboxBusy = false;
     var pushLinked = false;
+    var audioContext = null;
+    var soundBusy = false;
+    var lastSoundAt = 0;
+    var volatileSoundNotified = 0;
 
     function safeGet(key) {
         try { return window.localStorage.getItem(key); } catch (err) { return null; }
@@ -59,6 +68,117 @@
         if (test) test.hidden = !isEnabled;
         if (background) background.hidden = !isEnabled || !serverReady || !pushSupported || pushLinked;
     }
+    /*
+     * Distinct, short original notification chime, generated with Web Audio.
+     * No downloaded copyrighted audio, public file URL, or private message text.
+     * Requires user gesture to unlock on Chrome/Edge after loading the page.
+     */
+    function soundOn() {
+        return safeGet(soundKey) === '1';
+    }
+    function soundSupported() {
+        return !!(window.AudioContext || window.webkitAudioContext);
+    }
+    function soundState() {
+        var on = soundOn();
+        if (soundToggle) {
+            soundToggle.disabled = !soundSupported();
+            soundToggle.setAttribute('aria-pressed', on ? 'true' : 'false');
+            soundToggle.innerHTML = on
+                ? '<i class="fa-solid fa-volume-xmark" aria-hidden="true"></i> بی‌صدا کردن پیام‌ها'
+                : '<i class="fa-solid fa-volume-high" aria-hidden="true"></i> فعال‌سازی صدای پیام';
+        }
+        if (soundTest) soundTest.hidden = !on || !soundSupported();
+        if (soundStatus) {
+            soundStatus.textContent = !soundSupported()
+                ? 'مرورگر فعلی امکان پخش صدای اختصاصی را ندارد.'
+                : !on ? 'صدای پیام‌ها خاموش است.'
+                : 'صدای پیام‌ها روشن است؛ در مرورگر باز، پیام تازه با زنگ کوتاه همراه می‌شود.';
+        }
+    }
+    function ensureAudioContext() {
+        var Audio = window.AudioContext || window.webkitAudioContext;
+        if (!Audio) return Promise.reject(new Error('unsupported'));
+        try {
+            if (!audioContext || audioContext.state === 'closed') audioContext = new Audio();
+            if (audioContext.state === 'suspended') {
+                return Promise.resolve(audioContext.resume()).then(function () { return audioContext; });
+            }
+            return Promise.resolve(audioContext);
+        } catch (err) { return Promise.reject(err); }
+    }
+    function playChime(testMode) {
+        if (!testMode && !soundOn()) return Promise.resolve(false);
+        if (soundBusy) return Promise.resolve(false);
+        if (!testMode && Date.now() - lastSoundAt < 6500) return Promise.resolve(false);
+        soundBusy = true;
+        return ensureAudioContext().then(function (ctx) {
+            if (ctx.state !== 'running') return false;
+            var base = ctx.currentTime + 0.015;
+            // Gentle three-tone sequence, under half a second in total.
+            [740, 990, 840].forEach(function (frequency, index) {
+                var start = base + index * 0.135;
+                var oscillator = ctx.createOscillator();
+                var gain = ctx.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(frequency, start);
+                gain.gain.setValueAtTime(0.0001, start);
+                gain.gain.exponentialRampToValueAtTime(0.085, start + 0.018);
+                gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.12);
+                oscillator.connect(gain);
+                gain.connect(ctx.destination);
+                oscillator.start(start);
+                oscillator.stop(start + 0.125);
+            });
+            lastSoundAt = Date.now();
+            return true;
+        }).catch(function () { return false; }).finally(function () { soundBusy = false; });
+    }
+    function notifyNewMessages(entries) {
+        if (!entries.length || !soundOn()) return;
+        var newestMessage = entries.filter(function (item) {
+            return item.kind === 'message' && !item.read;
+        }).reduce(function (max, item) { return Math.max(max, Number(item.id) || 0); }, 0);
+        if (!newestMessage) return;
+        // Coordinate tabs for one employee; do not ring repeatedly on refresh.
+        var lastHeard = Math.max(volatileSoundNotified, Number(safeGet(soundNotifiedKey)) || 0);
+        if (newestMessage <= lastHeard) return;
+        volatileSoundNotified = newestMessage;
+        safeSet(soundNotifiedKey, newestMessage);
+        playChime(false);
+    }
+    if (soundToggle) soundToggle.addEventListener('click', function () {
+        if (soundOn()) {
+            safeSet(soundKey, '0');
+            soundState();
+            return;
+        }
+        // Called immediately from click, not after an asynchronous polling request:
+        // this lets the browser unlock AudioContext with the user's gesture.
+        safeSet(soundKey, '1');
+        var result = playChime(true);
+        soundState();
+        Promise.resolve(result).then(function (played) {
+            if (!played && soundStatus) {
+                soundStatus.textContent = 'صدا فعال شد، اما مرورگر هنوز اجازه پخش نداده است. دوباره «امتحان صدا» را بزنید.';
+            }
+        });
+    });
+    if (soundTest) soundTest.addEventListener('click', function () {
+        playChime(true).then(function (played) {
+            if (soundStatus) soundStatus.textContent = played
+                ? 'صدای آزمایشی پخش شد. اگر نشنیدید، صدای تب، مرورگر و ویندوز را بررسی کنید.'
+                : 'مرورگر اجازه پخش صدا نداد؛ یک بار روی صفحه کلیک کنید و دوباره تست بگیرید.';
+        });
+    });
+    soundState();
+    // A saved preference cannot override browser autoplay restrictions. Unlock
+    // after the employee next interacts with the page; never auto-play on load.
+    function unlockAudioOnGesture() {
+        if (soundOn() && soundSupported()) ensureAudioContext().catch(function () {});
+    }
+    document.addEventListener('pointerdown', unlockAudioOnGesture, { passive: true });
+    document.addEventListener('keydown', unlockAudioOnGesture);
     function post(action, mode, additional) {
         var form = new URLSearchParams();
         form.append('action', action);
@@ -179,6 +299,8 @@
             return (Number(item.id) || 0) > seenId && !item.read;
         }).sort(function (a, b) { return a.id - b.id; });
         seenId = Math.max(seenId, latest);
+        // A single chime only for new private messages, not every task or notice.
+        notifyNewMessages(newlyArrived);
         if (newlyArrived.length && enabled()) {
             var lastToasted = Math.max(volatileNotified, Number(safeGet(notifiedKey)) || 0);
             var batch = newlyArrived.filter(function (item) {
@@ -215,6 +337,10 @@
         if (event.key === consentKey) {
             volatileConsent = event.newValue === '1';
             setButtons();
+        }
+        if (event.key === soundKey) soundState();
+        if (event.key === soundNotifiedKey) {
+            volatileSoundNotified = Math.max(volatileSoundNotified, Number(event.newValue) || 0);
         }
     });
 
