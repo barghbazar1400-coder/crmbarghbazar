@@ -246,6 +246,7 @@ if ( is_readable( $crmb_notice_client ) ) :
         'nonce' => wp_create_nonce( 'crmb_notice_ajax' ),
         'workerUrl' => add_query_arg( 'action', 'crmb_push_sw', admin_url( 'admin-ajax.php' ) ),
         'publicKey' => crmb_push_public_key(),
+        'userId' => get_current_user_id(),
     );
     ?>
     <script>window.crmbNoticeConfig = <?php echo wp_json_encode( $crmb_notice_config, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP ); ?>;</script>
