@@ -109,13 +109,32 @@ if ( $selected && ! isset( $members_by_id[ $selected ] ) ) {
             <button type="button" class="crmb-messenger-jump" id="crmb-chat-jump" hidden>
                 <i class="fa-solid fa-arrow-down" aria-hidden="true"></i> جدیدترین پیام‌ها
             </button>
-            <form class="crmb-messenger-composer" id="crmb-chat-compose" autocomplete="off" novalidate>
-                <label class="screen-reader-text" for="crmb-chat-input">نوشتن پیام</label>
-                <textarea id="crmb-chat-input" name="message" rows="1" maxlength="3000"
-                    placeholder="پیام خود را بنویسید… (Enter برای ارسال)" <?php echo $selected ? '' : 'disabled'; ?>></textarea>
-                <button type="submit" id="crmb-chat-send" <?php echo $selected ? '' : 'disabled'; ?> aria-label="ارسال پیام">
-                    <i class="fa-solid fa-paper-plane" aria-hidden="true"></i><span>ارسال</span>
-                </button>
+            <div class="crmb-chat-drop-overlay" id="crmb-chat-drop-overlay" hidden aria-hidden="true">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <strong>فایل یا تصویر را اینجا رها کنید</strong>
+                <span>حداکثر ۳ فایل در هر پیام</span>
+            </div>
+            <form class="crmb-messenger-composer" id="crmb-chat-compose" autocomplete="off" novalidate enctype="multipart/form-data">
+                <div class="crmb-chat-attachment-tray" id="crmb-chat-attachment-tray" hidden aria-live="polite"></div>
+                <div class="crmb-messenger-compose-row">
+                    <label class="crmb-chat-attach-button" id="crmb-chat-attach-label" for="crmb-chat-attach-input"
+                        title="ارسال فایل، تصویر یا سند" aria-label="انتخاب فایل و تصویر">
+                        <i class="fa-solid fa-paperclip" aria-hidden="true"></i>
+                    </label>
+                    <input type="file" id="crmb-chat-attach-input" name="attachments[]" multiple
+                        accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.csv,.docx,.xlsx,.pptx"
+                        class="crmb-chat-file-hidden" <?php echo $selected ? '' : 'disabled'; ?>>
+                    <label class="screen-reader-text" for="crmb-chat-input">نوشتن پیام</label>
+                    <textarea id="crmb-chat-input" name="message" rows="1" maxlength="3000"
+                        placeholder="پیام خود را بنویسید… (Enter برای ارسال)" <?php echo $selected ? '' : 'disabled'; ?>></textarea>
+                    <button type="submit" id="crmb-chat-send" <?php echo $selected ? '' : 'disabled'; ?> aria-label="ارسال پیام">
+                        <i class="fa-solid fa-paper-plane" aria-hidden="true"></i><span>ارسال</span>
+                    </button>
+                </div>
+                <p class="crmb-chat-attachment-help" id="crmb-chat-attachment-help">
+                    <i class="fa-solid fa-image" aria-hidden="true"></i>
+                    تصویر را با Ctrl+V بچسبانید، در چت رها کنید یا با گیره انتخاب کنید · هر فایل حداکثر ۸ مگابایت
+                </p>
             </form>
             <div class="crmb-messenger-status" id="crmb-chat-status" role="status" aria-live="polite"></div>
         </div>
