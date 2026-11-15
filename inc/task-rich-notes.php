@@ -32,6 +32,18 @@ function crmb_task_notes_install() {
 }
 add_action( 'init', 'crmb_task_notes_install', 12 );
 
+/** Load the table control only for the task-progress WordPress editor. */
+function crmb_task_table_mce_plugin( $plugins, $editor_id = '' ) {
+    if ( 'crmbtaskeditor' !== $editor_id ) { return $plugins; }
+    $relative = '/assets/js/crmb-task-table.js';
+    $source = get_template_directory_uri() . $relative;
+    $filepath = get_template_directory() . $relative;
+    $version = file_exists( $filepath ) ? (string) filemtime( $filepath ) : '1';
+    $plugins['crmbtasktable'] = add_query_arg( 'ver', $version, $source );
+    return $plugins;
+}
+add_filter( 'mce_external_plugins', 'crmb_task_table_mce_plugin', 10, 2 );
+
 /** Permit formatting and basic HTML tables, but no inline src, scripts or arbitrary CSS. */
 function crmb_task_note_html( $html ) {
     if ( ! is_string( $html ) ) { return ''; }
@@ -161,7 +173,7 @@ function crmb_task_note_images_markup( $image_ids ) {
             array( 'action' => 'crmb_task_note_image', 'image' => $image_id ),
             admin_url( 'admin-post.php' )
         );
-        echo '<a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">';
+        echo '<a class="crmb-task-gallery-trigger" data-crmb-task-image href="' . esc_url( $url ) . '" aria-label="نمایش تصویر پیوست در همین صفحه">';
         echo '<img loading="lazy" src="' . esc_url( $url ) . '" alt="تصویر پیوست گزارش پیشرفت"></a>';
     }
     echo '</div>';
