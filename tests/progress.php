@@ -28,7 +28,8 @@ class ProgressDB {
         CREATE TABLE wp_crmb_work_locks(user_id INTEGER PRIMARY KEY);
         CREATE TABLE wp_crmb_task_events(id INTEGER PRIMARY KEY AUTOINCREMENT,task_id INTEGER,actor_id INTEGER,event_type TEXT,body TEXT,created_utc TEXT);
         CREATE TABLE wp_crmb_daily_reports(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,report_day TEXT,body TEXT,blockers TEXT,next_plan TEXT,status TEXT,created_utc TEXT,updated_utc TEXT,submitted_utc TEXT,reviewed_utc TEXT,reviewed_by INTEGER,UNIQUE(user_id,report_day));
-        CREATE TABLE wp_crmb_report_images(id INTEGER PRIMARY KEY AUTOINCREMENT,report_id INTEGER,mime TEXT,image_data TEXT);");
+        CREATE TABLE wp_crmb_report_images(id INTEGER PRIMARY KEY AUTOINCREMENT,report_id INTEGER,mime TEXT,image_data TEXT);
+        CREATE TABLE wp_crmb_task_note_images(id INTEGER PRIMARY KEY AUTOINCREMENT,event_id INTEGER,mime TEXT,image_data TEXT);");
     }
     function prepare($sql,...$args) { foreach($args as $arg) { $sql=preg_replace_callback('/%[ds]/',fn($m)=>$m[0]==='%d'?(string)(int)$arg:$this->db->quote($arg),$sql,1); } return $sql; }
     function run($sql) { $this->sql[]=$sql; $this->last_error=''; $sql=str_replace(array('START TRANSACTION','INSERT IGNORE'),array('BEGIN TRANSACTION','INSERT OR IGNORE'),$sql); $sql=preg_replace('/ FOR UPDATE$/','',$sql); try { return $this->db->query($sql); } catch(Throwable $e) { $this->last_error=$e->getMessage(); return false; } }
@@ -45,6 +46,7 @@ $wpdb=new ProgressDB();
 require __DIR__.'/../inc/work.php';
 require __DIR__.'/../inc/progress.php';
 require __DIR__.'/../inc/daily-reports.php';
+require __DIR__.'/../inc/task-rich-notes.php';
 function check($a,$b) { global $checks; if($a!==$b) throw new RuntimeException('Check '.($checks+1).' expected '.var_export($a,true).' got '.var_export($b,true)); $checks++; }
 if (defined('CRMB_TEST_BOOTSTRAP_ONLY')) { return; }
 $values=array('title'=>'Task','description'=>'Work','assigned_to'=>7,'created_by'=>1,'priority'=>'normal','status'=>'todo','created_utc'=>'2026-10-30 08:00:00','updated_utc'=>'2026-10-30 08:00:00');
@@ -57,8 +59,22 @@ $wpdb->update('wp_crmb_tasks',array('timer_started_utc'=>gmdate('Y-m-d H:i:s',ti
 check('saved',crmb_progress_transition($id,'paused')); $task=crmb_progress_task($id); check(null,$task->timer_started_utc); check(true,$task->tracked_seconds>=120 && $task->tracked_seconds<=121);
 $seconds=(int)$task->tracked_seconds; check('00:02:00',crmb_progress_duration(120)); check($seconds,crmb_progress_seconds($task));
 check('saved',crmb_progress_transition($other,'doing')); check('saved',crmb_progress_transition($other,'paused')); check('saved',crmb_progress_transition($id,'doing'));
+check('saved', crmb_task_rich_save($id,'rich_note','<p>پیشرفت متن</p><table><tr><td>سلول</td></tr></table>'));
+check('denied', crmb_task_rich_save($id,'manager_note','Advice from employee'));
+$admin=true; check('saved', crmb_task_rich_save($id,'manager_note','<p>راهنمایی مدیر</p>')); $admin=false;
+check('invalid', crmb_task_rich_save($id,'rich_note',''));
+check('image_error', crmb_task_rich_save($id,'rich_note','text',array('images'=>array('error'=>array(UPLOAD_ERR_INI_SIZE)))));
+$uid=8; check('denied', crmb_task_rich_save($id,'rich_note','Foreign progress'));
+$uid=7;
+$rich_events=$wpdb->get_results("SELECT event_type FROM wp_crmb_task_events WHERE event_type IN ('rich_note','manager_note') ORDER BY id");
+check('rich_note',$rich_events[0]->event_type); check('manager_note',$rich_events[1]->event_type);
+check(true, isset(crmb_progress_event_labels()['manager_note']));
+check(false, isset($allowed_html['img']));
+
 $wpdb->fail_table='wp_crmb_task_events'; check('error',crmb_progress_transition($id,'done')); check('doing',crmb_progress_task($id)->status); check(true,(bool)crmb_progress_task($id)->timer_started_utc); $wpdb->fail_table='';
 check('saved',crmb_progress_transition($id,'done')); check(true,(bool)crmb_progress_task($id)->completed_utc); check(null,crmb_progress_task($id)->timer_started_utc);
+check('locked',crmb_task_rich_save($id,'rich_note','Cannot append after done'));
+
 check('saved',crmb_progress_note($id,'blocker','Need feedback')); check('invalid',crmb_progress_note($id,'note',''));
 $uid=8; check('denied',crmb_progress_note($id,'note','Foreign')); $admin=true; check(true,(bool)crmb_progress_task($id)); check('denied',crmb_progress_transition($id,'doing')); check('saved',crmb_progress_transition($id,'cancelled'));
 $uid=7; $admin=false; check('denied',crmb_progress_transition($id,'doing')); $admin=true; check('saved',crmb_progress_transition($id,'todo')); $admin=false; check('saved',crmb_progress_transition($id,'doing'));
