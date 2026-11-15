@@ -190,6 +190,9 @@ function crmb_chat_ajax() {
     if ( 'thread' === $mode ) {
         $before = isset( $_POST['before'] ) ? absint( $_POST['before'] ) : 0;
         $after = isset( $_POST['after'] ) ? absint( $_POST['after'] ) : 0;
+        if ( $before && $after ) {
+            wp_send_json_error( array( 'message' => 'درخواست صفحه‌بندی نامعتبر است.' ), 400 );
+        }
         $page = crmb_chat_page( $peer, $before, $after, 30 );
         if ( ! $page['ready'] ) {
             wp_send_json_error( array( 'message' => 'دریافت گفتگو انجام نشد.' ), 500 );
