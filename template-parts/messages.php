@@ -11,14 +11,17 @@ $selected = isset( $_GET['peer'] ) ? crmb_work_id( $_GET, 'peer' ) : 0;
 if ( ! $selected && isset( $_GET['message'] ) ) {
     $selected = crmb_chat_peer_from_message( crmb_work_id( $_GET, 'message' ) );
 }
-if ( ! crmb_chat_peer( $selected ) ) {
-    $selected = count( $contacts ) ? (int) $contacts[0]['id'] : 0;
+// Do not automatically select a coworker or expose arbitrary user IDs in URLs.
+if ( ! $selected || ! crmb_chat_has_history( $selected ) ) {
+    $selected = 0;
 }
 $selected_name = $selected ? crmb_work_user_name( $selected ) : '';
 $members_by_id = array();
 foreach ( $contacts as $contact ) { $members_by_id[ (int) $contact['id'] ] = $contact; }
 if ( $selected && ! isset( $members_by_id[ $selected ] ) ) {
-    $members_by_id[ $selected ] = array( 'id' => $selected, 'name' => $selected_name, 'unread' => 0, 'last_id' => 0 );
+    $old_user = get_userdata( $selected );
+    $members_by_id[ $selected ] = array( 'id' => $selected, 'name' => $selected_name,
+        'username' => $old_user ? $old_user->user_login : '', 'unread' => 0, 'last_id' => 1 );
     array_unshift( $contacts, $members_by_id[ $selected ] );
 }
 ?>
@@ -32,15 +35,18 @@ if ( $selected && ! isset( $members_by_id[ $selected ] ) ) {
                 <span class="crmb-messenger-sidebar-icon"><i class="fa-solid fa-comments" aria-hidden="true"></i></span>
                 <div>
                     <h1>پیام‌ها</h1>
-                    <p>گفتگوهای داخلی تیم</p>
+                    <p>فقط گفتگوهای قبلی شما</p>
                 </div>
                 <span class="crmb-messenger-contact-total"><?php echo esc_html( number_format_i18n( count( $contacts ) ) ); ?></span>
             </div>
             <div class="crmb-messenger-search">
-                <label class="screen-reader-text" for="crmb-messenger-search-input">جست‌وجوی همکار</label>
-                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-                <input id="crmb-messenger-search-input" type="search" placeholder="جست‌وجوی همکار..." autocomplete="off">
+                <label class="screen-reader-text" for="crmb-messenger-search-input">جست‌وجوی گفتگو یا نام کاربری دقیق با @</label>
+                <i class="fa-solid fa-at" aria-hidden="true"></i>
+                <input id="crmb-messenger-search-input" type="search" placeholder="جست‌وجو یا @username" autocomplete="off" dir="auto">
+                <button type="button" id="crmb-chat-find" aria-label="پیدا کردن نام کاربری دقیق">پیدا کن</button>
             </div>
+            <p class="crmb-messenger-search-help">شروع گفتگو فقط با نام کاربری دقیق مثل <code>@username</code></p>
+            <div id="crmb-chat-lookup-result" class="crmb-chat-lookup-result" role="status" aria-live="polite" hidden></div>
             <div class="crmb-messenger-contact-list" id="crmb-messenger-contacts" role="list">
                 <?php foreach ( $contacts as $contact ) :
                     $person_id = (int) $contact['id'];
@@ -55,7 +61,7 @@ if ( $selected && ! isset( $members_by_id[ $selected ] ) ) {
                         <span class="crmb-messenger-person-avatar" aria-hidden="true"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
                         <span class="crmb-messenger-contact-details">
                             <strong><?php echo esc_html( $label ); ?></strong>
-                            <small><?php echo $unread ? 'پیام جدید دارید' : ( $contact['last_id'] ? 'گفتگوی قبلی' : 'شروع گفتگو' ); ?></small>
+                            <small><?php echo $unread ? 'پیام جدید دارید' : esc_html( '@' . ( $contact['username'] ?? '' ) ); ?></small>
                         </span>
                         <?php if ( $unread ) : ?>
                             <span class="crmb-messenger-contact-unread"><?php echo esc_html( min( 99, $unread ) ); ?></span>
@@ -63,6 +69,13 @@ if ( $selected && ! isset( $members_by_id[ $selected ] ) ) {
                     </button>
                 <?php endforeach; ?>
             </div>
+            <?php if ( ! $contacts ) : ?>
+                <div class="crmb-messenger-list-empty" id="crmb-chat-list-empty">
+                    <i class="fa-solid fa-comment-dots" aria-hidden="true"></i>
+                    <strong>هنوز گفتگویی ندارید</strong>
+                    <p>نام کاربری طرف مقابل را با @ وارد و اولین پیام را ارسال کنید.</p>
+                </div>
+            <?php endif; ?>
             <div class="crmb-messenger-sidebar-foot">
                 <i class="fa-solid fa-lock" aria-hidden="true"></i>
                 پیام‌ها فقط برای شرکت‌کنندگان گفتگو قابل مشاهده هستند.
@@ -89,8 +102,8 @@ if ( $selected && ! isset( $members_by_id[ $selected ] ) ) {
                 <div class="crmb-messenger-bubbles" id="crmb-chat-bubbles"></div>
                 <div class="crmb-messenger-empty" id="crmb-chat-empty">
                     <span><i class="fa-solid fa-paper-plane" aria-hidden="true"></i></span>
-                    <strong><?php echo $selected ? 'در حال بارگذاری گفتگو…' : 'یک گفتگو را انتخاب کنید'; ?></strong>
-                    <p>آخرین ۳۰ پیام نمایش داده می‌شوند. برای دیدن پیام‌های قدیمی‌تر به بالا اسکرول کنید.</p>
+                    <strong><?php echo $selected ? 'در حال بارگذاری گفتگو…' : 'برای شروع، @username را جست‌وجو کنید'; ?></strong>
+                    <p>تنها گفتگوهایی که پیام ردوبدل کرده‌اید در فهرست می‌مانند؛ پیام‌های قدیمی‌تر هر بار ۳۰تایی بارگذاری می‌شوند.</p>
                 </div>
             </div>
             <button type="button" class="crmb-messenger-jump" id="crmb-chat-jump" hidden>
