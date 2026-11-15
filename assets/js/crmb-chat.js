@@ -17,6 +17,13 @@
     var input = document.getElementById('crmb-chat-input');
     var form = document.getElementById('crmb-chat-compose');
     var send = document.getElementById('crmb-chat-send');
+    var fileInput = document.getElementById('crmb-chat-attach-input');
+    var attachmentTray = document.getElementById('crmb-chat-attachment-tray');
+    var attachLabel = document.getElementById('crmb-chat-attach-label');
+    var dropOverlay = document.getElementById('crmb-chat-drop-overlay');
+    var chatSurface = app.querySelector('.crmb-messenger-conversation');
+    var pendingFiles = [];
+    var dragDepth = 0;
     var status = document.getElementById('crmb-chat-status');
     var older = document.getElementById('crmb-chat-older');
     var olderButton = document.getElementById('crmb-chat-older-button');
@@ -41,6 +48,10 @@
     var startTokens = new Map();
     var MAX_RENDERED = 240;
     var REFRESH_MS = 8500;
+    var FILE_COUNT_LIMIT = 3;
+    var FILE_SIZE_LIMIT = 8 * 1024 * 1024;
+    var FILE_TOTAL_LIMIT = 20 * 1024 * 1024;
+    var FILE_EXTENSIONS = /\.(?:jpe?g|png|gif|webp|pdf|txt|csv|docx|xlsx|pptx)$/i;
 
     function post(mode, data) {
         var params = new URLSearchParams();
@@ -65,6 +76,222 @@
             });
         });
     }
+    function postFiles(mode, data, attachments) {
+        return new Promise(function (resolve, reject) {
+            var params = new FormData();
+            params.set('action', 'crmb_chat');
+            params.set('nonce', cfg.nonce);
+            params.set('mode', mode);
+            Object.keys(data || {}).forEach(function (key) {
+                params.set(key, String(data[key]));
+            });
+            attachments.forEach(function (entry) {
+                params.append('attachments[]', entry.file, entry.file.name);
+            });
+            var request = new XMLHttpRequest();
+            request.open('POST', cfg.ajax, true);
+            request.withCredentials = true;
+            request.timeout = 90000;
+            request.upload.addEventListener('progress', function (event) {
+                if (event.lengthComputable && event.total) {
+                    say('در حال آپلود فایل‌ها: ' + Math.round(event.loaded * 100 / event.total) + '٪');
+                }
+            });
+            request.addEventListener('load', function () {
+                var result;
+                try { result = JSON.parse(request.responseText); }
+                catch (_) { reject(new Error('پاسخ سرور معتبر نیست.')); return; }
+                if (request.status < 200 || request.status >= 300 || !result.success) {
+                    reject(new Error(result && result.data && result.data.message || 'ارسال فایل ناموفق بود.'));
+                    return;
+                }
+                resolve(result.data || {});
+            });
+            request.addEventListener('timeout', function () { reject(new Error('مدت انتظار برای آپلود به پایان رسید.')); });
+            request.addEventListener('error', function () { reject(new Error('اتصال هنگام آپلود قطع شد.')); });
+            request.send(params);
+        });
+    }
+    function readableSize(bytes) {
+        return bytes >= 1024 * 1024 ? (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+            : Math.max(1, Math.round(bytes / 1024)) + ' KB';
+    }
+    function clearFiles() {
+        pendingFiles.forEach(function (entry) { if (entry.url) URL.revokeObjectURL(entry.url); });
+        pendingFiles = [];
+        fileInput.value = '';
+        renderPendingFiles();
+    }
+    function renderPendingFiles() {
+        attachmentTray.replaceChildren();
+        attachmentTray.hidden = !pendingFiles.length;
+        pendingFiles.forEach(function (entry, index) {
+            var item = document.createElement('div');
+            item.className = 'crmb-chat-pending-file';
+            var picture = document.createElement('span');
+            picture.className = 'crmb-chat-pending-image';
+            if (entry.url) {
+                var img = document.createElement('img');
+                img.src = entry.url;
+                img.alt = '';
+                picture.appendChild(img);
+            } else {
+                var icon = document.createElement('i');
+                icon.className = 'fa-solid fa-file-lines';
+                picture.appendChild(icon);
+            }
+            var details = document.createElement('span');
+            details.className = 'crmb-chat-pending-details';
+            var name = document.createElement('strong');
+            name.textContent = entry.file.name;
+            var size = document.createElement('small');
+            size.textContent = readableSize(entry.file.size);
+            details.append(name, size);
+            var remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'crmb-chat-pending-remove';
+            remove.textContent = '×';
+            remove.setAttribute('aria-label', 'حذف فایل ' + entry.file.name);
+            remove.disabled = busySend;
+            remove.addEventListener('click', function () {
+                if (busySend) return;
+                var deleted = pendingFiles.splice(index, 1)[0];
+                if (deleted && deleted.url) URL.revokeObjectURL(deleted.url);
+                renderPendingFiles();
+            });
+            item.append(picture, details, remove);
+            attachmentTray.appendChild(item);
+        });
+    }
+    function queueFiles(files) {
+        if (!peer) { say('ابتدا یک مخاطب را انتخاب کنید.', true); return; }
+        if (busySend) return;
+        var entries = Array.from(files || []);
+        if (!entries.length) return;
+        var total = pendingFiles.reduce(function (sum, entry) { return sum + entry.file.size; }, 0);
+        var added = 0;
+        for (var i = 0; i < entries.length; i++) {
+            var file = entries[i];
+            if (pendingFiles.length >= FILE_COUNT_LIMIT) {
+                say('حداکثر ۳ فایل در یک پیام مجاز است.', true); break;
+            }
+            if (!FILE_EXTENSIONS.test(file.name || '')) {
+                say('فرمت این فایل مجاز نیست: ' + (file.name || 'بدون نام'), true);
+                continue;
+            }
+            if (file.size <= 0 || file.size > FILE_SIZE_LIMIT || total + file.size > FILE_TOTAL_LIMIT) {
+                say('هر فایل حداکثر ۸ و مجموع فایل‌ها حداکثر ۲۰ مگابایت است.', true);
+                continue;
+            }
+            var duplicate = pendingFiles.some(function (entry) {
+                return entry.file.name === file.name && entry.file.size === file.size &&
+                    entry.file.lastModified === file.lastModified;
+            });
+            if (duplicate) continue;
+            var preview = file.type.startsWith('image/') ? URL.createObjectURL(file) : '';
+            pendingFiles.push({ file: file, url: preview });
+            total += file.size;
+            added++;
+        }
+        if (added) say('فایل‌ها آماده ارسال هستند.');
+        renderPendingFiles();
+    }
+    function safeAttachmentUrl(href) {
+        try {
+            var uri = new URL(href, location.href);
+            if (uri.origin !== location.origin || !uri.pathname.endsWith('/admin-ajax.php')
+                || uri.searchParams.get('action') !== 'crmb_chat_attachment') return '';
+            return uri.href;
+        } catch (_) { return ''; }
+    }
+    function renderReceivedFiles(inside, files) {
+        if (!Array.isArray(files) || !files.length) return;
+        var container = document.createElement('div');
+        container.className = 'crmb-chat-received-files';
+        files.forEach(function (file) {
+            var href = safeAttachmentUrl(file.url);
+            if (!href) return;
+            var link = document.createElement('a');
+            link.className = 'crmb-chat-file-card';
+            link.href = href;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.title = String(file.name || 'فایل');
+            if (file.image) {
+                var img = document.createElement('img');
+                img.src = href;
+                img.loading = 'lazy';
+                img.alt = 'تصویر پیوست: ' + String(file.name || '');
+                img.className = 'crmb-chat-inline-image';
+                link.appendChild(img);
+            } else {
+                var icon = document.createElement('i');
+                icon.className = 'fa-solid fa-file-arrow-down';
+                icon.setAttribute('aria-hidden', 'true');
+                link.appendChild(icon);
+            }
+            var caption = document.createElement('span');
+            caption.className = 'crmb-chat-file-caption';
+            caption.textContent = String(file.name || 'فایل') + ' · ' + readableSize(Number(file.size) || 0);
+            link.appendChild(caption);
+            container.appendChild(link);
+        });
+        inside.appendChild(container);
+    }
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            queueFiles(this.files);
+            this.value = '';
+        });
+    }
+    // Clipboard screenshots: only intercept image data, normal text paste stays untouched.
+    input.addEventListener('paste', function (event) {
+        if (!event.clipboardData || !event.clipboardData.items) return;
+        var pictures = [];
+        Array.prototype.forEach.call(event.clipboardData.items, function (item) {
+            if (item.kind !== 'file' || !item.type.startsWith('image/')) return;
+            var file = item.getAsFile();
+            if (!file) return;
+            var ext = item.type === 'image/jpeg' ? 'jpg' : item.type === 'image/webp' ? 'webp'
+                : item.type === 'image/gif' ? 'gif' : 'png';
+            pictures.push(new File([file], 'clipboard-' + Date.now() + '.' + ext, {
+                type: item.type, lastModified: Date.now()
+            }));
+        });
+        if (pictures.length) {
+            event.preventDefault();
+            queueFiles(pictures);
+        }
+    });
+    function draggedFiles(event) {
+        return event.dataTransfer && Array.prototype.indexOf.call(event.dataTransfer.types || [], 'Files') !== -1;
+    }
+    chatSurface.addEventListener('dragenter', function (event) {
+        if (!draggedFiles(event)) return;
+        event.preventDefault();
+        dragDepth++;
+        dropOverlay.hidden = false;
+    });
+    chatSurface.addEventListener('dragover', function (event) {
+        if (!draggedFiles(event)) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = peer && !busySend ? 'copy' : 'none';
+    });
+    chatSurface.addEventListener('dragleave', function (event) {
+        if (!draggedFiles(event)) return;
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (!dragDepth) dropOverlay.hidden = true;
+    });
+    chatSurface.addEventListener('drop', function (event) {
+        if (!draggedFiles(event)) return;
+        event.preventDefault();
+        dragDepth = 0;
+        dropOverlay.hidden = true;
+        queueFiles(event.dataTransfer.files);
+    });
+    // Avoid browser navigation when a user drops an unsupported file on the chat.
+    window.addEventListener('dragover', function (event) { if (draggedFiles(event)) event.preventDefault(); });
+    window.addEventListener('drop', function (event) { if (draggedFiles(event)) event.preventDefault(); });
     function say(message, isError) {
         status.textContent = message || '';
         status.classList.toggle('is-error', !!isError);
@@ -81,6 +308,8 @@
         title.textContent = peer ? otherName(peer) : 'یک همکار را انتخاب کنید';
         input.disabled = !peer;
         send.disabled = !peer || busySend;
+        fileInput.disabled = !peer || busySend;
+        attachLabel.classList.toggle('is-disabled', !peer || busySend);
         app.classList.toggle('has-active-peer', !!peer);
         Array.prototype.forEach.call(list.querySelectorAll('.crmb-messenger-contact'), function (entry) {
             var active = Number(entry.dataset.peer) === peer;
@@ -113,10 +342,13 @@
             subject.textContent = item.subject;
             inside.appendChild(subject);
         }
-        var body = document.createElement('p');
-        body.className = 'crmb-chat-message-text';
-        body.textContent = item.text;
-        inside.appendChild(body);
+        if (item.text) {
+            var body = document.createElement('p');
+            body.className = 'crmb-chat-message-text';
+            body.textContent = item.text;
+            inside.appendChild(body);
+        }
+        renderReceivedFiles(inside, item.files);
         var meta = document.createElement('small');
         meta.className = 'crmb-chat-message-meta';
         meta.textContent = (item.time || '') + (item.mine && item.read ? '  ✓✓' : '');
@@ -276,6 +508,9 @@
             app.classList.add('is-chat-visible');
             return;
         }
+        if (busySend && peer !== id) { say('ابتدا ارسال فایل یا پیام فعلی را کامل کنید.', true); return; }
+        if (pendingFiles.length && peer !== id && !window.confirm('فایل‌های انتخاب‌شده برای این گفتگو پاک شوند؟')) return;
+        if (peer !== id) clearFiles();
         peer = id;
         lookupResult.hidden = true;
         search.value = '';
@@ -433,16 +668,22 @@
 
     function sendMessage() {
         var text = input.value.trim();
-        if (!peer || busySend || !text) return;
+        if (!peer || busySend || (!text && !pendingFiles.length)) return;
         if (text.length > 3000) { say('متن پیام طولانی است.', true); return; }
         var target = peer;
+        var files = pendingFiles.slice();
         busySend = true;
         send.disabled = true;
-        say('در حال ارسال…');
-        post('send', { peer: target, body: text, start_token: startTokens.get(target) || '' }).then(function () {
+        fileInput.disabled = true;
+        renderPendingFiles();
+        say(files.length ? 'در حال آپلود فایل‌ها…' : 'در حال ارسال…');
+        var data = { peer: target, body: text, start_token: startTokens.get(target) || '' };
+        var promise = files.length ? postFiles('send', data, files) : post('send', data);
+        promise.then(function () {
             if (target !== peer) return;
             input.value = '';
             input.style.height = '';
+            clearFiles();
             say('');
             // A user reading older history must return to the most recent page
             // to avoid a gap between loaded messages and this new message.
@@ -454,6 +695,9 @@
         }).finally(function () {
             busySend = false;
             send.disabled = !peer;
+            fileInput.disabled = !peer;
+            attachLabel.classList.toggle('is-disabled', !peer);
+            renderPendingFiles();
             input.focus();
         });
     }
