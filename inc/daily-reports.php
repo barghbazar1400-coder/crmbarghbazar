@@ -108,8 +108,9 @@ function crmb_progress_handle_post() {
     $data = wp_unslash( $_POST ); $task = crmb_work_text( $data, 'task' ); $id = crmb_work_id( $data, 'id' );
     $args = array( 'crm_section' => 'reports' );
     if ( in_array( $task, array( 'task_note', 'manager_note' ), true ) ) {
+        $note_type = crmb_work_text( $data, 'note_type' );
         $type = 'manager_note' === $task ? 'manager_note'
-            : ( 'blocker' === crmb_work_text( $data, 'note_type' ) ? 'rich_blocker' : 'rich_note' );
+            : ( 'blocker' === $note_type ? 'rich_blocker' : ( 'note' === $note_type ? 'rich_note' : 'invalid' ) );
         $raw_note = isset( $data['note_body'] ) && is_string( $data['note_body'] ) ? $data['note_body'] : '';
         $notice = crmb_task_rich_save( $id, $type, $raw_note, $_FILES ?? array() );
         $args = array( 'crm_section' => 'tasks', 'task_id' => $id );
