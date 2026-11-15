@@ -80,11 +80,23 @@
         return;
     }
     subscription().then(function (current) {
-        updateButtons(!!current);
-        if (current) setStatus('پوش روی این مرورگر فعال است.');
-        else if (Notification.permission === 'denied') setStatus('اجازه اعلان در تنظیمات مرورگر مسدود شده است.');
-        else setStatus('برای دریافت اعلان روی دسکتاپ، پوش را فعال کنید.');
-    }).catch(function () { setStatus('وضعیت پوش قابل دریافت نیست.'); });
+        if (!current) {
+            updateButtons(false);
+            setStatus(Notification.permission === 'denied'
+                ? 'اجازه اعلان در تنظیمات مرورگر مسدود شده است.'
+                : 'برای دریافت اعلان روی دسکتاپ، پوش را فعال کنید.');
+            return;
+        }
+        return post('crmb_push_device', 'status', { subscription: JSON.stringify(current.toJSON()) })
+            .then(function (data) {
+                updateButtons(!!data.subscribed);
+                setStatus(data.subscribed ? 'پوش برای حساب شما روی این مرورگر فعال است.'
+                    : 'این مرورگر قبلاً مجوز داشته؛ برای اتصال به حساب خودتان «فعال‌سازی پوش» را بزنید.');
+            });
+    }).catch(function () {
+        updateButtons(false);
+        setStatus('وضعیت پوش برای این حساب قابل تأیید نیست.');
+    });
 
     function keyBytes(base64url) {
         var padding = '='.repeat((4 - base64url.length % 4) % 4);
