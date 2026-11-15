@@ -49,6 +49,18 @@ require __DIR__.'/../inc/daily-reports.php';
 require __DIR__.'/../inc/task-rich-notes.php';
 function check($a,$b) { global $checks; if($a!==$b) throw new RuntimeException('Check '.($checks+1).' expected '.var_export($a,true).' got '.var_export($b,true)); $checks++; }
 if (defined('CRMB_TEST_BOOTSTRAP_ONLY')) { return; }
+// The toolbar must not request a separate JS file from the public theme path.
+$init = crmb_task_table_mce_init( array( 'plugins' => 'lists,wordpress' ), 'crmbtaskeditor' );
+check('lists,wordpress,crmbtasktable', $init['plugins']);
+check('lists,wordpress,crmbtasktable', crmb_task_table_mce_init($init,'crmbtaskeditor')['plugins']);
+check('lists,wordpress', crmb_task_table_mce_init(array('plugins'=>'lists,wordpress'),'othereditor')['plugins']);
+ob_start(); crmb_task_table_mce_inline(array('othereditor'=>array())); check('',ob_get_clean());
+ob_start(); crmb_task_table_mce_inline(array('crmbtaskeditor'=>array())); $inline_table=ob_get_clean();
+check(true,str_contains($inline_table,'tinymce.PluginManager.add("crmbtasktable"'));
+check(true,str_contains($inline_table,'editor.insertContent(tableHtml(rows, columns))'));
+check(true,str_contains($inline_table,'<script id="crmb-task-table-inline">'));
+check(false,str_contains(file_get_contents(__DIR__.'/../inc/task-rich-notes.php'),"add_filter( 'mce_external_plugins'"));
+
 $values=array('title'=>'Task','description'=>'Work','assigned_to'=>7,'created_by'=>1,'priority'=>'normal','status'=>'todo','created_utc'=>'2026-10-30 08:00:00','updated_utc'=>'2026-10-30 08:00:00');
 $wpdb->insert('wp_crmb_tasks',$values); $id=$wpdb->insert_id;
 $wpdb->insert('wp_crmb_tasks',$values); $other=$wpdb->insert_id;
