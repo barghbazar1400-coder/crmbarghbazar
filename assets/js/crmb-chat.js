@@ -223,7 +223,27 @@
         });
     }
     function loadNewer() {
-        if (!peer || !loaded || busyNewer || busyInitial || !newest || document.hidden) return;
+        if (!peer || !loaded || busyNewer || busyInitial || document.hidden) return;
+        if (!newest) {
+            // A conversation with no history must still receive its first
+            // incoming message automatically, without a page reload.
+            var emptyPeer = peer;
+            var emptyGeneration = generation;
+            busyNewer = true;
+            post('thread', { peer: emptyPeer }).then(function (data) {
+                if (emptyGeneration !== generation || peer !== emptyPeer) return;
+                if (data.messages && data.messages.length) {
+                    appendBatch(data.messages, false);
+                    hasOlder = !!data.has_more;
+                    empty.hidden = true;
+                    toBottom();
+                    refreshContacts(true);
+                }
+                updateFlags();
+            }).catch(function () { /* Retry on the next polling interval. */ })
+                .finally(function () { if (emptyGeneration === generation) busyNewer = false; });
+            return;
+        }
         var current = generation;
         var target = peer;
         var anchor = newest;
@@ -369,7 +389,7 @@
             say('');
             // A user reading older history must return to the most recent page
             // to avoid a gap between loaded messages and this new message.
-            if (hasNewer) initialThread();
+            if (hasNewer || !newest) initialThread();
             else loadNewer();
             refreshContacts(true);
         }).catch(function (error) {
