@@ -25,7 +25,7 @@ class WorkDB {
     function update($table, $data, $where) { $this->writes[] = array($table, $data, $where); return $this->fail ? false : $this->affected; }
     function query($sql) { $this->queries[] = $sql; return $this->fail ? false : $this->affected; }
     function get_var($sql) { $this->queries[] = $sql; $this->last_error = $this->fail ? 'failed' : ''; return $this->fail ? null : 2; }
-    function get_results($sql) { $this->queries[] = $sql; $this->last_error = $this->fail ? 'failed' : ''; return $this->rows; }
+    function get_results($sql) { $this->queries[] = $sql; $this->last_error = $this->fail ? 'failed' : ''; if (str_contains($sql, 'GROUP BY status')) return $this->fail ? array() : array((object)array('status'=>'todo','total'=>2),(object)array('status'=>'done','total'=>1),(object)array('status'=>'cancelled','total'=>1)); return $this->rows; }
 }
 $wpdb = new WorkDB();
 require __DIR__ . '/../inc/work.php';
@@ -62,6 +62,16 @@ $_GET['employee']=99;
 $wpdb->queries=array(); crmb_work_list('tasks',1,5,true,false,true);
 check(true,str_contains($wpdb->queries[0],'assigned_to = 7')); check(true,str_contains($wpdb->queries[1],"status IN ('todo','doing','paused')")); check(true,str_contains($wpdb->queries[1],'LIMIT 5 OFFSET 0'));
 $admin=true; $wpdb->queries=array(); crmb_work_list('tasks',1,20,true); check(true,str_contains($wpdb->queries[0],'WHERE 1=1'));
+$wpdb->queries=array(); crmb_work_list('tasks',1,20,false,false,false,0,'open');
+check(true,str_contains($wpdb->queries[0], "status IN ('todo','doing','paused')"));
+$wpdb->queries=array(); crmb_work_list('tasks',1,20,false,false,false,0,'done');
+check(true,str_contains($wpdb->queries[0], "status = 'done'"));
+check(true,str_contains($wpdb->queries[1], 'updated_utc DESC'));
+$wpdb->queries=array(); crmb_work_list('tasks',1,20,false,false,false,0,'all');
+check(false,str_contains($wpdb->queries[0], "status = 'done'"));
+$wpdb->queries=array(); $counts=crmb_work_task_counts(false);
+check(true,$counts['ready']); check(4,$counts['all']); check(2,$counts['open']); check(1,$counts['done']);
+check(true,str_contains($wpdb->queries[0], 'assigned_to = 7'));
 $wpdb->queries=array(); crmb_work_list('messages',1,20,true,false,false,99); check(true,str_contains($wpdb->queries[0],'recipient_id = 7 AND id = 99'));
 $wpdb->queries=array(); crmb_work_list('messages',2,20,true,true); check(true,str_contains($wpdb->queries[1],'sender_id = 7')); check(true,str_contains($wpdb->queries[1],'OFFSET 20'));
 $wpdb->fail=true; check(false,crmb_work_list('messages')['ready']); check(null,crmb_work_unread_count()); check('error',crmb_work_mutate($message));
