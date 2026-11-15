@@ -119,14 +119,14 @@ verify(true,$forward['has_more']);
 verify(false,crmb_chat_page(9)['has_more']);
 verify(0,count(crmb_chat_page(9)['rows']));
 verify(false,crmb_chat_page(99)['ready']);
-verify(0,count(crmb_chat_page(8,0,0,30)['rows'])===0?1:0);
+verify(30,count(crmb_chat_page(8,0,0,30)['rows']));
 $contacts=crmb_chat_contacts();
 verify(8,(int)$contacts[0]['id']);
 verify(43,(int)$contacts[0]['unread']);
 verify(true,count($contacts)>=3);
 verify(true,crmb_chat_mark_read(8));
 verify(0,(int)$wpdb->db->query("SELECT COUNT(*) FROM wp_crmb_messages WHERE recipient_id=7 AND sender_id=8 AND read_utc IS NULL")->fetchColumn());
-verify(43,(int)$wpdb->db->query("SELECT COUNT(*) FROM wp_crmb_messages WHERE sender_id=7 AND recipient_id=8 AND read_utc IS NULL")->fetchColumn()-0);
+verify(42,(int)$wpdb->db->query("SELECT COUNT(*) FROM wp_crmb_messages WHERE sender_id=7 AND recipient_id=8 AND read_utc IS NULL")->fetchColumn());
 // Sent messages are unrelated to recipient read state.
 verify(0,(int)$wpdb->db->query("SELECT COUNT(*) FROM wp_crmb_notifications WHERE user_id=7 AND actor_id=8 AND read_utc IS NULL")->fetchColumn());
 verify(1,(int)$wpdb->db->query("SELECT COUNT(*) FROM wp_crmb_notifications WHERE user_id=8 AND actor_id=7 AND read_utc IS NULL")->fetchColumn());
@@ -150,7 +150,7 @@ verify('Message 56',$response->data['messages'][0]['text']);
 verify(true,$response->data['has_more']);
 verify(200,ajax('send',array('body'=>'new message','sender_id'=>'10','subject'=>'Injected')) ->http);
 verify('send_message',$last_mutation['task']);
-verify('7' === $last_mutation['recipient_id'],false); // recipient must be current peer 8
+verify(false,'7' === $last_mutation['recipient_id']); // recipient must be current peer 8
 verify('8',$last_mutation['recipient_id']);
 verify('پیام گفتگو',$last_mutation['subject']);
 verify(false,isset($last_mutation['sender_id']));
