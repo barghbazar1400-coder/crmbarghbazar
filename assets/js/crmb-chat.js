@@ -164,7 +164,6 @@
         });
     }
     function queueFiles(files) {
-        if (!peer) { say('ابتدا یک مخاطب را انتخاب کنید.', true); return; }
         if (busySend) return;
         var entries = Array.from(files || []);
         if (!entries.length) return;
@@ -193,7 +192,7 @@
             total += file.size;
             added++;
         }
-        if (added) say('فایل‌ها آماده ارسال هستند.');
+        if (added) say(peer ? 'فایل‌ها آماده ارسال هستند.' : 'فایل‌ها انتخاب شدند؛ برای ارسال ابتدا یک مخاطب را انتخاب کنید.');
         renderPendingFiles();
     }
     function safeAttachmentUrl(href) {
@@ -238,14 +237,8 @@
         });
         inside.appendChild(container);
     }
-    // Clicking this real button is a trusted user gesture, so Windows/Chrome
-    // can open the native file dialog without depending on an invisible label.
-    if (attachLabel && fileInput) {
-        attachLabel.addEventListener('click', function () {
-            if (!peer || busySend || fileInput.disabled) return;
-            fileInput.click();
-        });
-    }
+    // Native file input occupies the full attachment label. It opens the OS
+    // picker directly even if unrelated chat JavaScript fails to initialize.
     if (fileInput) {
         fileInput.addEventListener('change', function () {
             queueFiles(this.files);
@@ -326,9 +319,8 @@
         title.textContent = peer ? otherName(peer) : 'یک همکار را انتخاب کنید';
         input.disabled = !peer;
         send.disabled = !peer || busySend;
-        fileInput.disabled = !peer || busySend;
-        attachLabel.disabled = !peer || busySend;
-        attachLabel.classList.toggle('is-disabled', !peer || busySend);
+        fileInput.disabled = busySend;
+        attachLabel.classList.toggle('is-disabled', busySend);
         app.classList.toggle('has-active-peer', !!peer);
         Array.prototype.forEach.call(list.querySelectorAll('.crmb-messenger-contact'), function (entry) {
             var active = Number(entry.dataset.peer) === peer;
@@ -528,8 +520,10 @@
             return;
         }
         if (busySend && peer !== id) { say('ابتدا ارسال فایل یا پیام فعلی را کامل کنید.', true); return; }
-        if (pendingFiles.length && peer !== id && !window.confirm('فایل‌های انتخاب‌شده برای این گفتگو پاک شوند؟')) return;
-        if (peer !== id) clearFiles();
+        // Files selected before choosing any chat remain queued for the chosen contact.
+        if (pendingFiles.length && peer && peer !== id
+            && !window.confirm('فایل‌های انتخاب‌شده برای این گفتگو پاک شوند؟')) return;
+        if (peer && peer !== id) clearFiles();
         peer = id;
         lookupResult.hidden = true;
         search.value = '';
@@ -694,7 +688,7 @@
         busySend = true;
         send.disabled = true;
         fileInput.disabled = true;
-        attachLabel.disabled = true;
+        attachLabel.classList.add('is-disabled');
         renderPendingFiles();
         say(files.length ? 'در حال آپلود فایل‌ها…' : 'در حال ارسال…');
         var data = { peer: target, body: text, start_token: startTokens.get(target) || '' };
@@ -715,9 +709,8 @@
         }).finally(function () {
             busySend = false;
             send.disabled = !peer;
-            fileInput.disabled = !peer;
-            attachLabel.disabled = !peer;
-            attachLabel.classList.toggle('is-disabled', !peer);
+            fileInput.disabled = false;
+            attachLabel.classList.remove('is-disabled');
             renderPendingFiles();
             input.focus();
         });
