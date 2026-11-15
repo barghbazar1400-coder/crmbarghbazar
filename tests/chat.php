@@ -98,6 +98,7 @@ class ChatTestDB {
 }
 $wpdb=new ChatTestDB();
 require __DIR__.'/../inc/chat.php';
+require __DIR__.'/../inc/chat-attachments.php';
 // 85 messages in chronological order, bidirectional between current user and peer.
 $insert=$wpdb->db->prepare("INSERT INTO wp_crmb_messages(sender_id,recipient_id,subject,body,created_utc) VALUES(?,?,?,?,'2026-11-15 09:00:00')");
 for($i=1;$i<=85;$i++) {
