@@ -161,8 +161,8 @@ function crmb_push_worker() {
             continue;
         }
         $body = array(
-            'title' => 'اعلان جدید CRM برق‌بازار',
-            'body' => 'برای دیدن جزئیات وارد پنل شوید.',
+            // Only a bounded event type reaches the lock-screen notification.
+            'kind' => $job->kind,
             'url' => $job->href,
             'tag' => 'crmb-' . (int) $job->id,
         );
