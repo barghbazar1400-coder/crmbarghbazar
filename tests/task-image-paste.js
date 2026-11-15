@@ -23,6 +23,7 @@ class Element {
     addEventListener(type, handler) { (this.listeners[type] ||= []).push(handler); }
     dispatch(type, event) { for (const handler of this.listeners[type] || []) handler(event); }
     append(...children) { this.children.push(...children); }
+    appendChild(child) { this.children.push(child); return child; }
     replaceChildren(...children) { this.children = [...children]; }
     setAttribute(key,value) { this.attributes[key]=value; }
     contains(target) { return target === this || target?.parent === this; }
