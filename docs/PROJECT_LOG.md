@@ -337,3 +337,21 @@ bash "$HOME/.crmbarghbazar-deploy/deploy.sh"
 `bash "$HOME/.crmbarghbazar-deploy/deploy.sh"`.
 
 **پذیرش عملی:** عکس از Ctrl+V، drag-drop عکس و PDF، ارسال بدون متن، فایل نامعتبر و بیش‌از‌حد، نمایش برای گیرنده، عدم دانلود توسط کارمند سوم، نمایش صحیح تصویرها در موبایل، حجم POST و عدم نمایش مسیر عمومی ذخیره‌سازی. راهنما: `docs/CHAT_MESSENGER.md`.
+
+
+## صدای اعلان پیام خصوصی CRM — ۱۵ نوامبر ۲۰۲۶
+
+| گیت | تغییر | وضعیت |
+|---|---|---|
+| CRM-NOTIFY-SOUND-01 | زنگ سه‌نتی کوتاه و اختصاصی Web Audio هنگام ورود **پیام خصوصی جدید**؛ بدون موسیقی یا فایل رسانه خارجی | کدنویسی تکمیل |
+| CRM-NOTIFY-SOUND-02 | فعال‌سازی صریح توسط کارمند، تنظیم و ذخیره مستقل هر حساب، بی‌صداکردن و تست صدای محلی در صفحه «اعلان‌ها و اطلاعیه‌ها» | کدنویسی تکمیل |
+| CRM-NOTIFY-SOUND-03 | عدم صدای تکراری هنگام Refresh/بازکردن صفحه، سقف یک زنگ در ~۶٫۵ ثانیه و هماهنگی best-effort دو تب باز | کدنویسی تکمیل |
+| CRM-NOTIFY-SOUND-04 | فعال‌سازی AudioContext با تعامل مستقیم کاربر؛ محدودیت Chrome/Edge autoplay و Web Push با تب بسته توضیح داده شد | کدنویسی تکمیل |
+| CRM-NOTIFY-SOUND-05 | CI Node + PHP: آزمون AudioContext ساختگی، روشن/خاموش، پیام تازه، عدم صدای Task، دو تب و دو حساب کارمند | **PASS** در GitHub Actions `43709713650` |
+| CRM-NOTIFY-SOUND-06 | شنیدن صدای واقعی در Chrome/Edge روی ویندوز، صدای ویندوز/تب و تست دریافت پیام با یک کارمند دیگر بعد از انتشار | در انتظار استقرار و پذیرش |
+
+**فایل‌های اصلاح‌شده:** `assets/js/crmb-notices.js`، `template-parts/notifications.php`، `style.css`، `tests/notifications-sound.js`، `.github/workflows/notifications-checks.yml` و `docs/PUSH_SETUP.md`.
+
+**حدود فنی:** صدای اختصاصی فقط با صفحه باز و در صورت مجازبودن Web Audio قابل پخش است؛ وقتی همه تب‌های CRM بسته باشند، تنها صدای معمول اعلان ویندوز/مرورگر (در صورت فعال بودن Web Push) ممکن است. این کار بدون تغییر تنظیمات هاست و بدون انتشار نسخه در سایت اصلی انجام شد.
+
+**استقرار دستی پس از بکاپ:** `bash "$HOME/.crmbarghbazar-deploy/deploy.sh"`.
