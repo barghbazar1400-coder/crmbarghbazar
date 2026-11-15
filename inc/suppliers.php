@@ -141,6 +141,22 @@ function crmb_suppliers_archive($id,$restore=false) {
     ),array('id'=>$id));
     return false===$result?'error':($restore?'restored':'archived');
 }
+/** Lightweight counts for the supplier workspace, ignoring current filters. */
+function crmb_suppliers_stats() {
+    $empty=array('total'=>0,'active'=>0,'new'=>0,'inactive'=>0,'archived'=>0);
+    if(!crmb_suppliers_can_manage()||!crmb_suppliers_ready()) return $empty;
+    global $wpdb; $t=crmb_suppliers_table();
+    $row=$wpdb->get_row("SELECT
+      SUM(CASE WHEN deleted_utc IS NULL THEN 1 ELSE 0 END) AS total,
+      SUM(CASE WHEN deleted_utc IS NULL AND status='active' THEN 1 ELSE 0 END) AS active,
+      SUM(CASE WHEN deleted_utc IS NULL AND status='new' THEN 1 ELSE 0 END) AS new,
+      SUM(CASE WHEN deleted_utc IS NULL AND status='inactive' THEN 1 ELSE 0 END) AS inactive,
+      SUM(CASE WHEN deleted_utc IS NOT NULL THEN 1 ELSE 0 END) AS archived
+      FROM {$t}");
+    if($wpdb->last_error||!$row) return $empty;
+    foreach($empty as $key=>$value) $empty[$key]=(int)($row->$key??0);
+    return $empty;
+}
 function crmb_suppliers_search($search='',$status='',$page=1,$archived=false) {
     $empty=array('rows'=>array(),'total'=>0,'ready'=>false);
     if(!crmb_suppliers_can_manage()||!crmb_suppliers_ready()) return $empty;
