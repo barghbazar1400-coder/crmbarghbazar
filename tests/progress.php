@@ -68,6 +68,11 @@ $uid=8; check('denied', crmb_task_rich_save($id,'rich_note','Foreign progress'))
 $uid=7;
 $rich_events=$wpdb->get_results("SELECT event_type FROM wp_crmb_task_events WHERE event_type IN ('rich_note','manager_note') ORDER BY id");
 check('rich_note',$rich_events[0]->event_type); check('manager_note',$rich_events[1]->event_type);
+$rich_event_id=(int)$wpdb->get_var("SELECT id FROM wp_crmb_task_events WHERE event_type='rich_note' LIMIT 1");
+$wpdb->insert('wp_crmb_task_note_images',array('event_id'=>$rich_event_id,'mime'=>'image/png','image_data'=>'YWJj'));
+$gallery=crmb_task_note_gallery($wpdb->get_results("SELECT id FROM wp_crmb_task_events WHERE id=".$rich_event_id));
+check(1,count($gallery[$rich_event_id]));
+check(true,(int)$gallery[$rich_event_id][0]>0);
 check(true, isset(crmb_progress_event_labels()['manager_note']));
 check(true, isset($allowed_html['table']));
 check(true, isset($allowed_html['td']));
@@ -125,6 +130,7 @@ $admin=false; $uid=7; $_GET=array('task_id'=>$id); ob_start(); include __DIR__.'
 $uid=8; $_GET=array('task_id'=>$id); ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $html=ob_get_clean(); check(true,str_contains($html,'Need feedback')); check(true,str_contains($html,'زمان کار ثبت‌شده'));
 check(true,str_contains($html,'crmbtaskeditor')); check(true,str_contains($html,'درج جدول'));
 check(true,str_contains($html,'راهنمایی مدیر')); check(false,str_contains($html,'id="crmb-manager-note"'));
+check(true,str_contains($html,'crmb_task_note_image'));
 $admin=true; ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $admin_html=ob_get_clean();
 check(true,str_contains($admin_html,'id="crmb-manager-note"'));
 $admin=false;
