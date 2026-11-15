@@ -119,7 +119,7 @@ $invoice=array('partner_id'=>'1','invoice_no'=>'FA-100','amount_toman'=>'1200000
 check('invoice_added',crmb_partner_add_invoice($invoice));
 check(1,count(crmb_partner_invoices(1)));
 check('duplicate',crmb_partner_add_invoice($invoice));
-check('invalid',crmb_partner_add_invoice($invoice+array('invoice_no'=>'other','amount_toman'=>'-5')));
+check('invalid',crmb_partner_add_invoice(array_merge($invoice,array('invoice_no'=>'other','amount_toman'=>'-5'))));
 check('invalid',crmb_partner_add_invoice(array_merge($invoice,array('invoice_no'=>'other','due_day'=>'2026-10-01'))));
 check('invalid',crmb_partner_add_invoice(array_merge($invoice,array('invoice_no'=>'other','amount_toman'=>'1000000000000'))));
 check('invoice_updated',crmb_partner_invoice_transition(array('partner_id'=>'1','invoice_id'=>'1','status'=>'paid')));
