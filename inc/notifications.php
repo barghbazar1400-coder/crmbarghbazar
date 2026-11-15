@@ -82,7 +82,7 @@ function crmb_notice_add( $user_id, $kind, $title, $summary, $href, $source_key,
         (int) $user_id, (int) $actor_id, $kind, $title, $summary, $detail, $href, $source_key, $now, $now
     ) );
     if ( 1 === $inserted ) {
-        if ( ! wp_next_scheduled( 'crmb_notice_push_tick' ) ) { wp_schedule_single_event( time() + 10, 'crmb_notice_push_tick' ); }
+        if ( ! wp_next_scheduled( 'crmb_notice_push_immediate' ) ) { wp_schedule_single_event( time() + 10, 'crmb_notice_push_immediate' ); }
         return true;
     }
     return false;
@@ -108,6 +108,11 @@ add_action( 'crmb_task_completed', function ( $task_id, $creator, $actor, $event
     if ( (int) $creator === (int) $actor ) { return; }
     crmb_notice_add( $creator, 'task_done', 'وظیفه تکمیل شد', 'یکی از وظایف واگذارشده تکمیل شده است.',
         crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ), 'completed:' . $event_id, $actor );
+}, 10, 4 );
+add_action( 'crmb_task_status_updated', function ( $task_id, $owner, $actor, $event_id ) {
+    if ( (int) $owner === (int) $actor ) { return; }
+    crmb_notice_add( $owner, 'task', 'وضعیت وظیفه تغییر کرد', 'مدیر وضعیت یکی از کارهای شما را تغییر داده است.',
+        crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ), 'task_status:' . $event_id, $actor );
 }, 10, 4 );
 
 function crmb_notice_count() {
@@ -144,7 +149,7 @@ function crmb_notice_announce( $title, $body, $scope, $target ) {
     if ( ! in_array( $scope, array( 'all', 'user', 'department' ), true ) ) { return 'invalid'; }
     if ( 'user' === $scope && ! get_userdata( $target ) ) { return 'invalid'; }
     if ( 'department' === $scope && ! crmb_department( $target ) ) { return 'invalid'; }
-    if ( 'user' === $scope ) { $users = array( get_userdata( $target ) ); }
+    if ( 'user' === $scope ) { $users = array( (object) array( 'ID' => $target ) ); }
     elseif ( 'department' === $scope ) { $users = crmb_department_members( $target ); }
     else { $users = get_users( array( 'fields' => array( 'ID' ) ) ); }
     if ( count( $users ) > 500 ) { return 'invalid'; }
