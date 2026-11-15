@@ -107,9 +107,20 @@ function crmb_progress_handle_post() {
     check_admin_referer( 'crmb_progress', 'crmb_progress_nonce' );
     $data = wp_unslash( $_POST ); $task = crmb_work_text( $data, 'task' ); $id = crmb_work_id( $data, 'id' );
     $args = array( 'crm_section' => 'reports' );
-    if ( 'task_note' === $task ) {
-        $notice = crmb_progress_note( $id, crmb_work_text( $data, 'note_type' ), crmb_work_text( $data, 'note_body', true ) );
+    if ( in_array( $task, array( 'task_note', 'manager_note' ), true ) ) {
+        $type = 'manager_note' === $task ? 'manager_note'
+            : ( 'blocker' === crmb_work_text( $data, 'note_type' ) ? 'rich_blocker' : 'rich_note' );
+        $raw_note = isset( $data['note_body'] ) && is_string( $data['note_body'] ) ? $data['note_body'] : '';
+        $notice = crmb_task_rich_save( $id, $type, $raw_note, $_FILES ?? array() );
         $args = array( 'crm_section' => 'tasks', 'task_id' => $id );
+        $retry_key = 'crmb_task_note_retry_' . get_current_user_id() . '_' . $id;
+        if ( 'saved' === $notice ) { delete_transient( $retry_key ); }
+        elseif ( in_array( $notice, array( 'invalid', 'image_error', 'error' ), true ) ) {
+            set_transient( $retry_key, array(
+                'body' => crmb_task_note_html( substr( $raw_note, 0, 30000 ) ),
+                'type' => $type,
+            ), HOUR_IN_SECONDS );
+        }
     } elseif ( 'save_report' === $task ) {
         $notice = crmb_report_save( $data, $_FILES );
         $day = crmb_leave_parse_day( crmb_work_text( $data, 'report_day' ) );
