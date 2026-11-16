@@ -151,39 +151,43 @@ $wpdb->update('wp_crmb_tasks',array('status'=>'done','completed_utc'=>gmdate('Y-
 $today='2026-11-17';
 check(true,crmb_task_repeat_generate(),'new day recurrence');
 check(2,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_tasks"),'new daily occurrence');
-check('todo',$wpdb->get_var("SELECT status FROM wp_crmb_tasks WHERE id=2"),'new day starts open');
+$second_id=(int)$wpdb->get_var("SELECT id FROM wp_crmb_tasks WHERE repeat_day='2026-11-17'");
+check(true,$second_id>0,'second day instance found');
+check('todo',$wpdb->get_var("SELECT status FROM wp_crmb_tasks WHERE id={$second_id}"),'new day starts open');
 check('done',$wpdb->get_var("SELECT status FROM wp_crmb_tasks WHERE id=1"),'previous day completed');
 check(true,crmb_task_repeat_generate(),'same-day cron retry');
 check(2,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_tasks"),'exactly one per day');
 check('saved',crmb_work_mutate(array_replace($task,array(
-    'id'=>'2','title'=>'گزارش اصلاح‌شده','assigned_to'=>'9'
+    'id'=>(string)$second_id,'title'=>'گزارش اصلاح‌شده','assigned_to'=>'9'
 ))),'edit repeat instance and future series');
 $today='2026-11-18';
 check(true,crmb_task_repeat_generate(),'next day after edit');
 check(3,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_tasks"),'third occurrence');
-check('گزارش اصلاح‌شده',$wpdb->get_var("SELECT title FROM wp_crmb_tasks WHERE id=3"),'future carries edit');
-check(9,(int)$wpdb->get_var("SELECT assigned_to FROM wp_crmb_tasks WHERE id=3"),'future assignee updated');
+$third_id=(int)$wpdb->get_var("SELECT id FROM wp_crmb_tasks WHERE repeat_day='2026-11-18'");
+check(true,$third_id>0,'third day instance found');
+check('گزارش اصلاح‌شده',$wpdb->get_var("SELECT title FROM wp_crmb_tasks WHERE id={$third_id}"),'future carries edit');
+check(9,(int)$wpdb->get_var("SELECT assigned_to FROM wp_crmb_tasks WHERE id={$third_id}"),'future assignee updated');
 check(8,(int)$wpdb->get_var("SELECT assigned_to FROM wp_crmb_tasks WHERE id=1"),'old history unchanged');
 check('saved',crmb_work_mutate(array_replace($task,array(
-    'id'=>'3','title'=>'وظیفه مستقل','repeat'=>'none','assigned_to'=>'9'
+    'id'=>(string)$third_id,'title'=>'وظیفه مستقل','repeat'=>'none','assigned_to'=>'9'
 ))),'disable repeat from task editor');
 check(0,(int)$wpdb->get_var("SELECT active FROM wp_crmb_task_repeat_series WHERE id=1"),'schedule stopped');
-check(0,(int)$wpdb->get_var("SELECT repeat_series_id FROM wp_crmb_tasks WHERE id=3"),'current task detached');
+check(0,(int)$wpdb->get_var("SELECT repeat_series_id FROM wp_crmb_tasks WHERE id={$third_id}"),'current task detached');
 check(1,(int)$wpdb->get_var("SELECT repeat_series_id FROM wp_crmb_tasks WHERE id=1"),'prior history maintains series');
 $today='2026-11-19';
 check(true,crmb_task_repeat_generate(),'inactive series skips next day');
 check(3,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_tasks"),'no new occurrence after stop');
 $admin=false;
-check('denied',crmb_work_mutate(array_replace($task,array('id'=>'3'))),'staff cannot edit');
-check('denied',crmb_work_mutate(array('task'=>'delete_task','id'=>'3','stop_repeat'=>'1')),'staff cannot delete');
+check('denied',crmb_work_mutate(array_replace($task,array('id'=>(string)$third_id))),'staff cannot edit');
+check('denied',crmb_work_mutate(array('task'=>'delete_task','id'=>(string)$third_id,'stop_repeat'=>'1')),'staff cannot delete');
 $admin=true;
-$wpdb->update('wp_crmb_tasks',array('timer_started_utc'=>gmdate('Y-m-d H:i:s')),array('id'=>3));
-check('running',crmb_work_mutate(array('task'=>'delete_task','id'=>'3')),'running timer cannot be erased');
-$wpdb->update('wp_crmb_tasks',array('timer_started_utc'=>null),array('id'=>3));
-check('deleted',crmb_work_mutate(array('task'=>'delete_task','id'=>'3')),'soft delete task');
-check('cancelled',$wpdb->get_var("SELECT status FROM wp_crmb_tasks WHERE id=3"),'deleted task closed');
-check(true,(bool)$wpdb->get_var("SELECT deleted_utc FROM wp_crmb_tasks WHERE id=3"),'deleted timestamp retained');
-check('changed',crmb_work_mutate(array('task'=>'delete_task','id'=>'3')),'double delete blocked');
+$wpdb->update('wp_crmb_tasks',array('timer_started_utc'=>gmdate('Y-m-d H:i:s')),array('id'=>$third_id));
+check('running',crmb_work_mutate(array('task'=>'delete_task','id'=>(string)$third_id)),'running timer cannot be erased');
+$wpdb->update('wp_crmb_tasks',array('timer_started_utc'=>null),array('id'=>$third_id));
+check('deleted',crmb_work_mutate(array('task'=>'delete_task','id'=>(string)$third_id)),'soft delete task');
+check('cancelled',$wpdb->get_var("SELECT status FROM wp_crmb_tasks WHERE id={$third_id}"),'deleted task closed');
+check(true,(bool)$wpdb->get_var("SELECT deleted_utc FROM wp_crmb_tasks WHERE id={$third_id}"),'deleted timestamp retained');
+check('changed',crmb_work_mutate(array('task'=>'delete_task','id'=>(string)$third_id)),'double delete blocked');
 check(2,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_tasks WHERE deleted_utc IS NULL"),'soft deleted excluded');
 check('done',$wpdb->get_var("SELECT status FROM wp_crmb_tasks WHERE id=1"),'completed history preserved');
 check(true,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_task_events WHERE event_type='deleted'") === 1,'audit event kept');
