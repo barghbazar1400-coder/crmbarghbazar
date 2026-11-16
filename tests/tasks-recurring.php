@@ -211,11 +211,11 @@ $continueTask=array_replace($task,array('title'=>'دستور تکراری ادا
 check('saved',crmb_work_mutate($continueTask),'create continuing daily task');
 $continuing_id=(int)$wpdb->get_var("SELECT id FROM wp_crmb_tasks WHERE title='دستور تکراری ادامه‌دار'");
 $continuing_series=(int)$wpdb->get_var("SELECT repeat_series_id FROM wp_crmb_tasks WHERE id={$continuing_id}");
-check('deleted',crmb_work_mutate(array('task'=>'delete_task','id'=>(string)$continuing_id)),'delete only today's occurrence');
+check('deleted',crmb_work_mutate(array('task'=>'delete_task','id'=>(string)$continuing_id)),"delete only today's occurrence");
 check(1,(int)$wpdb->get_var("SELECT active FROM wp_crmb_task_repeat_series WHERE id={$continuing_series}"),'future schedule is still active');
 $today='2026-11-23';
 check(true,crmb_task_repeat_generate(),'continue tomorrow');
-check(2,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_tasks WHERE repeat_series_id={$continuing_series}"),'tomorrow instance created despite today's archive');
+check(2,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_tasks WHERE repeat_series_id={$continuing_series}"),"tomorrow instance created despite today's archive");
 check(true,crmb_task_repeat_generate(),'duplicate retry after archive');
 check(2,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_tasks WHERE repeat_series_id={$continuing_series}"),'duplicate never created');
 
