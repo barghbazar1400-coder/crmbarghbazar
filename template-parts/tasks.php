@@ -29,12 +29,20 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
         <details class="crm-access-card crmb-tasks-editor" <?php echo $editing ? 'open' : ''; ?>><summary><?php echo $editing ? 'ویرایش وظیفه' : '+ واگذاری وظیفه جدید'; ?></summary>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form">
                 <?php crmb_work_form_fields( 'save_task', $editing ? $editing->id : 0 ); ?>
-                <label for="task-title">عنوان</label><input id="task-title" name="title" required maxlength="60" value="<?php echo esc_attr( $editing ? $editing->title : '' ); ?>">
+                <label for="task-title">عنوان</label><input id="task-title" name="title" required maxlength="180" value="<?php echo esc_attr( $editing ? $editing->title : '' ); ?>">
                 <label for="task-description">شرح کار</label><textarea id="task-description" name="description" rows="4" maxlength="3000"><?php echo esc_textarea( $editing ? $editing->description : '' ); ?></textarea>
                 <label for="task-assignee">مسئول انجام</label><select id="task-assignee" name="assigned_to" required><option value="">انتخاب کارمند</option><?php foreach ( get_users( array( 'orderby' => 'display_name' ) ) as $member ) : ?><option value="<?php echo esc_attr( $member->ID ); ?>" <?php selected( $editing ? $editing->assigned_to : 0, $member->ID ); ?>><?php echo esc_html( $member->display_name ); ?></option><?php endforeach; ?></select>
                 <label for="task-priority">اولویت</label><select id="task-priority" name="priority"><?php foreach ( crmb_work_priorities() as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $editing ? $editing->priority : 'normal', $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select>
-                <label for="task-due">مهلت انجام (شمسی؛ اختیاری)</label><input id="task-due" name="due_day" dir="ltr" placeholder="1405-08-15" value="<?php echo esc_attr( $editing && $editing->due_day ? crmb_att_jdate( $editing->due_day ) : '' ); ?>"><p class="crm-access-muted">مهلت تا پایان روز انتخابی به وقت تهران است.</p>
-                <button class="crm-access-primary" type="submit">ذخیره وظیفه</button>
+                <label for="task-repeat">تکرار وظیفه</label>
+                <select id="task-repeat" name="repeat">
+                    <option value="none" <?php selected( ! empty( $editing->repeat_series_id ) ? 'daily' : 'none', 'none' ); ?>>بدون تکرار</option>
+                    <option value="daily" <?php selected( ! empty( $editing->repeat_series_id ) ? 'daily' : 'none', 'daily' ); ?>>هر روز</option>
+                </select>
+                <p class="crm-access-muted">با انتخاب «هر روز»، برای هر روز یک کار جدا با تاریخ همان روز ساخته می‌شود؛ گزارش و زمان‌سنج روزهای قبل حفظ خواهد شد.</p>
+                <label for="task-due">مهلت انجام / شروع تکرار (شمسی؛ اختیاری)</label>
+                <input id="task-due" name="due_day" dir="ltr" placeholder="1405-08-25" value="<?php echo esc_attr( $editing && $editing->due_day ? crmb_att_jdate( $editing->due_day ) : '' ); ?>">
+                <p class="crm-access-muted">اگر شروع تکرار خالی باشد، از امروز آغاز می‌شود. برای تکرار روزانه، پایان هر روز مهلت همان نوبت است.</p>
+                <button class="crm-access-primary" type="submit"><?php echo $editing ? 'ذخیره تغییرات وظیفه' : 'ایجاد وظیفه'; ?></button>
                 <?php if ( $editing ) : ?><a href="<?php echo esc_url( $base ); ?>">انصراف از ویرایش</a><?php endif; ?>
             </form>
         </details>
@@ -95,6 +103,9 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                     <div class="crmb-task-card-top">
                         <span class="crmb-task-card-number">کار #<?php echo esc_html( (string) $task->id ); ?></span>
                         <div class="crmb-task-card-flags">
+                            <?php if ( ! empty( $task->repeat_series_id ) ) : ?>
+                                <span class="crmb-task-card-repeat" title="یک نمونه مستقل از کار تکراری روزانه"><i class="fa-solid fa-repeat" aria-hidden="true"></i> روزانه</span>
+                            <?php endif; ?>
                             <span class="crmb-task-card-priority is-priority-<?php echo esc_attr( $priority_key ); ?>"><?php echo esc_html( $priority_labels[ $priority_key ] ); ?></span>
                             <span class="crmb-task-card-status is-<?php echo esc_attr( $status_key ); ?>"><?php echo esc_html( $status_labels[ $status_key ] ); ?></span>
                         </div>
@@ -131,7 +142,17 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                         <?php endif; ?>
                     </div>
                     <?php if ( $work_admin ) : ?>
-                        <a class="crmb-task-card-edit" href="<?php echo esc_url( add_query_arg( 'edit_task', $task->id, $base ) ); ?>">ویرایش توضیحات و مسئول</a>
+                        <div class="crmb-task-admin-actions">
+                            <a class="crmb-task-card-edit" href="<?php echo esc_url( add_query_arg( array( 'edit_task' => $task->id, 'scope' => 'team' ), $base ) ); ?>"><i class="fa-solid fa-pen" aria-hidden="true"></i> ویرایش وظیفه</a>
+                            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
+                                class="crmb-task-delete-form" onsubmit="return confirm('این وظیفه از فهرست کارمندان حذف شود؟ سوابق برای بررسی مدیریتی نگه داشته می‌شود.');">
+                                <?php crmb_work_form_fields( 'delete_task', $task->id ); ?>
+                                <?php if ( ! empty( $task->repeat_series_id ) ) : ?>
+                                    <label class="crmb-task-delete-future"><input type="checkbox" name="stop_repeat" value="1"> توقف تکرارهای روزهای بعد</label>
+                                <?php endif; ?>
+                                <button type="submit" class="crmb-task-delete-button"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> حذف وظیفه</button>
+                            </form>
+                        </div>
                     <?php endif; ?>
                 </article>
             <?php endforeach; ?>
