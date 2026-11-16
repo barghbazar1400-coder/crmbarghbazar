@@ -216,7 +216,7 @@ function crmb_task_repeat_generate( $day = null ) {
     $series = crmb_task_repeat_table();
     $tasks = crmb_work_tables()['tasks'];
     $templates = $wpdb->get_results( $wpdb->prepare(
-        "SELECT id FROM {$series} WHERE active=1 AND start_day<=%s ORDER BY id LIMIT 500", $day
+        "SELECT id FROM {$series} WHERE active=1 AND start_day<=%s ORDER BY id", $day
     ) );
     if ( $wpdb->last_error || ! is_array( $templates ) ) { return false; }
     foreach ( $templates as $item ) {
