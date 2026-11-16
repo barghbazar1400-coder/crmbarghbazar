@@ -268,7 +268,7 @@ if ( $ready && crmb_sales_admin() ) {
         const name=button.getAttribute("data-sales-open");
         open(name,true);
         if(name==="customers"){
-            const el=document.querySelector("#crmb-sales-customers details.crmb-sales-expand");
+            const el=document.getElementById("crmb-sales-new-customer");
             if(el){el.open=true;el.scrollIntoView({behavior:"smooth",block:"start"});}
         } else if(name==="quotes"){
             const el=document.getElementById("crmb-sales-new-quote");
