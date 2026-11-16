@@ -1,0 +1,46 @@
+name: CRM Daily Tasks and Manager Controls
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'functions.php'
+      - 'inc/work.php'
+      - 'inc/work-recurring.php'
+      - 'inc/progress.php'
+      - 'inc/leadership.php'
+      - 'template-parts/tasks.php'
+      - 'tests/work.php'
+      - 'tests/tasks-view.php'
+      - 'tests/tasks-recurring.php'
+      - '.github/workflows/task-recurring-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  recurring-tasks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring
+          coverage: none
+      - name: Lint work and progress PHP
+        run: |
+          php -l functions.php
+          php -l inc/work.php
+          php -l inc/work-recurring.php
+          php -l inc/progress.php
+          php -l inc/leadership.php
+          php -l template-parts/tasks.php
+          php -l tests/tasks-recurring.php
+      - name: Existing task ACL, status and UI regression
+        run: |
+          php tests/work.php
+          php tests/tasks-view.php
+          php tests/progress.php
+      - name: Daily recurrence, duplicate prevention and manager deletion
+        run: php tests/tasks-recurring.php
