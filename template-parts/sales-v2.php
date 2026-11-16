@@ -18,6 +18,9 @@ $ops = crmb_sales_ops_tables();
 $ready = crmb_sales_ops_ready() && '1' === get_option( 'crmb_sales_calls_v2' );
 $base = add_query_arg( 'crm_section', 'sales', home_url( '/main/' ) );
 $today = crmb_att_today();
+$local_midnight = new DateTimeImmutable( $today . ' 00:00:00', crmb_att_timezone() );
+$today_utc = $local_midnight->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+$tomorrow_utc = $local_midnight->modify( '+1 day' )->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
 $scope = crmb_sales_scope( 'x' );
 $calls = array(); $followups = array(); $totals = array( 'all' => 0, 'purchased' => 0, 'not_purchased' => 0, 'followup' => 0 );
 $call_error = false;
@@ -29,7 +32,7 @@ if ( $ready ) {
          FROM {$table} x JOIN {$tables['customers']} c ON c.id=x.customer_id
          WHERE x.created_utc >= %s AND x.created_utc < %s" . $scope . "
          ORDER BY x.id DESC LIMIT 40",
-        $today . ' 00:00:00', gmdate( 'Y-m-d', strtotime( $today . ' +1 day' ) ) . ' 00:00:00'
+        $today_utc, $tomorrow_utc
     ) );
     $call_error = (bool) $wpdb->last_error;
     $today_total = $wpdb->get_row( $wpdb->prepare(
@@ -38,7 +41,7 @@ if ( $ready ) {
              SUM(CASE WHEN outcome='not_purchased' THEN 1 ELSE 0 END) AS not_purchased,
              SUM(CASE WHEN outcome='followup' THEN 1 ELSE 0 END) AS followup
          FROM {$table} x WHERE x.created_utc >= %s AND x.created_utc < %s" . $scope,
-        $today . ' 00:00:00', gmdate( 'Y-m-d', strtotime( $today . ' +1 day' ) ) . ' 00:00:00'
+        $today_utc, $tomorrow_utc
     ) );
     $call_error = $call_error || (bool) $wpdb->last_error;
     if ( $today_total ) {
@@ -70,7 +73,7 @@ if ( $ready && crmb_sales_admin() ) {
              SUM(CASE WHEN outcome='not_purchased' THEN 1 ELSE 0 END) AS not_purchased
          FROM {$ops['calls']} WHERE created_utc >= %s AND created_utc < %s
          GROUP BY owner_id ORDER BY total DESC LIMIT 30",
-        $today . ' 00:00:00', gmdate( 'Y-m-d', strtotime( $today . ' +1 day' ) ) . ' 00:00:00'
+        $today_utc, $tomorrow_utc
     ) );
     $team_error = (bool) $wpdb->last_error;
 }
@@ -259,7 +262,7 @@ if ( $ready && crmb_sales_admin() ) {
     if (metrics) metrics.hidden=true; // Contact summary is in the primary dashboard.
     const params=new URLSearchParams(location.search);
     const initial=params.get("sales_tab") || params.get("sales_anchor") ||
-        (params.has("edit_customer")||params.has("customer")?"customers":params.has("sales_search")?"catalog":"overview");
+        (params.has("edit_customer")||params.has("customer")?"customers":params.has("quote_customer")?"quotes":params.has("sales_search")?"catalog":"overview");
     open(initial,false);
     document.querySelectorAll("[data-sales-open]").forEach(button => button.addEventListener("click",()=>{
         const name=button.getAttribute("data-sales-open");
