@@ -38,7 +38,7 @@ class SalesTestDB {
             'CREATE TABLE wp_crmb_sales_quotes(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,opportunity_id INTEGER DEFAULT 0,owner_id INTEGER,status TEXT,notes TEXT,subtotal_toman INTEGER,created_utc TEXT,updated_utc TEXT);' .
             'CREATE TABLE wp_crmb_sales_quote_lines(id INTEGER PRIMARY KEY AUTOINCREMENT,quote_id INTEGER,product_id INTEGER,product_title TEXT,sku TEXT,quantity TEXT,unit_price_toman INTEGER,total_toman INTEGER);' .
             'CREATE TABLE wp_crmb_sales_quote_history(id INTEGER PRIMARY KEY AUTOINCREMENT,quote_id INTEGER,actor_id INTEGER,event_type TEXT,created_utc TEXT);' .
-            'CREATE TABLE wp_crmb_sales_calls(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,opportunity_id INTEGER,owner_id INTEGER,outcome TEXT,note TEXT,next_followup_day TEXT,created_utc TEXT);' .
+            'CREATE TABLE wp_crmb_sales_calls(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,opportunity_id INTEGER,owner_id INTEGER,outcome TEXT,note TEXT,requested_products TEXT,loss_reason TEXT,next_followup_day TEXT,created_utc TEXT);' .
             'CREATE TABLE wp_crmb_sales_discounts(quote_id INTEGER PRIMARY KEY,percent TEXT,status TEXT,requested_by INTEGER,reviewed_by INTEGER DEFAULT 0,reviewed_utc TEXT);'
         );
     }
@@ -121,6 +121,23 @@ check( 'invalid', crmb_sales_quote_create( array( 'customer_id' => '1', 'product
 $uid = 7; $admin = false; $sales = true;
 check( 'saved', crmb_sales_ops_call( array( 'customer_id' => '1', 'opportunity_id' => '1', 'outcome' => 'answered', 'note' => 'مکالمه انجام شد', 'next_followup_day' => '1405-08-10' ) ) );
 check( 1, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM wp_crmb_sales_calls' ) );
+check( 'invalid', crmb_sales_ops_call( array( 'customer_id'=>'1','outcome'=>'not_purchased','note'=>'قیمت برای مشتری زیاد بود' ) ) );
+check( 'invalid', crmb_sales_ops_call( array( 'customer_id'=>'1','outcome'=>'followup','note'=>'با مشتری تماس گرفته شد' ) ) );
+check( 'saved', crmb_sales_ops_call( array(
+    'customer_id'=>'1','outcome'=>'not_purchased','note'=>'قیمت بالاتر از انتظار مشتری',
+    'requested_products'=>'سیم افشان 2.5','loss_reason'=>'price',
+) ) );
+check( 'price', $wpdb->get_var( 'SELECT loss_reason FROM wp_crmb_sales_calls WHERE id=2' ) );
+check( 'سیم افشان 2.5', $wpdb->get_var( 'SELECT requested_products FROM wp_crmb_sales_calls WHERE id=2' ) );
+check( 'saved', crmb_sales_ops_call( array(
+    'customer_id'=>'1','outcome'=>'purchased','note'=>'خرید نهایی شد','requested_products'=>'سیم افشان 2.5',
+) ) );
+check( 'purchased', $wpdb->get_var( 'SELECT outcome FROM wp_crmb_sales_calls WHERE id=3' ) );
+check( 'saved', crmb_sales_ops_call( array(
+    'customer_id'=>'1','outcome'=>'followup','note'=>'فردا استعلام قیمت',
+    'next_followup_day'=>'1405-08-10',
+) ) );
+check( '2026-11-01', $wpdb->get_var( 'SELECT next_followup_day FROM wp_crmb_sales_calls WHERE id=4' ) );
 check( 'saved', crmb_sales_ops_move( array( 'opportunity_id' => '1', 'stage' => 'won' ) ) );
 check( 'won', $wpdb->get_var( 'SELECT stage FROM wp_crmb_sales_opportunities WHERE id=1' ) );
 $discounted = crmb_sales_quote_create( array( 'customer_id' => '1', 'product_ids' => array( '1' ), 'quantities' => array( '1' ), 'discount_percent' => '10' ) );
