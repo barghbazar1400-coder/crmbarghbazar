@@ -438,7 +438,7 @@ function crmb_sales_handle_post() {
     $result = 'invalid';
     $section = 'sales';
     if ( 'save_customer' === $task ) { $result = crmb_sales_customer_save( $data ); $section = 'customers'; }
-    elseif ( 'save_opportunity' === $task ) { $result = crmb_sales_opportunity_save( $data ); $section = 'opportunities'; }
+    elseif ( 'save_opportunity' === $task ) { $result = 'invalid'; $section = 'customers'; }
     elseif ( 'create_quote' === $task ) { $result = crmb_sales_quote_create( $data ); $section = 'quotes'; }
     elseif ( 'quote_status' === $task ) { $result = crmb_sales_quote_transition( $data ); $section = 'quotes'; }
     elseif ( 'import_catalog' === $task ) { $result = crmb_sales_catalog_import( $_FILES, $data ); $section = 'catalog'; }
