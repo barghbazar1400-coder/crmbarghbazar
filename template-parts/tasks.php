@@ -148,7 +148,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                                 class="crmb-task-delete-form" onsubmit="return confirm('این وظیفه از فهرست کارمندان حذف شود؟ سوابق برای بررسی مدیریتی نگه داشته می‌شود.');">
                                 <?php crmb_work_form_fields( 'delete_task', $task->id ); ?>
                                 <?php if ( ! empty( $task->repeat_series_id ) ) : ?>
-                                    <label class="crmb-task-delete-future"><input type="checkbox" name="stop_repeat" value="1"> توقف تکرارهای روزهای بعد</label>
+                                    <label class="crmb-task-delete-future"><input type="checkbox" name="stop_repeat" value="1" checked> توقف تکرارهای روزهای بعد</label>
                                 <?php endif; ?>
                                 <button type="submit" class="crmb-task-delete-button"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> حذف وظیفه</button>
                             </form>
