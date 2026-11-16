@@ -76,6 +76,8 @@ verify( str_contains( $employee, 'مهلت گذشته' ), 'Overdue warning' );
 verify( str_contains( $employee, 'مشاهده جزئیات و ثبت پیشرفت' ), 'Detail action' );
 verify( ! str_contains( $employee, 'value="cancelled"' ), 'Employee cannot cancel' );
 verify( ! str_contains( $employee, 'واگذاری وظیفه جدید' ), 'No manager assignment form' );
+verify( ! str_contains( $employee, 'name="stop_repeat"' ), 'Employee cannot stop task repetition' );
+verify( ! str_contains( $employee, 'value="delete_task"' ), 'Employee cannot delete tasks' );
 $archive = render( false, 'done' );
 verify( substr_count( $archive, '<article class="crmb-task-card' ) === 1, 'Archive displays completed only' );
 verify( str_contains( $archive, 'تکمیل گزارش' ), 'Archive item' );
@@ -87,4 +89,9 @@ verify( str_contains( $manager, '<details class="crm-access-card crmb-tasks-edit
 verify( str_contains( $manager, 'کارهای تیم' ), 'Team navigation' );
 verify( str_contains( $manager, 'value="cancelled"' ), 'Manager status rights' );
 verify( str_contains( $manager, 'مسئول:' ), 'Manager sees assignee' );
+verify( str_contains( $manager, 'name="repeat"' ), 'Manager sees repeat selector' );
+verify( str_contains( $manager, '>هر روز</option>' ), 'Daily repeat choice' );
+verify( str_contains( $manager, 'value="delete_task"' ), 'Manager sees delete action' );
+verify( str_contains( $manager, 'حذف وظیفه' ), 'Manager sees clear delete button' );
+verify( str_contains( $manager, 'ویرایش وظیفه' ), 'Manager sees task edit button' );
 echo "$checks task view checks passed\n";
