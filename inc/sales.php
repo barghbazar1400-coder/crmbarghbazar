@@ -50,6 +50,8 @@ function crmb_sales_install() {
         phone varchar(40) NOT NULL DEFAULT '',
         email varchar(190) NOT NULL DEFAULT '',
         company varchar(180) NOT NULL DEFAULT '',
+        customer_type varchar(24) NOT NULL DEFAULT 'individual',
+        address text NOT NULL,
         notes text NOT NULL,
         created_utc datetime NOT NULL,
         updated_utc datetime NOT NULL,
@@ -116,6 +118,31 @@ function crmb_sales_install() {
 }
 add_action( 'init', 'crmb_sales_install', 12 );
 
+/** Add optional profile fields in place; no customer or quote rows are removed. */
+function crmb_sales_upgrade_customers() {
+    if ( ! crmb_sales_ready() || '1' === get_option( 'crmb_sales_customers_v2' ) ) { return; }
+    global $wpdb;
+    $table = crmb_sales_tables()['customers'];
+    $columns = array(
+        'customer_type' => "varchar(24) NOT NULL DEFAULT 'individual'",
+        'address' => 'text NOT NULL',
+    );
+    foreach ( $columns as $name => $type ) {
+        $exists = $wpdb->get_var( $wpdb->prepare( "SHOW COLUMNS FROM {$table} LIKE %s", $name ) );
+        if ( $wpdb->last_error ) { return; }
+        if ( ! $exists && false === $wpdb->query( "ALTER TABLE {$table} ADD COLUMN {$name} {$type}" ) ) { return; }
+    }
+    update_option( 'crmb_sales_customers_v2', '1', false );
+}
+add_action( 'init', 'crmb_sales_upgrade_customers', 13 );
+
+function crmb_sales_customer_types() {
+    return array(
+        'individual' => 'شخص حقیقی', 'company' => 'شرکت', 'contractor' => 'پیمانکار',
+        'shop' => 'فروشگاه', 'other' => 'سایر',
+    );
+}
+
 function crmb_sales_scope( $alias = '' ) {
     if ( crmb_sales_admin() ) { return ''; }
     global $wpdb;
@@ -160,11 +187,16 @@ function crmb_sales_customer_save( $data ) {
     $email = crmb_sales_clean( $data, 'email', 190 );
     $company = crmb_sales_clean( $data, 'company' );
     $notes = crmb_sales_clean( $data, 'notes', 5000, true );
-    if ( ! $name || ( $email && ! is_email( $email ) ) || ( $phone && ! preg_match( '/^[+0-9() .\-]{7,40}$/', $phone ) ) ) {
+    $address = crmb_sales_clean( $data, 'address', 3000, true );
+    $customer_type = crmb_sales_clean( $data, 'customer_type', 24 ) ?: 'individual';
+    if ( ! $name || ! isset( crmb_sales_customer_types()[$customer_type] )
+        || ( isset( $data['address'] ) && is_string( $data['address'] ) && strlen( $data['address'] ) > 3000 )
+        || ( $email && ! is_email( $email ) )
+        || ( $phone && ! preg_match( '/^[+0-9() .\-]{7,40}$/', $phone ) ) ) {
         return 'invalid';
     }
     global $wpdb; $t = crmb_sales_tables(); $now = gmdate( 'Y-m-d H:i:s' );
-    $values = compact( 'name', 'phone', 'email', 'company', 'notes' );
+    $values = compact( 'name', 'phone', 'email', 'company', 'notes', 'address', 'customer_type' );
     $values['updated_utc'] = $now;
     if ( $id ) {
         if ( ! crmb_sales_customer( $id ) ) { return 'denied'; }
