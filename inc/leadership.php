@@ -39,15 +39,17 @@ function crmb_leadership_data() {
     global $wpdb;
     if ( '1' === get_option( 'crmb_work_schema_v1' ) ) {
         $work = crmb_work_tables();
-        $empty['tasks_open'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$work['tasks']} WHERE status IN ('todo','doing','paused')" );
-        $empty['tasks_done'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$work['tasks']} WHERE status = 'done'" );
+        $not_deleted = function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready()
+            ? ' AND deleted_utc IS NULL' : '';
+        $empty['tasks_open'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$work['tasks']} WHERE status IN ('todo','doing','paused'){$not_deleted}" );
+        $empty['tasks_done'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$work['tasks']} WHERE status = 'done'{$not_deleted}" );
         $empty['tasks_overdue'] = crmb_leadership_count( $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$work['tasks']} WHERE status IN ('todo','doing','paused') AND due_day < %s",
+            "SELECT COUNT(*) FROM {$work['tasks']} WHERE status IN ('todo','doing','paused') AND due_day < %s{$not_deleted}",
             crmb_att_today()
         ) );
         $rows = $wpdb->get_results(
             "SELECT id,title,assigned_to,status,due_day FROM {$work['tasks']}
-             WHERE status IN ('todo','doing','paused')
+             WHERE status IN ('todo','doing','paused'){$not_deleted}
              ORDER BY due_day IS NULL,due_day ASC,id DESC LIMIT 8"
         );
         $empty['recent'] = $wpdb->last_error ? null : ( $rows ?: array() );
@@ -55,7 +57,9 @@ function crmb_leadership_data() {
     if ( crmb_progress_ready() ) {
         $tables = crmb_progress_tables();
         $empty['reports_pending'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$tables['reports']} WHERE status='submitted'" );
-        $empty['timers_active'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$tables['tasks']} WHERE timer_started_utc IS NOT NULL" );
+        $extra = function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready()
+            ? ' AND deleted_utc IS NULL' : '';
+        $empty['timers_active'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$tables['tasks']} WHERE timer_started_utc IS NOT NULL{$extra}" );
     }
     if ( '1' === get_option( 'crmb_leave_schema_v1' ) ) {
         $table = crmb_leave_table();
