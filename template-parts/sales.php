@@ -180,6 +180,12 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
                 <label for="sales-phone">شماره تماس</label><input id="sales-phone" name="phone" dir="ltr" maxlength="40" value="<?php echo esc_attr( $edit_customer->phone ?? '' ); ?>">
                 <label for="sales-email">ایمیل</label><input id="sales-email" name="email" type="email" dir="ltr" value="<?php echo esc_attr( $edit_customer->email ?? '' ); ?>">
                 <label for="sales-company">نام شرکت</label><input id="sales-company" name="company" value="<?php echo esc_attr( $edit_customer->company ?? '' ); ?>">
+                <label for="sales-customer-type">نوع مشتری</label><select id="sales-customer-type" name="customer_type">
+                    <?php foreach ( crmb_sales_customer_types() as $key=>$label ) : ?>
+                    <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $edit_customer->customer_type ?? 'individual', $key ); ?>><?php echo esc_html( $label ); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <label for="sales-address">نشانی مشتری</label><textarea id="sales-address" name="address" rows="2" maxlength="3000"><?php echo esc_textarea( $edit_customer->address ?? '' ); ?></textarea>
                 <label for="sales-notes">توضیحات تماس و نیاز مشتری</label><textarea id="sales-notes" name="notes" rows="3"><?php echo esc_textarea( $edit_customer->notes ?? '' ); ?></textarea>
                 <button class="crm-access-primary" type="submit">ذخیره مشتری</button>
             </form>
@@ -210,7 +216,10 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
         ?>
         <div class="crmb-sales-customer-file" id="crmb-customer-file">
             <div class="crmb-leadership-heading"><h3>پرونده <?php echo esc_html( $focus->name ); ?></h3><a href="<?php echo esc_url( add_query_arg( 'sales_tab', 'customers', $base ) ); ?>">بستن پرونده</a></div>
-            <p class="crm-access-muted"><?php echo esc_html( $focus->company ?: 'بدون شرکت' ); ?> · <span dir="ltr"><?php echo esc_html( $focus->phone ?: 'بدون شماره' ); ?></span></p>
+            <p class="crm-access-muted"><?php echo esc_html( crmb_sales_customer_types()[$focus->customer_type] ?? 'مشتری' ); ?> · <?php echo esc_html( $focus->company ?: 'بدون شرکت' ); ?> · <span dir="ltr"><?php echo esc_html( $focus->phone ?: 'بدون شماره' ); ?></span></p>
+            <?php if ( $focus->address ) : ?><p class="crm-access-muted"><strong>نشانی:</strong> <?php echo esc_html( $focus->address ); ?></p><?php endif; ?>
+            <?php if ( $focus->notes ) : ?><p class="crm-access-muted"><strong>یادداشت پرونده:</strong> <?php echo nl2br( esc_html( $focus->notes ) ); ?></p><?php endif; ?>
+            <p><a class="crm-access-primary crmb-sales-quote-shortcut" href="<?php echo esc_url( add_query_arg( array( 'sales_tab'=>'quotes','quote_customer'=>$focus->id ), $base ) ); ?>">صدور پیش‌فاکتور برای این مشتری</a></p>
             <div class="crmb-sales-customer-columns">
                 <div><h4>تماس‌ها</h4>
                     <?php if ( $customer_call_error ) : ?><p role="status">تماس‌ها دریافت نشدند.</p>
@@ -244,7 +253,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
                 <?php crmb_sales_form_fields( 'create_quote' ); ?>
                 <label for="sales-quote-customer-search">جست‌وجوی مشتری</label><input id="sales-quote-customer-search" class="crmb-sales-customer-finder" data-target="sales-quote-customer" type="search" autocomplete="off" placeholder="نام، شماره تماس یا شرکت"><div class="crmb-sales-customer-results" role="status"></div>
                 <label for="sales-quote-customer">مشتری *</label><select id="sales-quote-customer" name="customer_id" required><option value="">انتخاب مشتری</option>
-                    <?php foreach ( $customers ?: array() as $c ) : ?><option value="<?php echo esc_attr( $c->id ); ?>"><?php echo esc_html( $c->name . ' · ' . $c->phone ); ?></option><?php endforeach; ?>
+                    <?php foreach ( $customers ?: array() as $c ) : ?><option value="<?php echo esc_attr( $c->id ); ?>" <?php selected( crmb_sales_id( $_GET, 'quote_customer' ), $c->id ); ?>><?php echo esc_html( $c->name . ' · ' . $c->phone ); ?></option><?php endforeach; ?>
                 </select>
                 <input type="hidden" name="opportunity_id" value="0">
                 <label for="sales-product-search">جست‌وجوی محصول با نام یا SKU (حداقل دو حرف)</label>
