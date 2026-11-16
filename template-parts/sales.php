@@ -24,7 +24,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
 <section class="crm-access-screen crmb-sales" aria-labelledby="crmb-sales-title">
     <header class="crm-access-header crmb-sales-head">
         <h1 id="crmb-sales-title">میز فروش برق‌بازار</h1>
-        <p>ثبت مشتری، نتیجه تماس، پیگیری و صدور پیش‌فاکتور؛ بدون مراحل پیچیده فرصت فروش.</p>
+        <p>ثبت مشتری، نتیجه تماس، تاریخ پیگیری و صدور پیش‌فاکتور در یک پرونده.</p>
     </header>
     <?php if ( isset( $notices[$notice] ) ) : ?><p class="crm-access-notice" role="status"><?php echo esc_html( $notices[$notice] ); ?></p><?php endif; ?>
     <?php if ( ! crmb_sales_ready() ) : ?><p role="status">پایگاه داده بخش فروش هنوز آماده نیست. مدیر وضعیت نصب را بررسی کند.</p></section><?php return; endif; ?>
@@ -119,6 +119,21 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
     $products_ok = ! $wpdb->last_error;
     $customers = $wpdb->get_results( "SELECT * FROM {$t['customers']} WHERE 1=1{$scope} ORDER BY id DESC LIMIT 200" );
     $customer_error = (bool) $wpdb->last_error;
+    $customer_last_outcomes = array();
+    if ( ! $customer_error && $customers && crmb_sales_ops_ready()
+        && '1' === get_option( 'crmb_sales_calls_v2' ) ) {
+        $ops_table = crmb_sales_ops_tables()['calls'];
+        $ids = array_map( static fn( $row ) => (int) $row->id, $customers );
+        $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+        $latest = $wpdb->get_results( $wpdb->prepare(
+            "SELECT c.customer_id,c.outcome FROM {$ops_table} c
+             WHERE c.id IN (SELECT MAX(z.id) FROM {$ops_table} z
+                 WHERE z.customer_id IN ({$placeholders}) GROUP BY z.customer_id)", ...$ids
+        ) );
+        if ( ! $wpdb->last_error ) {
+            foreach ( $latest ?: array() as $last ) { $customer_last_outcomes[(int)$last->customer_id] = $last->outcome; }
+        }
+    }
     $quotes = $wpdb->get_results( "SELECT q.*,c.name AS customer_name FROM {$t['quotes']} q INNER JOIN {$t['customers']} c ON c.id=q.customer_id WHERE 1=1" . crmb_sales_scope( 'q' ) . " ORDER BY q.id DESC LIMIT 25" );
     $quotes_error = (bool) $wpdb->last_error;
     $search = isset( $_GET['sales_search'] ) && is_string( $_GET['sales_search'] ) ? sanitize_text_field( wp_unslash( $_GET['sales_search'] ) ) : '';
@@ -192,9 +207,10 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
         </details>
         <?php if ( $customer_error ) : ?><p role="status">مشتریان دریافت نشدند.</p>
         <?php elseif ( ! $customers ) : ?><p class="crm-access-muted">هنوز مشتری ثبت نشده است.</p>
-        <?php else : ?><div class="crm-access-table-wrap"><table class="crm-access-table"><thead><tr><th>نام</th><th>شرکت</th><th>تلفن</th><th>عملیات</th></tr></thead><tbody>
+        <?php else : ?><div class="crm-access-table-wrap"><table class="crm-access-table"><thead><tr><th>نام</th><th>شرکت</th><th>تلفن</th><th>آخرین وضعیت</th><th>عملیات</th></tr></thead><tbody>
             <?php foreach ( $customers as $customer ) : ?><tr><td><?php echo esc_html( $customer->name ); ?></td><td><?php echo esc_html( $customer->company ); ?></td>
                 <td dir="ltr"><?php echo esc_html( $customer->phone ); ?></td>
+                <td><?php echo esc_html( crmb_sales_call_outcomes()[$customer_last_outcomes[(int)$customer->id] ?? ''] ?? 'تماسی ثبت نشده' ); ?></td>
                 <td><a href="<?php echo esc_url( add_query_arg( array( 'sales_tab'=>'customers', 'customer'=>$customer->id ), $base ) ); ?>">پرونده</a> · <a href="<?php echo esc_url( add_query_arg( array( 'sales_tab'=>'customers','edit_customer'=>$customer->id ), $base ) ); ?>">ویرایش</a></td></tr><?php endforeach; ?>
         </tbody></table></div><?php endif; ?>
         <?php if ( $customers_ok && (int) $total_customers > 200 ) : ?><p class="crm-access-muted">۲۰۰ پرونده جدید نمایش داده شده است؛ برای یافتن مشتری در فرم‌ها از جست‌وجوی نام یا تلفن استفاده کنید.</p><?php endif; ?>
