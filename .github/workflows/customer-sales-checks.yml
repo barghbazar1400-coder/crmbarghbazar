@@ -1,0 +1,39 @@
+name: CRM Customer-First Sales Desk
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/sales.php'
+      - 'inc/sales-operations.php'
+      - 'template-parts/sales.php'
+      - 'template-parts/sales-v2.php'
+      - 'tests/sales.php'
+      - 'tests/sales-workbench.php'
+      - '.github/workflows/customer-sales-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  customer-sales:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring
+          coverage: none
+      - name: Lint PHP
+        run: |
+          php -l inc/sales.php
+          php -l inc/sales-operations.php
+          php -l template-parts/sales.php
+          php -l template-parts/sales-v2.php
+          php -l tests/sales.php
+          php -l tests/sales-workbench.php
+      - name: Customer database, quote and permissions regression
+        run: php tests/sales.php
+      - name: Customer-first sales UI and schema assertions
+        run: php tests/sales-workbench.php
