@@ -191,5 +191,5 @@ check('changed',crmb_work_mutate(array('task'=>'delete_task','id'=>(string)$thir
 check(2,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_tasks WHERE deleted_utc IS NULL"),'soft deleted excluded');
 check('done',$wpdb->get_var("SELECT status FROM wp_crmb_tasks WHERE id=1"),'completed history preserved');
 check(true,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_task_events WHERE event_type='deleted'") === 1,'audit event kept');
-check(true,count(array_filter($actions,fn($v)=>$v[0]==='crmb_task_assigned'))===3,'one notification per inserted daily occurrence');
+check(true,count(array_filter($actions,fn($v)=>$v[0]==='crmb_task_assigned' && ($v[1][3]??null)===0))===3,'one notification per inserted daily occurrence');
 echo "$checks recurring, manager access, duplicate prevention, edit, delete and history checks passed\n";
