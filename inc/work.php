@@ -157,6 +157,9 @@ function crmb_work_handle_post() {
     $section = in_array( $task, array( 'send_message', 'read_message' ), true ) ? 'messages' : 'tasks';
     $args = array( 'crm_section' => $section, 'work_notice' => $notice );
     if ( 'task_status' === $task ) { $args['task_id'] = crmb_work_id( $data, 'id' ); }
+    if ( in_array( $task, array( 'save_task', 'delete_task' ), true ) && crmb_work_manage_team() ) {
+        $args['scope'] = 'team';
+    }
     wp_safe_redirect( add_query_arg( $args, home_url( '/main/' ) ) ); exit;
 }
 add_action( 'admin_post_crmb_work', 'crmb_work_handle_post' );
