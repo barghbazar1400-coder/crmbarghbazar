@@ -26,6 +26,8 @@ function crmb_sales_ops_install() {
         owner_id bigint(20) unsigned NOT NULL,
         outcome varchar(24) NOT NULL,
         note text NOT NULL,
+        requested_products text NOT NULL,
+        loss_reason varchar(40) NOT NULL DEFAULT '',
         next_followup_day date DEFAULT NULL,
         created_utc datetime NOT NULL,
         PRIMARY KEY  (id),
@@ -49,6 +51,47 @@ function crmb_sales_ops_install() {
     update_option( 'crmb_sales_ops_schema_v1', '1', false );
 }
 add_action( 'init', 'crmb_sales_ops_install', 13 );
+
+/** Add structured call outcomes to existing installations without deleting history. */
+function crmb_sales_ops_upgrade_calls() {
+    if ( ! crmb_sales_ops_ready() || '1' === get_option( 'crmb_sales_calls_v2' ) ) { return; }
+    global $wpdb;
+    $table = crmb_sales_ops_tables()['calls'];
+    $columns = array( 'requested_products' => "text NOT NULL", 'loss_reason' => "varchar(40) NOT NULL DEFAULT ''" );
+    foreach ( $columns as $column => $type ) {
+        $exists = $wpdb->get_var( $wpdb->prepare(
+            "SHOW COLUMNS FROM {$table} LIKE %s", $column
+        ) );
+        if ( $wpdb->last_error ) { return; }
+        if ( ! $exists && false === $wpdb->query( "ALTER TABLE {$table} ADD COLUMN {$column} {$type}" ) ) {
+            return;
+        }
+    }
+    update_option( 'crmb_sales_calls_v2', '1', false );
+}
+add_action( 'init', 'crmb_sales_ops_upgrade_calls', 14 );
+
+function crmb_sales_call_outcomes() {
+    return array(
+        'purchased' => 'خرید انجام شد',
+        'not_purchased' => 'خرید انجام نشد',
+        'followup' => 'نیازمند پیگیری',
+        'answered' => 'تماس پاسخ داده شد (قدیمی)',
+        'unanswered' => 'بدون پاسخ (قدیمی)',
+        'interested' => 'علاقه‌مند (قدیمی)',
+        'not_interested' => 'عدم تمایل (قدیمی)',
+    );
+}
+function crmb_sales_loss_reasons() {
+    return array(
+        'price' => 'قیمت',
+        'out_of_stock' => 'ناموجودی',
+        'delivery' => 'شرایط یا هزینه ارسال',
+        'elsewhere' => 'خرید از جای دیگر',
+        'no_decision' => 'منصرف شد',
+        'other' => 'سایر موارد',
+    );
+}
 
 function crmb_sales_ops_date( $value ) {
     if ( ! is_string( $value ) || '' === trim( $value ) ) { return null; }
@@ -77,8 +120,13 @@ function crmb_sales_ops_call( $data ) {
     $outcome = crmb_sales_clean( $data, 'outcome', 24 );
     $note = crmb_sales_clean( $data, 'note', 3000, true );
     $day = crmb_sales_ops_date( $data['next_followup_day'] ?? '' );
-    $outcomes = array( 'answered', 'unanswered', 'interested', 'not_interested', 'followup' );
-    if ( ! $customer || ! in_array( $outcome, $outcomes, true ) || '' === $note || false === $day ) { return 'invalid'; }
+    $products = crmb_sales_clean( $data, 'requested_products', 2000, true );
+    $loss_reason = crmb_sales_clean( $data, 'loss_reason', 40 );
+    if ( ! $customer || ! isset( crmb_sales_call_outcomes()[$outcome] )
+        || '' === $note || false === $day || strlen( $products ) > 2000
+        || ( 'not_purchased' === $outcome && ! isset( crmb_sales_loss_reasons()[$loss_reason] ) )
+        || ( 'followup' === $outcome && null === $day ) ) { return 'invalid'; }
+    if ( 'not_purchased' !== $outcome ) { $loss_reason = ''; }
     global $wpdb; $base = crmb_sales_tables(); $t = crmb_sales_ops_tables();
     if ( $opportunity_id ) {
         $o = $wpdb->get_row( $wpdb->prepare(
@@ -92,7 +140,8 @@ function crmb_sales_ops_call( $data ) {
     $ok = $wpdb->insert( $t['calls'], array(
         'customer_id' => $customer_id, 'opportunity_id' => $opportunity_id,
         'owner_id' => get_current_user_id(), 'outcome' => $outcome,
-        'note' => $note, 'next_followup_day' => $day, 'created_utc' => $now,
+        'note' => $note, 'requested_products' => $products, 'loss_reason' => $loss_reason,
+        'next_followup_day' => $day, 'created_utc' => $now,
     ) );
     if ( false !== $ok && $opportunity_id ) {
         $values = array( 'updated_utc' => $now );
