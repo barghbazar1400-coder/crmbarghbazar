@@ -1,5 +1,5 @@
 <?php
-/** Single sales desk: lead -> follow-up -> quote, with a local product catalog. */
+/** Customer-first sales desk: customer file, phone records and printable quotes. */
 defined( 'ABSPATH' ) || exit;
 if ( ! crmb_sales_access() ) { return; }
 $t = crmb_sales_tables();
@@ -24,7 +24,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
 <section class="crm-access-screen crmb-sales" aria-labelledby="crmb-sales-title">
     <header class="crm-access-header crmb-sales-head">
         <h1 id="crmb-sales-title">میز فروش برق‌بازار</h1>
-        <p>یک مسیر برای ثبت مشتری، پیگیری، انتخاب محصول از فایل ووکامرس و صدور پیش‌فاکتور.</p>
+        <p>ثبت مشتری، نتیجه تماس، پیگیری و صدور پیش‌فاکتور؛ بدون مراحل پیچیده فرصت فروش.</p>
     </header>
     <?php if ( isset( $notices[$notice] ) ) : ?><p class="crm-access-notice" role="status"><?php echo esc_html( $notices[$notice] ); ?></p><?php endif; ?>
     <?php if ( ! crmb_sales_ready() ) : ?><p role="status">پایگاه داده بخش فروش هنوز آماده نیست. مدیر وضعیت نصب را بررسی کند.</p></section><?php return; endif; ?>
@@ -53,7 +53,6 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
                 <div><dt>شماره تماس</dt><dd dir="ltr"><?php echo esc_html( $customer ? $customer->phone : '—' ); ?></dd></div>
                 <div><dt>شرکت</dt><dd><?php echo esc_html( $customer && $customer->company ? $customer->company : '—' ); ?></dd></div>
                 <div><dt>تاریخ صدور</dt><dd><?php echo esc_html( crmb_work_date( $quote->created_utc ) ); ?></dd></div>
-                <?php if ( $quote->opportunity_id ) : ?><div><dt>فرصت فروش مرتبط</dt><dd><?php echo esc_html( '#' . $quote->opportunity_id ); ?></dd></div><?php endif; ?>
             </dl>
             <?php if ( $line_error ) : ?><p role="alert">اقلام پیش‌فاکتور دریافت نشد؛ چاپ نکنید.</p><?php else : ?>
                 <div class="crm-access-table-wrap"><table class="crm-access-table crmb-sales-lines"><thead><tr><th>محصول</th><th>کد کالا</th><th>تعداد</th><th>قیمت واحد (تومان)</th><th>جمع (تومان)</th></tr></thead>
@@ -105,18 +104,21 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
     $customers_ok = ! $wpdb->last_error;
     $total_quotes = $wpdb->get_var( "SELECT COUNT(*) FROM {$t['quotes']} WHERE 1=1{$scope}" );
     $quotes_ok = ! $wpdb->last_error;
-    $due_followups = $wpdb->get_var( $wpdb->prepare(
-        "SELECT COUNT(*) FROM {$t['opportunities']} WHERE stage IN ('lead','contacted','quoted') AND followup_day<=%s{$scope}",
-        crmb_att_today()
-    ) );
-    $followups_ok = ! $wpdb->last_error;
+    $due_followups = null; $followups_ok = false;
+    if ( crmb_sales_ops_ready() ) {
+        $call_table = crmb_sales_ops_tables()['calls'];
+        $due_followups = $wpdb->get_var( $wpdb->prepare(
+            "SELECT COUNT(*) FROM {$call_table} x
+             WHERE x.id = (SELECT MAX(newer.id) FROM {$call_table} newer WHERE newer.customer_id=x.customer_id)
+             AND x.outcome='followup' AND x.next_followup_day<=%s" . crmb_sales_scope( 'x' ),
+            crmb_att_today()
+        ) );
+        $followups_ok = ! $wpdb->last_error;
+    }
     $total_products = $wpdb->get_var( "SELECT COUNT(*) FROM {$t['products']}" );
     $products_ok = ! $wpdb->last_error;
     $customers = $wpdb->get_results( "SELECT * FROM {$t['customers']} WHERE 1=1{$scope} ORDER BY id DESC LIMIT 200" );
     $customer_error = (bool) $wpdb->last_error;
-    $opportunities = $wpdb->get_results( "SELECT o.*,c.name AS customer_name FROM {$t['opportunities']} o INNER JOIN {$t['customers']} c ON c.id=o.customer_id WHERE 1=1" . crmb_sales_scope( 'o' ) . " ORDER BY o.followup_day IS NULL,o.followup_day,o.id DESC LIMIT 25" );
-    $opportunity_error = (bool) $wpdb->last_error;
-    $quote_opportunities = $wpdb->get_results( "SELECT id,title,customer_id FROM {$t['opportunities']} WHERE 1=1{$scope} ORDER BY id DESC LIMIT 200" );
     $quotes = $wpdb->get_results( "SELECT q.*,c.name AS customer_name FROM {$t['quotes']} q INNER JOIN {$t['customers']} c ON c.id=q.customer_id WHERE 1=1" . crmb_sales_scope( 'q' ) . " ORDER BY q.id DESC LIMIT 25" );
     $quotes_error = (bool) $wpdb->last_error;
     $search = isset( $_GET['sales_search'] ) && is_string( $_GET['sales_search'] ) ? sanitize_text_field( wp_unslash( $_GET['sales_search'] ) ) : '';
@@ -128,18 +130,11 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
     $catalog = $wpdb->get_results( "SELECT id,title,sku,price_toman,stock_status FROM {$t['products']}{$product_where} ORDER BY id DESC LIMIT 30" );
     $catalog_error = (bool) $wpdb->last_error;
     $edit_customer = crmb_sales_customer( crmb_sales_id( $_GET, 'edit_customer' ) );
-    $edit_opportunity = null;
-    $edit_opportunity_id = crmb_sales_id( $_GET, 'edit_opportunity' );
-    if ( $edit_opportunity_id ) {
-        $edit_opportunity = $wpdb->get_row( $wpdb->prepare(
-            "SELECT * FROM {$t['opportunities']} WHERE id=%d{$scope}", $edit_opportunity_id
-        ) );
-    }
     $last_import = get_option( 'crmb_sales_last_import', array() );
     ?>
     <nav class="crmb-sales-jump" aria-label="بخش‌های میز فروش">
         <a href="#crmb-sales-customers">مشتریان</a>
-        <a href="#crmb-sales-opportunities">فرصت‌ها و پیگیری‌ها</a>
+        <a href="#crmb-sales-calls">تماس‌ها و پیگیری‌ها</a>
         <a href="#crmb-sales-quotes">پیش‌فاکتورها</a>
         <a href="#crmb-sales-catalog">کاتالوگ محصولات</a>
     </nav>
@@ -174,7 +169,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
                 </select>
                 <button class="crm-access-primary" type="submit">انتقال مشتری و سوابق</button>
             </form>
-            <p class="crm-access-muted">تمام فرصت‌ها، تماس‌ها و پیش‌فاکتورهای مرتبط به مسئول جدید منتقل می‌شوند؛ سوابق باقی می‌مانند.</p>
+            <p class="crm-access-muted">تمام تماس‌ها و پیش‌فاکتورها و داده‌های پیشین مشتری همراه پرونده منتقل می‌شوند؛ سوابق پاک نمی‌شوند.</p>
         </details>
         <?php endif; ?>
         <details class="crmb-sales-expand" <?php echo $edit_customer ? 'open' : ''; ?>><summary><?php echo $edit_customer ? 'ویرایش پرونده مشتری' : '+ ثبت مشتری جدید'; ?></summary>
@@ -200,10 +195,6 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
         <?php
         $focus = crmb_sales_customer( crmb_sales_id( $_GET, 'customer' ) );
         if ( $focus ) :
-            $customer_opportunities = $wpdb->get_results( $wpdb->prepare(
-                "SELECT id,title,stage,followup_day FROM {$t['opportunities']} WHERE customer_id=%d" . crmb_sales_scope() . " ORDER BY id DESC LIMIT 25", $focus->id
-            ) );
-            $customer_op_error = (bool) $wpdb->last_error;
             $customer_quotes = $wpdb->get_results( $wpdb->prepare(
                 "SELECT id,status,subtotal_toman,created_utc FROM {$t['quotes']} WHERE customer_id=%d" . crmb_sales_scope() . " ORDER BY id DESC LIMIT 25", $focus->id
             ) );
@@ -212,7 +203,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
             if ( crmb_sales_ops_ready() ) {
                 $ops_tables = crmb_sales_ops_tables();
                 $customer_calls = $wpdb->get_results( $wpdb->prepare(
-                    "SELECT outcome,note,created_utc,next_followup_day FROM {$ops_tables['calls']} WHERE customer_id=%d" . crmb_sales_scope() . " ORDER BY id DESC LIMIT 25", $focus->id
+                    "SELECT outcome,note,requested_products,loss_reason,created_utc,next_followup_day FROM {$ops_tables['calls']} WHERE customer_id=%d" . crmb_sales_scope() . " ORDER BY id DESC LIMIT 50", $focus->id
                 ) );
                 $customer_call_error = (bool) $wpdb->last_error;
             }
@@ -225,14 +216,13 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
                     <?php if ( $customer_call_error ) : ?><p role="status">تماس‌ها دریافت نشدند.</p>
                     <?php elseif ( ! $customer_calls ) : ?><p>تماسی ثبت نشده است.</p>
                     <?php else : foreach ( $customer_calls as $call ) : ?>
-                        <article class="crmb-sales-customer-note"><small><?php echo esc_html( crmb_work_date( $call->created_utc ) ); ?></small><p><?php echo esc_html( $call->note ); ?></p></article>
-                    <?php endforeach; endif; ?>
-                </div>
-                <div><h4>فرصت‌ها</h4>
-                    <?php if ( $customer_op_error ) : ?><p role="status">فرصت‌ها دریافت نشدند.</p>
-                    <?php elseif ( ! $customer_opportunities ) : ?><p>فرصتی ثبت نشده است.</p>
-                    <?php else : foreach ( $customer_opportunities as $op ) : ?>
-                        <p><?php echo esc_html( $op->title . ' · ' . ( crmb_sales_stages()[$op->stage] ?? '—' ) ); ?></p>
+                        <article class="crmb-sales-customer-note">
+                            <small><?php echo esc_html( crmb_work_date( $call->created_utc ) ); ?> · <?php echo esc_html( crmb_sales_call_outcomes()[ $call->outcome ] ?? 'تماس ثبت‌شده' ); ?></small>
+                            <?php if ( $call->requested_products ) : ?><p><strong>کالای درخواستی:</strong> <?php echo esc_html( $call->requested_products ); ?></p><?php endif; ?>
+                            <p><?php echo esc_html( $call->note ); ?></p>
+                            <?php if ( $call->loss_reason ) : ?><p><strong>علت عدم خرید:</strong> <?php echo esc_html( crmb_sales_loss_reasons()[ $call->loss_reason ] ?? 'سایر موارد' ); ?></p><?php endif; ?>
+                            <?php if ( $call->next_followup_day ) : ?><p><strong>پیگیری:</strong> <?php echo esc_html( crmb_att_jdate( $call->next_followup_day ) ); ?></p><?php endif; ?>
+                        </article>
                     <?php endforeach; endif; ?>
                 </div>
                 <div><h4>پیش‌فاکتورها</h4>
@@ -247,37 +237,6 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
         <?php endif; ?>
     </section>
 
-    <section class="crm-access-card crmb-sales-panel" id="crmb-sales-opportunities">
-        <div class="crmb-leadership-heading"><h2>فرصت‌ها و پیگیری فروش</h2><p class="crm-access-muted">موعد پیگیری شمسی، وضعیت و شرح اقدام بعدی</p></div>
-        <details class="crmb-sales-expand" <?php echo $edit_opportunity ? 'open' : ''; ?>><summary><?php echo $edit_opportunity ? 'ویرایش فرصت فروش' : '+ فرصت فروش جدید'; ?></summary>
-            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form crmb-sales-form">
-                <?php crmb_sales_form_fields( 'save_opportunity' ); ?>
-                <?php if ( $edit_opportunity ) : ?><input type="hidden" name="opportunity_id" value="<?php echo esc_attr( $edit_opportunity->id ); ?>"><?php endif; ?>
-                <label for="sales-op-customer-search">جست‌وجوی مشتری</label><input id="sales-op-customer-search" class="crmb-sales-customer-finder" data-target="sales-op-customer" type="search" autocomplete="off" placeholder="نام، شماره تماس یا شرکت"><div class="crmb-sales-customer-results" role="status"></div>
-                <label for="sales-op-customer">مشتری</label><select id="sales-op-customer" name="customer_id" required><option value="">انتخاب کنید</option>
-                    <?php foreach ( $customers ?: array() as $c ) : ?><option value="<?php echo esc_attr( $c->id ); ?>" <?php selected( $edit_opportunity->customer_id ?? '', $c->id ); ?>><?php echo esc_html( $c->name . ' · ' . $c->phone ); ?></option><?php endforeach; ?>
-                </select>
-                <label for="sales-op-title">موضوع درخواست</label><input id="sales-op-title" name="title" maxlength="180" required value="<?php echo esc_attr( $edit_opportunity->title ?? '' ); ?>">
-                <label for="sales-op-stage">مرحله فروش</label><select id="sales-op-stage" name="stage">
-                    <?php foreach ( crmb_sales_stages() as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $edit_opportunity->stage ?? 'lead', $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?>
-                </select>
-                <label for="sales-op-day">تاریخ پیگیری بعدی (شمسی)</label><input id="sales-op-day" name="followup_day" dir="ltr" placeholder="1405-08-15" value="<?php echo esc_attr( $edit_opportunity && $edit_opportunity->followup_day ? crmb_att_jdate( $edit_opportunity->followup_day ) : '' ); ?>">
-                <label for="sales-op-notes">شرح تماس و اقدام بعدی</label><textarea id="sales-op-notes" name="notes" rows="3"><?php echo esc_textarea( $edit_opportunity->notes ?? '' ); ?></textarea>
-                <button class="crm-access-primary" type="submit">ذخیره پیگیری</button>
-            </form>
-        </details>
-        <?php if ( $opportunity_error ) : ?><p role="status">پیگیری‌های فروش در دسترس نیست.</p>
-        <?php elseif ( ! $opportunities ) : ?><p class="crm-access-muted">هنوز فرصت فروشی ثبت نشده است.</p>
-        <?php else : ?><div class="crm-access-table-wrap"><table class="crm-access-table"><thead><tr><th>موضوع</th><th>مشتری</th><th>مرحله</th><th>پیگیری بعدی</th><th>عملیات</th></tr></thead><tbody>
-            <?php foreach ( $opportunities as $o ) :
-                $overdue = $o->followup_day && $o->followup_day <= crmb_att_today() && ! in_array( $o->stage, array( 'won', 'lost' ), true ); ?>
-                <tr><td><?php echo esc_html( $o->title ); ?></td><td><?php echo esc_html( $o->customer_name ); ?></td>
-                    <td><?php echo esc_html( crmb_sales_stages()[$o->stage] ?? '—' ); ?></td>
-                    <td class="<?php echo $overdue ? 'crmb-work-overdue' : ''; ?>"><?php echo esc_html( $o->followup_day ? crmb_att_jdate( $o->followup_day ) : '—' ); ?></td>
-                    <td><a href="<?php echo esc_url( add_query_arg( 'edit_opportunity', $o->id, $base ) . '#crmb-sales-opportunities' ); ?>">جزئیات / ویرایش</a></td></tr>
-            <?php endforeach; ?></tbody></table></div><?php endif; ?>
-    </section>
-
     <section class="crm-access-card crmb-sales-panel" id="crmb-sales-quotes">
         <div class="crmb-leadership-heading"><h2>پیش‌فاکتورها</h2><p class="crm-access-muted">اقلام و قیمت‌ها هنگام صدور ثابت می‌شوند.</p></div>
         <details class="crmb-sales-expand" id="crmb-sales-new-quote"><summary>+ صدور پیش‌فاکتور جدید</summary>
@@ -287,9 +246,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
                 <label for="sales-quote-customer">مشتری *</label><select id="sales-quote-customer" name="customer_id" required><option value="">انتخاب مشتری</option>
                     <?php foreach ( $customers ?: array() as $c ) : ?><option value="<?php echo esc_attr( $c->id ); ?>"><?php echo esc_html( $c->name . ' · ' . $c->phone ); ?></option><?php endforeach; ?>
                 </select>
-                <label for="sales-quote-opportunity">فرصت فروش مرتبط (اختیاری)</label><select id="sales-quote-opportunity" name="opportunity_id"><option value="0">بدون فرصت مرتبط</option>
-                    <?php foreach ( $quote_opportunities ?: array() as $op ) : ?><option value="<?php echo esc_attr( $op->id ); ?>" data-customer="<?php echo esc_attr( $op->customer_id ); ?>"><?php echo esc_html( $op->title ); ?></option><?php endforeach; ?>
-                </select>
+                <input type="hidden" name="opportunity_id" value="0">
                 <label for="sales-product-search">جست‌وجوی محصول با نام یا SKU (حداقل دو حرف)</label>
                 <input id="sales-product-search" type="search" autocomplete="off" placeholder="مثلاً سیم افشان ۲.۵ یا کد کالا">
                 <p class="crm-access-muted">محصول را جست‌وجو و انتخاب کنید؛ سپس مقدار را تنظیم کنید. قیمت واحد از CSV واردشده خوانده می‌شود.</p>
@@ -357,13 +314,6 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
     const form = document.getElementById("crmb-sales-quote-form");
     if (!form) return;
     const customer = document.getElementById("sales-quote-customer");
-    const opportunity = document.getElementById("sales-quote-opportunity");
-    function filterOpportunity() {
-        opportunity.value = "0";
-        Array.from(opportunity.options).forEach(opt => { opt.hidden = opt.value !== "0" && opt.dataset.customer !== customer.value; });
-    }
-    customer.addEventListener("change", filterOpportunity);
-    filterOpportunity();
     const search = document.getElementById("sales-product-search");
     const results = document.getElementById("crmb-sales-search-results");
     const selected = document.getElementById("crmb-sales-selected");
