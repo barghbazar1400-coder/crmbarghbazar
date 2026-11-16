@@ -33,7 +33,7 @@ class SalesTestDB {
         $this->db->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION );
         $this->db->exec(
             'CREATE TABLE wp_crmb_sales_products(id INTEGER PRIMARY KEY AUTOINCREMENT,external_key TEXT,sku TEXT,title TEXT,price_toman INTEGER,stock_status TEXT,updated_utc TEXT);' .
-            'CREATE TABLE wp_crmb_sales_customers(id INTEGER PRIMARY KEY AUTOINCREMENT,owner_id INTEGER,name TEXT,phone TEXT,email TEXT,company TEXT,notes TEXT,created_utc TEXT,updated_utc TEXT);' .
+            'CREATE TABLE wp_crmb_sales_customers(id INTEGER PRIMARY KEY AUTOINCREMENT,owner_id INTEGER,name TEXT,phone TEXT,email TEXT,company TEXT,customer_type TEXT,address TEXT,notes TEXT,created_utc TEXT,updated_utc TEXT);' .
             'CREATE TABLE wp_crmb_sales_opportunities(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,owner_id INTEGER,title TEXT,stage TEXT,followup_day TEXT,notes TEXT,created_utc TEXT,updated_utc TEXT);' .
             'CREATE TABLE wp_crmb_sales_quotes(id INTEGER PRIMARY KEY AUTOINCREMENT,customer_id INTEGER,opportunity_id INTEGER DEFAULT 0,owner_id INTEGER,status TEXT,notes TEXT,subtotal_toman INTEGER,created_utc TEXT,updated_utc TEXT);' .
             'CREATE TABLE wp_crmb_sales_quote_lines(id INTEGER PRIMARY KEY AUTOINCREMENT,quote_id INTEGER,product_id INTEGER,product_title TEXT,sku TEXT,quantity TEXT,unit_price_toman INTEGER,total_toman INTEGER);' .
@@ -90,7 +90,13 @@ check( 15000, crmb_sales_csv_price( '۱۵۰۰۰۰', 'rial' ) );
 check( null, crmb_sales_csv_price( 'abc', 'toman' ) );
 check( 'price', array_key_exists( 'regular', crmb_sales_csv_header( array( 'ID', 'Type', 'SKU', 'Name', 'Regular price', 'Sale price' ) ) ) ? 'price' : 'none' );
 check( 0, crmb_sales_csv_header( array( 'نام', 'شناسه کالا', 'قیمت عادی' ) )['title'] );
-check( 'saved', crmb_sales_customer_save( array( 'name' => 'مشتری نمونه', 'phone' => '09121234567' ) ) );
+check( 'saved', crmb_sales_customer_save( array(
+    'name' => 'مشتری نمونه', 'phone' => '09121234567', 'customer_type' => 'contractor',
+    'address' => 'تهران، میدان آزادی',
+) ) );
+check( 'contractor', $wpdb->get_var( 'SELECT customer_type FROM wp_crmb_sales_customers WHERE id=1' ) );
+check( 'تهران، میدان آزادی', $wpdb->get_var( 'SELECT address FROM wp_crmb_sales_customers WHERE id=1' ) );
+check( 'invalid', crmb_sales_customer_save( array('name'=>'نام','customer_type'=>'unknown') ) );
 check( 'invalid', crmb_sales_customer_save( array( 'name' => 'Bad', 'email' => 'not-an-email' ) ) );
 check( 1, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM wp_crmb_sales_customers' ) );
 check( 'saved', crmb_sales_opportunity_save( array( 'customer_id' => '1', 'title' => 'سیم افشان', 'followup_day' => '1405-08-10' ) ) );
