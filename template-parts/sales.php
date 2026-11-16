@@ -187,7 +187,7 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
             <p class="crm-access-muted">تمام تماس‌ها و پیش‌فاکتورها و داده‌های پیشین مشتری همراه پرونده منتقل می‌شوند؛ سوابق پاک نمی‌شوند.</p>
         </details>
         <?php endif; ?>
-        <details class="crmb-sales-expand" <?php echo $edit_customer ? 'open' : ''; ?>><summary><?php echo $edit_customer ? 'ویرایش پرونده مشتری' : '+ ثبت مشتری جدید'; ?></summary>
+        <details class="crmb-sales-expand" id="crmb-sales-new-customer" <?php echo $edit_customer ? 'open' : ''; ?>><summary><?php echo $edit_customer ? 'ویرایش پرونده مشتری' : '+ ثبت مشتری جدید'; ?></summary>
             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form crmb-sales-form">
                 <?php crmb_sales_form_fields( 'save_customer' ); ?>
                 <?php if ( $edit_customer ) : ?><input type="hidden" name="customer_id" value="<?php echo esc_attr( $edit_customer->id ); ?>"><?php endif; ?>
