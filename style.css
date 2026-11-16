@@ -3965,3 +3965,125 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
 }
+
+
+/* Customer-first sales desk: compact contact management, not a deal pipeline. */
+.crmb-sales-panel[hidden], .crmb-sales-contact-center[hidden],
+.crmb-sales-jump[hidden], .crmb-sales-metrics[hidden],
+.crmb-contact-center-form [hidden] { display:none!important; }
+.crmb-contact-center-tabs {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:9px;
+  padding:15px clamp(12px,2vw,26px) 4px;
+}
+.crmb-contact-center-tabs button {
+  padding:11px 17px;
+  border:1px solid #ded5ed;
+  border-radius:11px;
+  background:#fff;
+  color:#77648d;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.crmb-contact-center-tabs button.is-active {
+  background:#7752b5;
+  border-color:#7752b5;
+  color:#fff;
+}
+.crmb-sales-contact-center {
+  max-width:1440px;
+  margin:0 auto;
+  padding:16px clamp(12px,2vw,26px) 38px;
+  color:#433651;
+}
+.crmb-contact-center-heading {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:19px 22px;
+  border:1px solid #e6def0;
+  border-radius:15px;
+  background:linear-gradient(110deg,#fff,#f8f3ff);
+  margin-bottom:16px;
+}
+.crmb-contact-center-eyebrow { color:#8055b7; font-weight:800; font-size:11px; }
+.crmb-contact-center-heading h2 { margin:7px 0; font-size:21px; color:#493260; }
+.crmb-contact-center-heading p { margin:0; font-size:12px; color:#82738f; line-height:1.8; }
+.crmb-contact-center-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.crmb-contact-center-metrics {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px;
+  margin-bottom:16px;
+}
+.crmb-contact-center-metric {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+  padding:16px;
+  border:1px solid #e7def1;
+  border-radius:13px;
+  background:#fff;
+}
+.crmb-contact-center-metric>i {
+  display:grid;
+  place-items:center;
+  flex:0 0 41px;
+  width:41px;
+  height:41px;
+  border-radius:11px;
+  background:#f3ebfb;
+  color:#7952b5;
+}
+.crmb-contact-center-metric>div { display:grid; gap:4px; }
+.crmb-contact-center-metric small { color:#897a93; font-size:11px; }
+.crmb-contact-center-metric strong { font-size:22px; color:#46325c; }
+.crmb-contact-center-layout {
+  display:grid;
+  grid-template-columns:minmax(0,1.65fr) minmax(270px,.8fr);
+  gap:15px;
+  align-items:start;
+}
+.crmb-contact-center-main,.crmb-contact-center-side { min-width:0; }
+.crmb-contact-center-panel { margin-bottom:15px; min-width:0; }
+.crmb-contact-center-form { display:grid; gap:10px; }
+.crmb-contact-center-form>input,.crmb-contact-center-form>textarea,
+.crmb-contact-center-form>select { width:100%; min-width:0; }
+.crmb-contact-center-form label { margin-top:5px; font-weight:750; }
+.crmb-contact-center-form #crmb-call-loss-wrap,
+.crmb-contact-center-form #crmb-call-followup-wrap { display:grid; gap:8px; }
+.crmb-contact-center-form .crm-access-primary { justify-self:start; }
+.crmb-contact-center-history { display:grid; gap:9px; max-height:590px; overflow:auto; }
+.crmb-contact-center-activity {
+  padding:14px;
+  border:1px solid #ede5f3;
+  border-radius:11px;
+  background:#fcfaff;
+  overflow-wrap:anywhere;
+}
+.crmb-contact-center-activity>div { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px; }
+.crmb-contact-center-activity a,.crmb-contact-center-followups a { color:#6943a0; font-weight:850; text-decoration:none; }
+.crmb-contact-center-activity span { padding:4px 9px; color:#735491; background:#f1eafa; border-radius:15px; font-size:10px; font-weight:800; }
+.crmb-contact-center-activity p { margin:9px 0; color:#5b4b68; font-size:12px; line-height:1.9; }
+.crmb-contact-center-activity small { display:block; font-size:10px; color:#9c8ba9; margin-top:4px; }
+.crmb-contact-center-followups { list-style:none; padding:0; margin:0; display:grid; gap:9px; }
+.crmb-contact-center-followups li { display:grid; gap:5px; padding:12px; background:#faf7fe; border-radius:10px; border:1px solid #e8def1; }
+.crmb-contact-center-followups span { color:#867796; font-size:11px; direction:ltr; text-align:right; }
+.crmb-contact-center-followups small { color:#a16d32; font-size:11px; }
+@media(max-width:1120px){
+  .crmb-contact-center-metrics{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .crmb-contact-center-layout{grid-template-columns:1fr;}
+}
+@media(max-width:600px){
+  .crmb-contact-center-heading{padding:15px;}
+  .crmb-contact-center-heading h2{font-size:18px;}
+  .crmb-contact-center-tabs{gap:6px;}
+  .crmb-contact-center-tabs button{flex:1 1 45%;padding:10px 8px;}
+  .crmb-contact-center-metric{padding:12px;}
+}
