@@ -91,6 +91,9 @@ function crmb_progress_task( $id, $lock = false ) {
     global $wpdb; $t = crmb_progress_tables();
     $manager = crmb_work_manage_team() || ( function_exists( 'crmb_seo_can_manage_task' ) && crmb_seo_can_manage_task( $id ) );
     $where = $manager ? '' : $wpdb->prepare( ' AND assigned_to = %d', get_current_user_id() );
+    if ( function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready() ) {
+        $where .= ' AND deleted_utc IS NULL';
+    }
     return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$t['tasks']} WHERE id = %d{$where}" . ( $lock ? ' FOR UPDATE' : '' ), $id ) );
 }
 function crmb_progress_event( $id, $type, $body = '' ) {
@@ -172,4 +175,4 @@ function crmb_progress_seconds( $task ) {
     return (int) $task->tracked_seconds + ( $task->timer_started_utc ? max( 0, time() - strtotime( $task->timer_started_utc . ' UTC' ) ) : 0 );
 }
 function crmb_progress_duration( $seconds ) { return sprintf( '%02d:%02d:%02d', floor( $seconds / 3600 ), floor( $seconds / 60 ) % 60, $seconds % 60 ); }
-function crmb_progress_event_labels() { return array( 'doing' => 'شروع / ادامه کار', 'paused' => 'توقف موقت', 'todo' => 'بازگشت به انجام‌نشده', 'done' => 'پایان کار', 'cancelled' => 'لغو توسط مدیر', 'note' => 'گزارش پیشرفت', 'blocker' => 'مانع / مشکل', 'rich_note' => 'گزارش پیشرفت', 'rich_blocker' => 'مانع / مشکل', 'manager_note' => 'راهنمایی مدیر', 'edited' => 'ویرایش توسط مدیر' ); }
+function crmb_progress_event_labels() { return array( 'doing' => 'شروع / ادامه کار', 'paused' => 'توقف موقت', 'todo' => 'بازگشت به انجام‌نشده', 'done' => 'پایان کار', 'cancelled' => 'لغو توسط مدیر', 'note' => 'گزارش پیشرفت', 'blocker' => 'مانع / مشکل', 'rich_note' => 'گزارش پیشرفت', 'rich_blocker' => 'مانع / مشکل', 'manager_note' => 'راهنمایی مدیر', 'edited' => 'ویرایش توسط مدیر', 'deleted' => 'حذف از فهرست توسط مدیر' ); }
