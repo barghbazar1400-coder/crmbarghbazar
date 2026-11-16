@@ -1,7 +1,7 @@
 <?php
 /**
- * Unified operational sales desk. The legacy detail forms remain intact,
- * while the initial view is now a compact actionable pipeline.
+ * Customer-first sales desk. Existing customer forms and quotes live in sales.php.
+ * Historical opportunity rows stay in the database but are no longer a workflow.
  */
 defined( 'ABSPATH' ) || exit;
 if ( ! crmb_sales_access() ) { return; }
@@ -13,170 +13,200 @@ get_template_part( 'template-parts/sales' );
 if ( ! crmb_sales_ready() ) { return; }
 
 global $wpdb;
-$sales = crmb_sales_tables();
+$tables = crmb_sales_tables();
 $ops = crmb_sales_ops_tables();
-$scope = crmb_sales_scope( 'o' );
-$stages = crmb_sales_stages();
-$pipeline = $wpdb->get_results(
-    "SELECT o.id,o.customer_id,o.owner_id,o.title,o.stage,o.followup_day,o.notes,
-            c.name AS customer_name,c.phone AS customer_phone
-     FROM {$sales['opportunities']} o INNER JOIN {$sales['customers']} c ON c.id=o.customer_id
-     WHERE 1=1{$scope} ORDER BY o.followup_day IS NULL,o.followup_day,o.id DESC LIMIT 120"
-);
-$pipeline_error = (bool) $wpdb->last_error;
-$groups = array_fill_keys( array_keys( $stages ), array() );
-foreach ( $pipeline ?: array() as $op ) {
-    if ( isset( $groups[$op->stage] ) ) { $groups[$op->stage][] = $op; }
+$ready = crmb_sales_ops_ready() && '1' === get_option( 'crmb_sales_calls_v2' );
+$base = add_query_arg( 'crm_section', 'sales', home_url( '/main/' ) );
+$today = crmb_att_today();
+$scope = crmb_sales_scope( 'x' );
+$calls = array(); $followups = array(); $totals = array( 'all' => 0, 'purchased' => 0, 'not_purchased' => 0, 'followup' => 0 );
+$call_error = false;
+if ( $ready ) {
+    $table = $ops['calls'];
+    $calls = $wpdb->get_results( $wpdb->prepare(
+        "SELECT x.id,x.customer_id,x.owner_id,x.outcome,x.note,x.requested_products,x.loss_reason,
+             x.next_followup_day,x.created_utc,c.name AS customer_name
+         FROM {$table} x JOIN {$tables['customers']} c ON c.id=x.customer_id
+         WHERE x.created_utc >= %s AND x.created_utc < %s" . $scope . "
+         ORDER BY x.id DESC LIMIT 40",
+        $today . ' 00:00:00', gmdate( 'Y-m-d', strtotime( $today . ' +1 day' ) ) . ' 00:00:00'
+    ) );
+    $call_error = (bool) $wpdb->last_error;
+    $today_total = $wpdb->get_row( $wpdb->prepare(
+        "SELECT COUNT(*) AS all_calls,
+             SUM(CASE WHEN outcome='purchased' THEN 1 ELSE 0 END) AS purchased,
+             SUM(CASE WHEN outcome='not_purchased' THEN 1 ELSE 0 END) AS not_purchased,
+             SUM(CASE WHEN outcome='followup' THEN 1 ELSE 0 END) AS followup
+         FROM {$table} x WHERE x.created_utc >= %s AND x.created_utc < %s" . $scope,
+        $today . ' 00:00:00', gmdate( 'Y-m-d', strtotime( $today . ' +1 day' ) ) . ' 00:00:00'
+    ) );
+    $call_error = $call_error || (bool) $wpdb->last_error;
+    if ( $today_total ) {
+        $totals = array(
+            'all' => (int) $today_total->all_calls, 'purchased' => (int) $today_total->purchased,
+            'not_purchased' => (int) $today_total->not_purchased, 'followup' => (int) $today_total->followup
+        );
+    }
+    $followups = $wpdb->get_results( $wpdb->prepare(
+        "SELECT x.id,x.customer_id,x.owner_id,x.next_followup_day,x.requested_products,
+                c.name AS customer_name,c.phone
+         FROM {$table} x JOIN {$tables['customers']} c ON c.id=x.customer_id
+         WHERE x.outcome='followup' AND x.next_followup_day <= %s
+           AND x.id=(SELECT MAX(y.id) FROM {$table} y WHERE y.customer_id=x.customer_id)"
+           . $scope . " ORDER BY x.next_followup_day,x.id LIMIT 30", $today
+    ) );
+    $call_error = $call_error || (bool) $wpdb->last_error;
 }
-$followups = $wpdb->get_results( $wpdb->prepare(
-    "SELECT o.id,o.title,o.followup_day,c.name AS customer_name
-     FROM {$sales['opportunities']} o INNER JOIN {$sales['customers']} c ON c.id=o.customer_id
-     WHERE o.stage IN ('lead','contacted','quoted') AND o.followup_day<=%s{$scope}
-     ORDER BY o.followup_day ASC,o.id DESC LIMIT 10", crmb_att_today()
-) );
-$followup_error = (bool) $wpdb->last_error;
 $customers = $wpdb->get_results(
-    "SELECT id,name,phone FROM {$sales['customers']} WHERE 1=1" . crmb_sales_scope() . " ORDER BY id DESC LIMIT 200"
+    "SELECT id,name,phone FROM {$tables['customers']} WHERE 1=1" . crmb_sales_scope()
+    . " ORDER BY id DESC LIMIT 200"
 );
 $customer_error = (bool) $wpdb->last_error;
-$calls = array(); $calls_error = false;
-if ( crmb_sales_ops_ready() ) {
-    $calls = $wpdb->get_results(
-        "SELECT x.id,x.owner_id,x.note,x.outcome,x.created_utc,c.name AS customer_name
-         FROM {$ops['calls']} x INNER JOIN {$sales['customers']} c ON x.customer_id=c.id
-         WHERE 1=1" . crmb_sales_scope( 'x' ) . " ORDER BY x.id DESC LIMIT 6"
-    );
-    $calls_error = (bool) $wpdb->last_error;
+$team = array(); $team_error = false;
+if ( $ready && crmb_sales_admin() ) {
+    $team = $wpdb->get_results( $wpdb->prepare(
+        "SELECT owner_id, COUNT(*) AS total,
+             SUM(CASE WHEN outcome='purchased' THEN 1 ELSE 0 END) AS purchased,
+             SUM(CASE WHEN outcome='not_purchased' THEN 1 ELSE 0 END) AS not_purchased
+         FROM {$ops['calls']} WHERE created_utc >= %s AND created_utc < %s
+         GROUP BY owner_id ORDER BY total DESC LIMIT 30",
+        $today . ' 00:00:00', gmdate( 'Y-m-d', strtotime( $today . ' +1 day' ) ) . ' 00:00:00'
+    ) );
+    $team_error = (bool) $wpdb->last_error;
 }
-$base = add_query_arg( 'crm_section', 'sales', home_url( '/main/' ) );
 ?>
-<section id="crmb-sales-v2-overview" class="crm-access-screen crmb-sales-v2-overview" aria-label="عملیات فروش">
-    <div class="crmb-sales-v2-toolbar">
-        <div><span class="crmb-sales-v2-eyebrow">عملیات فروش / برق‌بازار</span><h2>امروز روی چه چیزی تمرکز کنیم؟</h2></div>
-        <div class="crmb-sales-v2-buttons">
-            <button type="button" class="crm-access-primary" data-sales-open="customers">+ مشتری</button>
-            <button type="button" class="crm-access-primary" data-sales-open="opportunities">+ فرصت فروش</button>
-            <button type="button" class="crm-access-primary" data-sales-open="quotes">+ پیش‌فاکتور</button>
+<section id="crmb-sales-contact-center" class="crm-access-screen crmb-sales-contact-center" aria-labelledby="crmb-contact-center-heading">
+    <header class="crmb-contact-center-heading">
+        <div><span class="crmb-contact-center-eyebrow">واحد فروش برق‌بازار</span>
+            <h2 id="crmb-contact-center-heading">تماس‌ها و پیگیری مشتریان</h2>
+            <p>ثبت تماس، وضعیت خرید و اقدام بعدی؛ هر مشتری فقط یک پرونده دارد.</p>
         </div>
-    </div>
-    <?php if ( ! crmb_sales_ops_ready() ) : ?>
-        <p class="crm-access-notice" role="status">راه‌اندازی تاریخچه تماس و تأیید تخفیف کامل نشده است؛ مدیر وضعیت پایگاه داده را بررسی کند.</p>
+        <div class="crmb-contact-center-actions">
+            <button type="button" data-sales-open="customers" class="crm-access-primary">+ مشتری جدید</button>
+            <button type="button" data-sales-open="quotes" class="crm-access-primary">+ پیش‌فاکتور</button>
+        </div>
+    </header>
+    <?php if ( ! $ready ) : ?>
+        <p class="crm-access-notice" role="status">جداول تماس هنوز به نسخه جدید ارتقا نیافته‌اند. مدیر باید نصب دیتابیس را بررسی کند؛ سوابق قبلی حذف نشده‌اند.</p>
+    <?php else : ?>
+        <div class="crmb-contact-center-metrics">
+            <?php foreach ( array(
+                'all' => array( 'تماس‌های امروز', 'fa-phone-volume' ),
+                'purchased' => array( 'منجر به خرید', 'fa-circle-check' ),
+                'not_purchased' => array( 'بدون خرید', 'fa-circle-xmark' ),
+                'followup' => array( 'نیازمند پیگیری', 'fa-clock' ),
+            ) as $key => $meta ) : ?>
+            <div class="crmb-contact-center-metric">
+                <i class="fa-solid <?php echo esc_attr( $meta[1] ); ?>" aria-hidden="true"></i>
+                <div><small><?php echo esc_html( $meta[0] ); ?></small><strong><?php echo esc_html( number_format_i18n( $totals[$key] ) ); ?></strong></div>
+            </div>
+            <?php endforeach; ?>
+        </div>
     <?php endif; ?>
-    <div class="crmb-sales-v2-grid">
-        <div class="crmb-sales-v2-main">
-            <section class="crm-access-card">
-                <div class="crmb-leadership-heading">
-                    <div><h2>قیف فروش</h2><p class="crm-access-muted">هر کارت یک فرصت واقعی است؛ مرحله آن را از همین‌جا تغییر دهید.</p></div>
-                    <button type="button" class="crmb-sales-v2-link" data-sales-open="opportunities">نمای جدولی و ویرایش</button>
-                </div>
-                <?php if ( $pipeline_error ) : ?><p role="status">اطلاعات قیف فروش دریافت نشد.</p>
-                <?php else : ?>
-                <div class="crmb-sales-v2-kanban" role="region" aria-label="قیف فروش" tabindex="0">
-                    <?php foreach ( $stages as $stage => $label ) : ?>
-                    <section class="crmb-sales-v2-lane" data-stage="<?php echo esc_attr( $stage ); ?>">
-                        <header class="crmb-sales-v2-lane-header"><h3><?php echo esc_html( $label ); ?></h3><span><?php echo esc_html( count( $groups[$stage] ) ); ?></span></header>
-                        <div class="crmb-sales-v2-cards">
-                            <?php if ( ! $groups[$stage] ) : ?><p class="crmb-sales-v2-empty">فرصتی ثبت نشده</p><?php endif; ?>
-                            <?php foreach ( $groups[$stage] as $op ) :
-                                $due = $op->followup_day && $op->followup_day <= crmb_att_today() && ! in_array( $op->stage, array( 'won','lost' ), true ); ?>
-                            <article class="crmb-sales-v2-deal">
-                                <p class="crmb-sales-v2-deal-title"><?php echo esc_html( $op->title ); ?></p>
-                                <p class="crmb-sales-v2-deal-customer"><?php echo esc_html( $op->customer_name ); ?></p>
-                                <p class="<?php echo $due ? 'crmb-work-overdue' : 'crm-access-muted'; ?>"><?php echo esc_html( $op->followup_day ? 'پیگیری: ' . crmb_att_jdate( $op->followup_day ) : 'بدون زمان پیگیری' ); ?></p>
-                                <form method="post" class="crmb-sales-v2-stage" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-                                    <?php crmb_sales_ops_form_fields( 'move_opportunity' ); ?>
-                                    <input type="hidden" name="opportunity_id" value="<?php echo esc_attr( $op->id ); ?>">
-                                    <label class="screen-reader-text" for="crmb-stage-<?php echo esc_attr( $op->id ); ?>">تغییر مرحله فرصت</label>
-                                    <select id="crmb-stage-<?php echo esc_attr( $op->id ); ?>" name="stage">
-                                        <?php foreach ( $stages as $key => $text ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $op->stage, $key ); ?>><?php echo esc_html( $text ); ?></option><?php endforeach; ?>
-                                    </select>
-                                    <button type="submit" title="ثبت مرحله">ثبت</button>
-                                </form>
-                                <a class="crmb-sales-v2-link" href="<?php echo esc_url( add_query_arg( 'edit_opportunity', $op->id, $base ) . '#crmb-sales-opportunities' ); ?>" data-sales-open="opportunities">جزئیات فرصت ←</a>
-                            </article>
+    <div class="crmb-contact-center-layout">
+        <div class="crmb-contact-center-main">
+            <section class="crm-access-card crmb-contact-center-panel" id="crmb-sales-calls">
+                <div class="crmb-leadership-heading"><div><h3>ثبت تماس مشتری</h3>
+                    <p class="crm-access-muted">اطلاعات هر تماس در پرونده همان مشتری ذخیره می‌شود.</p>
+                </div></div>
+                <?php if ( $ready && ! $customer_error ) : ?>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
+                      class="crm-access-form crmb-contact-center-form" id="crmb-sales-call-form">
+                    <?php crmb_sales_ops_form_fields( 'log_call' ); ?>
+                    <label for="crmb-call-customer-search">جست‌وجوی مشتری با نام یا تلفن</label>
+                    <input id="crmb-call-customer-search" type="search" placeholder="نام یا شماره مشتری..." autocomplete="off">
+                    <div id="crmb-call-customer-results" class="crmb-sales-customer-results" role="status"></div>
+                    <label for="crmb-call-customer">مشتری *</label>
+                    <select id="crmb-call-customer" name="customer_id" required>
+                        <option value="">انتخاب مشتری</option>
+                        <?php foreach ( $customers ?: array() as $customer ) : ?>
+                            <option value="<?php echo esc_attr( $customer->id ); ?>"><?php echo esc_html( $customer->name . ' · ' . $customer->phone ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <label for="crmb-call-products">محصول یا درخواست مشتری</label>
+                    <textarea id="crmb-call-products" name="requested_products" maxlength="2000" rows="2" placeholder="مثلاً ۵ حلقه سیم افشان ۲.۵ خراسان"></textarea>
+                    <label for="crmb-call-outcome">نتیجه تماس *</label>
+                    <select id="crmb-call-outcome" name="outcome" required>
+                        <option value="followup">نیازمند پیگیری</option>
+                        <option value="purchased">خرید انجام شد</option>
+                        <option value="not_purchased">خرید انجام نشد</option>
+                    </select>
+                    <div id="crmb-call-loss-wrap" hidden>
+                        <label for="crmb-call-loss-reason">علت خرید نکردن *</label>
+                        <select id="crmb-call-loss-reason" name="loss_reason">
+                            <option value="">علت را انتخاب کنید</option>
+                            <?php foreach ( crmb_sales_loss_reasons() as $key => $label ) : ?>
+                            <option value="<?php echo esc_attr( $key ); ?>"><?php echo esc_html( $label ); ?></option>
                             <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <label for="crmb-call-note">شرح مکالمه و اقدام انجام‌شده *</label>
+                    <textarea id="crmb-call-note" name="note" maxlength="3000" rows="3" required placeholder="مشتری چه خواست و چه پاسخی دریافت کرد؟"></textarea>
+                    <div id="crmb-call-followup-wrap">
+                        <label for="crmb-call-day">تاریخ تماس بعدی (شمسی) *</label>
+                        <input id="crmb-call-day" name="next_followup_day" dir="ltr" placeholder="1405-08-25">
+                    </div>
+                    <button type="submit" class="crm-access-primary">ثبت تماس در پرونده مشتری</button>
+                </form>
+                <?php else : ?><p class="crm-access-muted">ثبت تماس تا آماده‌شدن بانک اطلاعاتی در دسترس نیست.</p><?php endif; ?>
+            </section>
+            <section class="crm-access-card crmb-contact-center-panel">
+                <div class="crmb-leadership-heading"><h3>تماس‌های ثبت‌شده امروز</h3></div>
+                <?php if ( $call_error ) : ?><p role="status">دریافت تماس‌ها ناموفق بود.</p>
+                <?php elseif ( ! $calls ) : ?><p class="crm-access-muted">هنوز تماسی برای امروز ثبت نشده است.</p>
+                <?php else : ?>
+                <div class="crmb-contact-center-history">
+                    <?php foreach ( $calls as $call ) : ?>
+                    <article class="crmb-contact-center-activity">
+                        <div><a href="<?php echo esc_url( add_query_arg( array( 'sales_tab'=>'customers','customer'=>$call->customer_id ), $base ) ); ?>">
+                            <?php echo esc_html( $call->customer_name ); ?></a>
+                            <span><?php echo esc_html( crmb_sales_call_outcomes()[$call->outcome] ?? 'تماس ثبت‌شده' ); ?></span>
                         </div>
-                    </section>
+                        <p><?php echo esc_html( $call->requested_products ? $call->requested_products . ' — ' . $call->note : $call->note ); ?></p>
+                        <?php if ( $call->loss_reason ) : ?>
+                        <small>علت عدم خرید: <?php echo esc_html( crmb_sales_loss_reasons()[$call->loss_reason] ?? 'سایر موارد' ); ?></small>
+                        <?php endif; ?>
+                        <small><?php echo esc_html( crmb_work_date( $call->created_utc ) ); ?></small>
+                    </article>
                     <?php endforeach; ?>
                 </div>
-                <?php if ( 120 <= count( $pipeline ?: array() ) ) : ?><p class="crm-access-muted">۱۲۰ فرصت اول نمایش داده شده‌اند؛ برای بقیه از نمای جدولی استفاده کنید.</p><?php endif;
-                endif; ?>
-            </section>
-            <section class="crm-access-card crmb-sales-v2-report">
-                <div class="crmb-leadership-heading"><h2>آخرین فعالیت‌ها</h2><span class="crm-access-muted">سوابق واقعی تماس‌های ثبت‌شده</span></div>
-                <?php if ( $calls_error ) : ?><p role="status">تاریخچه تماس در دسترس نیست.</p>
-                <?php elseif ( ! $calls ) : ?><p class="crm-access-muted">هنوز تماسی ثبت نشده است.</p>
-                <?php else : ?><div class="crmb-sales-v2-activity"><?php foreach ( $calls as $call ) : ?>
-                    <div><strong><?php echo esc_html( $call->customer_name ); ?></strong>
-                        <span><?php echo esc_html( crmb_work_date( $call->created_utc ) ); ?></span>
-                        <p><?php echo esc_html( $call->note ); ?></p></div>
-                <?php endforeach; ?></div><?php endif; ?>
+                <?php endif; ?>
             </section>
         </div>
-        <aside class="crmb-sales-v2-aside" aria-label="پیگیری و تماس">
-            <section class="crm-access-card">
-                <div class="crmb-leadership-heading"><h2>پیگیری‌های سررسید</h2><span class="crmb-sales-v2-count"><?php echo esc_html( count( $followups ?: array() ) ); ?></span></div>
-                <?php if ( $followup_error ) : ?><p role="status">پیگیری‌ها دریافت نشد.</p>
-                <?php elseif ( ! $followups ) : ?><p class="crm-access-muted">مورد سررسیدشده‌ای ندارید.</p>
-                <?php else : ?><ul class="crmb-sales-v2-followups"><?php foreach ( $followups as $item ) : ?>
-                    <li><strong><?php echo esc_html( $item->customer_name ); ?></strong><span><?php echo esc_html( $item->title ); ?></span>
-                        <small class="crmb-work-overdue"><?php echo esc_html( crmb_att_jdate( $item->followup_day ) ); ?></small></li>
-                <?php endforeach; ?></ul><?php endif; ?>
+        <aside class="crmb-contact-center-side">
+            <section class="crm-access-card crmb-contact-center-panel">
+                <div class="crmb-leadership-heading"><h3>پیگیری‌های سررسیدشده</h3>
+                    <strong><?php echo esc_html( count( $followups ?: array() ) ); ?></strong>
+                </div>
+                <?php if ( $call_error ) : ?><p role="status">دریافت پیگیری‌ها ناموفق بود.</p>
+                <?php elseif ( ! $followups ) : ?><p class="crm-access-muted">پیگیری عقب‌افتاده‌ای ثبت نشده است.</p>
+                <?php else : ?>
+                <ul class="crmb-contact-center-followups">
+                    <?php foreach ( $followups as $followup ) : ?>
+                    <li>
+                        <a href="<?php echo esc_url( add_query_arg( array( 'sales_tab'=>'customers','customer'=>$followup->customer_id ), $base ) ); ?>"><?php echo esc_html( $followup->customer_name ); ?></a>
+                        <span dir="ltr"><?php echo esc_html( $followup->phone ); ?></span>
+                        <small>موعد: <?php echo esc_html( crmb_att_jdate( $followup->next_followup_day ) ); ?></small>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+                <?php endif; ?>
             </section>
-            <section class="crm-access-card">
-                <h2>ثبت سریع تماس</h2>
-                <p class="crm-access-muted">تماس را ثبت کنید تا در سابقه مشتری ذخیره شود.</p>
-                <?php if ( crmb_sales_ops_ready() && ! $customer_error ) : ?>
-                <form class="crm-access-form crmb-sales-v2-call" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
-                    <?php crmb_sales_ops_form_fields( 'log_call' ); ?>
-                    <label for="crmb-call-customer-search">جست‌وجوی مشتری</label><input id="crmb-call-customer-search" type="search" autocomplete="off" placeholder="نام یا شماره مشتری">
-                    <div id="crmb-call-customer-results" role="status"></div>
-                    <label for="crmb-call-customer">مشتری</label><select id="crmb-call-customer" name="customer_id" required><option value="">انتخاب مشتری</option>
-                        <?php foreach ( $customers as $c ) : ?><option value="<?php echo esc_attr( $c->id ); ?>"><?php echo esc_html( $c->name . ' · ' . $c->phone ); ?></option><?php endforeach; ?>
-                    </select>
-                    <label for="crmb-call-opportunity">فرصت مرتبط (اختیاری)</label><select id="crmb-call-opportunity" name="opportunity_id"><option value="0">بدون فرصت</option>
-                        <?php foreach ( $pipeline ?: array() as $o ) : ?><option value="<?php echo esc_attr( $o->id ); ?>" data-customer="<?php echo esc_attr( $o->customer_id ); ?>"><?php echo esc_html( $o->title ); ?></option><?php endforeach; ?>
-                    </select>
-                    <label for="crmb-call-outcome">نتیجه تماس</label><select id="crmb-call-outcome" name="outcome">
-                        <option value="answered">پاسخ داده شد</option><option value="unanswered">بدون پاسخ</option>
-                        <option value="interested">علاقه‌مند</option><option value="not_interested">عدم تمایل</option>
-                        <option value="followup">نیازمند پیگیری</option>
-                    </select>
-                    <label for="crmb-call-note">توضیح تماس</label><textarea id="crmb-call-note" name="note" rows="3" maxlength="3000" required></textarea>
-                    <label for="crmb-call-day">پیگیری بعدی (شمسی؛ اختیاری)</label><input id="crmb-call-day" name="next_followup_day" dir="ltr" placeholder="1405-08-15">
-                    <button type="submit" class="crm-access-primary">ثبت تماس و پیگیری</button>
-                </form>
-                <?php else : ?><p role="status">فرم تماس آماده نیست؛ مدیر وضعیت نصب را بررسی کند.</p><?php endif; ?>
-            </section>
-            <?php if ( crmb_sales_admin() ) :
-                $pending_discounts = crmb_sales_ops_ready() ? $wpdb->get_results(
-                    "SELECT d.quote_id,d.percent,c.name AS customer_name
-                     FROM {$ops['discounts']} d INNER JOIN {$sales['quotes']} q ON q.id=d.quote_id
-                     INNER JOIN {$sales['customers']} c ON c.id=q.customer_id
-                     WHERE d.status='pending' ORDER BY d.quote_id DESC LIMIT 10"
-                ) : array();
-                $discounts_error = (bool) $wpdb->last_error;
-                $team = $wpdb->get_results(
-                    "SELECT owner_id,COUNT(*) AS total FROM {$sales['opportunities']} WHERE stage NOT IN ('won','lost') GROUP BY owner_id ORDER BY total DESC LIMIT 15"
-                ); $team_error = (bool) $wpdb->last_error; ?>
-            <section class="crm-access-card">
-                <div class="crmb-leadership-heading"><h2>درخواست‌های تخفیف مدیر</h2></div>
-                <?php if ( $discounts_error ) : ?><p role="status">درخواست‌های تخفیف دریافت نشد.</p>
-                <?php elseif ( ! $pending_discounts ) : ?><p class="crm-access-muted">درخواست تخفیف منتظر تأیید ندارید.</p>
-                <?php else : ?><ul class="crmb-sales-v2-team">
-                    <?php foreach ( $pending_discounts as $d ) : ?><li>
-                        <span><?php echo esc_html( $d->customer_name . ' · ' . $d->percent . '٪' ); ?></span>
-                        <a href="<?php echo esc_url( add_query_arg( array( 'sales_view'=>'quote','quote'=>$d->quote_id ), $base ) ); ?>">بررسی</a>
-                    </li><?php endforeach; ?>
-                </ul><?php endif; ?>
-            </section>
-            <section class="crm-access-card">
-                <h2>بار کاری تیم فروش</h2>
-                <?php if ( $team_error ) : ?><p role="status">گزارش تیم در دسترس نیست.</p>
-                <?php elseif ( ! $team ) : ?><p class="crm-access-muted">فرصتی برای تیم ثبت نشده است.</p>
-                <?php else : ?><ul class="crmb-sales-v2-team"><?php foreach ( $team as $person ) : ?>
-                    <li><span><?php echo esc_html( crmb_work_user_name( $person->owner_id ) ); ?></span><strong><?php echo esc_html( $person->total ); ?> فرصت باز</strong></li>
-                <?php endforeach; ?></ul><?php endif; ?>
+            <?php if ( crmb_sales_admin() ) : ?>
+            <section class="crm-access-card crmb-contact-center-panel">
+                <div class="crmb-leadership-heading"><h3>گزارش امروز کارکنان فروش</h3></div>
+                <?php if ( $team_error ) : ?><p role="status">دریافت آمار ناموفق بود.</p>
+                <?php elseif ( ! $team ) : ?><p class="crm-access-muted">هنوز آماری برای امروز ثبت نشده است.</p>
+                <?php else : ?>
+                <div class="crm-access-table-wrap"><table class="crm-access-table"><thead><tr><th>کارمند</th><th>تماس</th><th>خرید</th><th>بدون خرید</th></tr></thead><tbody>
+                    <?php foreach ( $team as $member ) : ?><tr>
+                    <td><?php echo esc_html( crmb_work_user_name( $member->owner_id ) ); ?></td>
+                    <td><?php echo esc_html( $member->total ); ?></td>
+                    <td><?php echo esc_html( $member->purchased ); ?></td>
+                    <td><?php echo esc_html( $member->not_purchased ); ?></td>
+                    </tr><?php endforeach; ?>
+                </tbody></table></div>
+                <?php endif; ?>
             </section>
             <?php endif; ?>
         </aside>
@@ -185,80 +215,115 @@ $base = add_query_arg( 'crm_section', 'sales', home_url( '/main/' ) );
 <script>
 (function () {
     "use strict";
-    const old = document.querySelector(".crmb-sales");
-    const overview = document.getElementById("crmb-sales-v2-overview");
-    if (!old || !overview) return;
-    old.classList.add("crmb-sales-v2-active");
-    const ids = {overview:overview,customers:document.getElementById("crmb-sales-customers"),
-        opportunities:document.getElementById("crmb-sales-opportunities"),
-        quotes:document.getElementById("crmb-sales-quotes"),catalog:document.getElementById("crmb-sales-catalog")};
-    const labels = {overview:"میز کار و قیف فروش",customers:"مشتریان",opportunities:"فرصت‌ها",
-        quotes:"پیش‌فاکتورها",catalog:"کاتالوگ"};
-    const navbar = document.createElement("nav"); navbar.className="crmb-sales-v2-tabs"; navbar.setAttribute("aria-label","میز فروش");
-    const buttons = {};
-    Object.keys(ids).forEach(key => {
-        const b=document.createElement("button"); b.type="button"; b.textContent=labels[key];
-        b.addEventListener("click",()=>activate(key));buttons[key]=b;navbar.append(b);
-        ids[key].classList.add("crmb-sales-v2-panel");
-    });
-    old.insertBefore(navbar,document.querySelector(".crmb-sales-metrics"));
-    const params = new URLSearchParams(location.search);
-    function activate(key,updateUrl=true) {
-        if (!ids[key]) key="overview";
-        Object.entries(ids).forEach(([k,p])=>{p.hidden=k!==key;buttons[k].classList.toggle("is-active",k===key);buttons[k].setAttribute("aria-current",k===key?"page":"false");});
-        if (updateUrl) {
-            const url=new URL(location.href);url.searchParams.set("sales_tab",key);
-            history.replaceState(null,"",url.toString());
-        }
-        if (key!=="overview") ids[key].scrollIntoView({block:"nearest"});
-    }
-    const current=params.get("sales_tab") || params.get("sales_anchor") || (params.has("edit_customer")?"customers":params.has("edit_opportunity")?"opportunities":params.has("sales_search")?"catalog":"overview");
-    activate(current,false);
-    document.querySelectorAll("[data-sales-open]").forEach(button=>{
-        button.addEventListener("click",event=>{
-            event.preventDefault();const key=button.dataset.salesOpen;
-            if(button.tagName==="A" && button.search) {
-                const url=new URL(button.href);url.searchParams.set("sales_tab",key);
-                location.href=url.toString();return;
-            }
-            activate(key);
-            const detail=ids[key].querySelector(".crmb-sales-expand");
-            if(detail) detail.open=true;
+    const overview = document.getElementById("crmb-sales-contact-center");
+    const legacy = document.querySelector(".crmb-sales");
+    if (!overview || !legacy) return;
+    const panels = {
+        overview,
+        customers:document.getElementById("crmb-sales-customers"),
+        quotes:document.getElementById("crmb-sales-quotes"),
+        catalog:document.getElementById("crmb-sales-catalog")
+    };
+    const labels = {overview:"تماس‌ها و پیگیری‌ها",customers:"مشتریان",quotes:"پیش‌فاکتورها",catalog:"کاتالوگ محصولات"};
+    const tabs = document.createElement("nav");
+    tabs.className = "crmb-contact-center-tabs";
+    tabs.setAttribute("aria-label","بخش‌های میز فروش");
+    function open(name, changeUrl) {
+        if (!panels[name]) name="overview";
+        Object.keys(panels).forEach(key => {
+            panels[key].hidden = key !== name;
         });
+        Array.from(tabs.children).forEach(button => {
+            button.classList.toggle("is-active",button.dataset.tab===name);
+            button.setAttribute("aria-current",button.dataset.tab===name?"page":"false");
+        });
+        if (changeUrl) {
+            const url=new URL(location.href);
+            url.searchParams.set("sales_tab",name);
+            url.searchParams.delete("sales_anchor");
+            window.history.replaceState(null,"",url.toString());
+        }
+    }
+    Object.keys(labels).forEach(key=>{
+        const button=document.createElement("button");
+        button.type="button";
+        button.textContent=labels[key];
+        button.dataset.tab=key;
+        button.addEventListener("click",()=>open(key,true));
+        tabs.append(button);
     });
+    const jump=legacy.querySelector(".crmb-sales-jump");
+    if (jump) { jump.hidden=true; legacy.parentNode.insertBefore(tabs,legacy); }
+    else { overview.parentNode.insertBefore(tabs,overview); }
+    const metrics=legacy.querySelector(".crmb-sales-metrics");
+    if (metrics) metrics.hidden=true; // Contact summary is in the primary dashboard.
+    const params=new URLSearchParams(location.search);
+    const initial=params.get("sales_tab") || params.get("sales_anchor") ||
+        (params.has("edit_customer")||params.has("customer")?"customers":params.has("sales_search")?"catalog":"overview");
+    open(initial,false);
+    document.querySelectorAll("[data-sales-open]").forEach(button => button.addEventListener("click",()=>{
+        const name=button.getAttribute("data-sales-open");
+        open(name,true);
+        if(name==="customers"){
+            const el=document.querySelector("#crmb-sales-customers details.crmb-sales-expand");
+            if(el){el.open=true;el.scrollIntoView({behavior:"smooth",block:"start"});}
+        } else if(name==="quotes"){
+            const el=document.getElementById("crmb-sales-new-quote");
+            if(el){el.open=true;el.scrollIntoView({behavior:"smooth",block:"start"});}
+        }
+    }));
+    const result=document.getElementById("crmb-call-outcome");
+    const reason=document.getElementById("crmb-call-loss-wrap");
+    const reasonSelect=document.getElementById("crmb-call-loss-reason");
+    const followup=document.getElementById("crmb-call-followup-wrap");
+    const date=document.getElementById("crmb-call-day");
+    if (result && reason && followup) {
+        function change(){
+            const noSale=result.value==="not_purchased",pending=result.value==="followup";
+            reason.hidden=!noSale;
+            reasonSelect.required=noSale;
+            followup.hidden=!pending;
+            date.required=pending;
+            if(!noSale)reasonSelect.value="";
+            if(!pending)date.value="";
+        }
+        result.addEventListener("change",change);
+        change();
+    }
+    const search=document.getElementById("crmb-call-customer-search");
     const customer=document.getElementById("crmb-call-customer");
-    const opportunity=document.getElementById("crmb-call-opportunity");
-    if(customer && opportunity) {
-        const sync=()=>{opportunity.value="0";Array.from(opportunity.options).forEach(o=>{
-            o.hidden=o.value!=="0" && o.dataset.customer!==customer.value;
-        });};
-        customer.addEventListener("change",sync);sync();
-        const search=document.getElementById("crmb-call-customer-search");
-        const results=document.getElementById("crmb-call-customer-results");
-        let timer=0,seq=0;
+    const searchResult=document.getElementById("crmb-call-customer-results");
+    if(search && customer && searchResult) {
+        let request=0, timer=null;
         search.addEventListener("input",()=>{
-            clearTimeout(timer);const term=search.value.trim(),id=++seq;results.replaceChildren();
-            if(term.length<2)return;
+            clearTimeout(timer);
+            const q=search.value.trim(),current=++request;
+            searchResult.replaceChildren();
+            if(q.length<2)return;
             timer=setTimeout(async()=>{
-                const url=new URL(<?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>,location.href);
-                url.searchParams.set("action","crmb_sales_customer");
-                url.searchParams.set("nonce",<?php echo wp_json_encode( wp_create_nonce( 'crmb_sales_catalog' ) ); ?>);
-                url.searchParams.set("q",term);
-                try {
-                    const response=await fetch(url.toString(),{credentials:"same-origin"}),json=await response.json();
-                    if(id!==seq)return;
-                    if(!response.ok||!json.success||!Array.isArray(json.data))throw new Error("failed");
-                    if(!json.data.length){results.textContent="مشتری پیدا نشد";return;}
-                    json.data.forEach(c=>{
-                        const b=document.createElement("button");b.type="button";b.textContent=c.name+" · "+c.phone;
-                        b.addEventListener("click",()=>{
-                            let o=Array.from(customer.options).find(item=>item.value===String(c.id));
-                            if(!o){o=new Option(c.name+" · "+c.phone,String(c.id));customer.add(o);}
-                            customer.value=String(c.id);customer.dispatchEvent(new Event("change"));
-                            search.value="";results.replaceChildren();++seq;
-                        });results.append(b);
+                try{
+                    const url=new URL(<?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>,location.href);
+                    url.searchParams.set("action","crmb_sales_customer");
+                    url.searchParams.set("nonce",<?php echo wp_json_encode( wp_create_nonce( 'crmb_sales_catalog' ) ); ?>);
+                    url.searchParams.set("q",q);
+                    const response=await fetch(url.toString(),{credentials:"same-origin"});
+                    const json=await response.json();
+                    if(current!==request)return;
+                    if(!response.ok||!json.success||!Array.isArray(json.data))throw new Error();
+                    searchResult.replaceChildren();
+                    if(!json.data.length){searchResult.textContent="مشتری پیدا نشد.";return;}
+                    json.data.forEach(person=>{
+                        const button=document.createElement("button");
+                        button.type="button";button.className="crmb-sales-result";
+                        button.textContent=person.name+" · "+person.phone;
+                        button.addEventListener("click",()=>{
+                            let option=Array.from(customer.options).find(x=>x.value===String(person.id));
+                            if(!option){option=new Option(person.name+" · "+person.phone,String(person.id));customer.add(option);}
+                            customer.value=String(person.id); search.value="";searchResult.replaceChildren();
+                        });
+                        searchResult.append(button);
                     });
-                } catch(e){if(id===seq)results.textContent="خطا در جست‌وجوی مشتری";}
+                }catch(e){if(current===request)searchResult.textContent="جست‌وجو در دسترس نیست.";}
             },250);
         });
     }
