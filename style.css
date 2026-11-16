@@ -4087,3 +4087,85 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   .crmb-contact-center-tabs button{flex:1 1 45%;padding:10px 8px;}
   .crmb-contact-center-metric{padding:12px;}
 }
+
+
+/* Daily recurring tasks and safe manager edit/delete actions. */
+.crmb-task-card-repeat {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  color:#6152a8;
+  background:#f0ecff;
+  border:1px solid #d9d0fa;
+  border-radius:30px;
+  padding:4px 9px;
+  font-size:10px;
+  font-weight:800;
+}
+.crmb-task-admin-actions {
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  gap:10px;
+  padding:11px 0 0;
+  margin-top:9px;
+  border-top:1px dashed #e7e1eb;
+}
+.crmb-task-admin-actions .crmb-task-card-edit {
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  border-radius:9px;
+  padding:8px 10px;
+  border:1px solid #dcd2ee;
+  background:#f7f2ff;
+  color:#654395;
+  font-size:11px;
+  font-weight:800;
+  text-decoration:none;
+}
+.crmb-task-delete-form {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:0;
+}
+.crmb-task-delete-future {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  cursor:pointer;
+  font-size:10px;
+  color:#89788f;
+}
+.crmb-task-delete-future input[type="checkbox"] {
+  appearance:auto;
+  width:15px;
+  height:15px;
+  flex:0 0 15px;
+  accent-color:#86509c;
+}
+.crmb-task-delete-button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:8px 11px;
+  border:1px solid #eed6db;
+  border-radius:9px;
+  background:#fff6f8;
+  color:#aa4257;
+  cursor:pointer;
+  font-size:11px;
+  font-weight:800;
+}
+.crmb-task-delete-button:hover {background:#ffedf1;border-color:#eab6c1;}
+.crmb-tasks-editor select#task-repeat {max-width:420px;}
+@media(max-width:620px) {
+  .crmb-task-admin-actions {align-items:stretch;}
+  .crmb-task-admin-actions>* {flex:1 1 auto;}
+  .crmb-task-delete-form {gap:9px;}
+  .crmb-task-delete-future {width:100%;}
+}
