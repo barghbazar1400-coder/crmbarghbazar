@@ -87,10 +87,17 @@ function crmb_work_mutate( $data ) {
         $assigned = crmb_work_id( $data, 'assigned_to' ); $priority = crmb_work_text( $data, 'priority' );
         $raw_due = crmb_work_text( $data, 'due_day' );
         $due = '' === $raw_due ? null : crmb_leave_parse_day( $raw_due );
-        if ( '' === $title || strlen( $title ) > 180 || strlen( $body ) > 10000 || ! get_userdata( $assigned ) || ! isset( crmb_work_priorities()[ $priority ] ) || false === $due ) { return 'invalid'; }
+        $repeat = crmb_work_text( $data, 'repeat' ) ?: 'none';
+        if ( '' === $title || strlen( $title ) > 180 || strlen( $body ) > 10000
+            || ! get_userdata( $assigned ) || ! isset( crmb_work_priorities()[ $priority ] )
+            || false === $due || ! in_array( $repeat, array( 'none', 'daily' ), true ) ) { return 'invalid'; }
         $row = $id ? $wpdb->get_row( $wpdb->prepare( "SELECT id FROM {$t['tasks']} WHERE id = %d", $id ) ) : null;
         if ( isset( $data['id'] ) && ( ! $id || ! $row ) ) { return 'invalid'; }
         $values = array( 'title' => $title, 'description' => $body, 'assigned_to' => $assigned, 'priority' => $priority, 'due_day' => $due, 'updated_utc' => $now );
+        if ( function_exists( 'crmb_task_repeat_save' ) && crmb_task_repeat_ready() ) {
+            return crmb_task_repeat_save( $id, $values, $repeat );
+        }
+        if ( 'daily' === $repeat ) { return 'error'; }
         if ( $id && function_exists( 'crmb_progress_edit_task' ) ) { return crmb_progress_edit_task( $id, $values ); }
         if ( $id ) { $result = $wpdb->update( $t['tasks'], $values, array( 'id' => $id ) ); }
         else {
@@ -101,6 +108,11 @@ function crmb_work_mutate( $data ) {
             do_action( 'crmb_task_assigned', (int) $wpdb->insert_id, $assigned, $uid, 0 );
         }
         return false === $result ? 'error' : 'saved';
+    }
+    if ( 'delete_task' === $task ) {
+        if ( ! crmb_work_manage_team() ) { return 'denied'; }
+        if ( ! function_exists( 'crmb_task_repeat_delete' ) ) { return 'error'; }
+        return crmb_task_repeat_delete( $id, ! empty( $data['stop_repeat'] ) );
     }
     if ( 'task_status' === $task ) {
         $status = crmb_work_text( $data, 'status' );
@@ -158,6 +170,9 @@ function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = f
     $limit = max( 1, min( 20, (int) $limit ) ); $page = max( 1, min( 100000, (int) $page ) );
     if ( 'tasks' === $kind ) {
         $where = $team && crmb_work_manage_team() ? '1=1' : $wpdb->prepare( 'assigned_to = %d', $uid );
+        if ( function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready() ) {
+            $where .= ' AND deleted_utc IS NULL';
+        }
         if ( $active || 'open' === $status_view ) { $where .= " AND status IN ('todo','doing','paused')"; }
         elseif ( 'done' === $status_view ) { $where .= " AND status = 'done'"; }
         $order = 'done' === $status_view && ! $active
@@ -185,6 +200,9 @@ function crmb_work_task_counts( $team = false ) {
     global $wpdb;
     $t = crmb_work_tables();
     $where = $team && crmb_work_manage_team() ? '1=1' : $wpdb->prepare( 'assigned_to = %d', get_current_user_id() );
+    if ( function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready() ) {
+        $where .= ' AND deleted_utc IS NULL';
+    }
     $rows = $wpdb->get_results( "SELECT status, COUNT(*) AS total FROM {$t['tasks']} WHERE {$where} GROUP BY status" );
     if ( $wpdb->last_error || ! is_array( $rows ) ) { return $empty; }
     $totals = array( 'ready' => true, 'all' => 0, 'open' => 0, 'done' => 0 );
@@ -198,7 +216,7 @@ function crmb_work_task_counts( $team = false ) {
 }
 function crmb_work_notice() {
     $code = isset( $_GET['work_notice'] ) && is_string( $_GET['work_notice'] ) ? sanitize_key( $_GET['work_notice'] ) : '';
-    $notices = array( 'saved' => 'تغییرات ذخیره شد.', 'running' => 'ابتدا زمان‌سنج وظیفه در حال اجرا را متوقف کنید؛ برای انتقال مسئول هم زمان‌سنج باید متوقف باشد.', 'sent' => 'پیام ارسال شد.', 'read' => 'پیام خوانده‌شده ثبت شد.', 'invalid' => 'اطلاعات معتبر نیست؛ فیلدها را بررسی کنید.', 'denied' => 'اجازه این عملیات را ندارید.', 'error' => 'ذخیره انجام نشد؛ دوباره تلاش کنید.', 'changed' => 'وضعیت قبلاً تغییر کرده است؛ صفحه را تازه کنید.' );
+    $notices = array( 'saved' => 'تغییرات ذخیره شد.', 'running' => 'ابتدا زمان‌سنج وظیفه در حال اجرا را متوقف کنید؛ برای انتقال مسئول هم زمان‌سنج باید متوقف باشد.', 'sent' => 'پیام ارسال شد.', 'read' => 'پیام خوانده‌شده ثبت شد.', 'invalid' => 'اطلاعات معتبر نیست؛ فیلدها را بررسی کنید.', 'denied' => 'اجازه این عملیات را ندارید.', 'error' => 'ذخیره انجام نشد؛ دوباره تلاش کنید.', 'changed' => 'وضعیت قبلاً تغییر کرده است؛ صفحه را تازه کنید.', 'deleted' => 'وظیفه از فهرست حذف شد و سوابق آن برای بررسی مدیریتی حفظ شد.' );
     if ( isset( $notices[ $code ] ) ) { echo '<p role="status" class="crm-access-notice">' . esc_html( $notices[ $code ] ) . '</p>'; }
 }
 function crmb_work_unread_count() {
