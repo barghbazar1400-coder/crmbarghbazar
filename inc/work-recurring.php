@@ -112,6 +112,10 @@ function crmb_task_repeat_save( $id, $values, $rule ) {
             );
         } else {
             $changes['active'] = 0; // Stop future instances; old history stays.
+            // The edited task becomes an ordinary task. Past daily instances
+            // retain their historical series relationship.
+            $values['repeat_series_id'] = 0;
+            $values['repeat_day'] = null;
         }
         if ( false === $wpdb->update( $series, $changes, array( 'id' => $series_id ) ) ) {
             return crmb_task_repeat_rollback();
