@@ -34,7 +34,7 @@ check( str_contains( $html, 'کارهای' ) === false || str_contains( $html, '
 check( str_contains( $html, 'فعالیت امروز کارکنان' ), 'Team activity' );
 check( str_contains( $html, 'queue=overdue' ), 'Overdue panel links to real filtered task queue' );
 check( str_contains( $html, 'queue=stalled' ), 'Stalled panel links to real filtered task queue' );
-check( str_contains( $html, 'queue=activity' ), 'Activity panel links to today's matching tasks' );
+check( str_contains( $html, 'queue=activity' ), 'Activity panel links to matching tasks today' );
 check( str_contains( $html, 'view=review' ), 'Review panel retains review status' );
 check( str_contains( $html, 'sales_queue=followups' ), 'Sales followup panel uses a filtered queue' );
 
