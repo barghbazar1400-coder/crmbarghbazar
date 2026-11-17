@@ -87,6 +87,100 @@ check(1, crmb_notice_count());
 check(true, crmb_notice_read(0,true));
 check(0, crmb_notice_count());
 
+// The manager must immediately know which task and which employee sent it.
+// The same contextual copy appears in both the bell and full notices page.
+$wpdb->insert( 'wp_crmb_tasks', array(
+    'title' => 'پیگیری تأمین کابل صنعتی', 'description' => '',
+    'assigned_to' => 7, 'created_by' => 8, 'priority' => 'normal',
+    'status' => 'review', 'created_utc' => gmdate( 'Y-m-d H:i:s' ),
+    'updated_utc' => gmdate( 'Y-m-d H:i:s' )
+) );
+$review_task_id = (int) $wpdb->insert_id;
+function notice_review_event( $task, $actor ) {
+    global $wpdb;
+    $wpdb->insert( 'wp_crmb_task_events', array(
+        'task_id' => $task, 'actor_id' => $actor, 'event_type' => 'review',
+        'body' => '', 'created_utc' => gmdate( 'Y-m-d H:i:s' )
+    ) );
+    return (int) $wpdb->insert_id;
+}
+$review_event_id = notice_review_event( $review_task_id, 7 );
+crmb_notice_task_review_requested( $review_task_id, 8, 7, $review_event_id );
+$uid = 8; $admin = false;
+$feed = crmb_notice_list( 30 );
+$review_notices = array_values( array_filter( $feed, static fn( $n ) =>
+    'task_review_request:' . $GLOBALS['review_event_id'] === $n->source_key
+) );
+check( 1, count( $review_notices ) );
+check( true, str_contains( $review_notices[0]->title, 'پیگیری تأمین کابل صنعتی' ) );
+check( true, str_contains( $review_notices[0]->summary, 'ارسال‌کننده: Employee' ) );
+check( true, str_contains( $review_notices[0]->summary, '#' . $review_task_id ) );
+check( true, str_contains( $review_notices[0]->href, 'task_id=' . $review_task_id ) );
+check( false, (bool) $review_notices[0]->read_utc );
+$uid = 9;
+check( 0, count( array_filter( crmb_notice_list( 30 ), static fn( $n ) =>
+    'task_review_request:' . $GLOBALS['review_event_id'] === $n->source_key
+) ) );
+
+// Re-submission includes the same identifiable task and submitter.
+$uid = 7;
+$again_event_id = notice_review_event( $review_task_id, 7 );
+crmb_notice_task_review_resubmitted( $review_task_id, 8, 7, $again_event_id );
+$uid = 8;
+$again = array_values( array_filter( crmb_notice_list( 30 ), static fn( $n ) =>
+    'task_review_resubmitted:' . $GLOBALS['again_event_id'] === $n->source_key
+) );
+check( 1, count( $again ) );
+check( true, str_contains( $again[0]->title, 'پیگیری تأمین کابل صنعتی' ) );
+check( true, str_contains( $again[0]->summary, 'ارسال‌کننده: Employee' ) );
+
+// Existing generic entries already in the database get meaningful labels
+// without re-inserting, marking read, or emitting another push.
+$legacy_event_id = notice_review_event( $review_task_id, 7 );
+$legacy_key = 'task_review_request:' . $legacy_event_id;
+$old_href = crmb_notice_url( 'tasks', array( 'task_id' => $review_task_id ) );
+check( true, crmb_notice_add( 8, 'task', 'کار در انتظار تأیید شماست',
+    'مسئول کار درخواست تأیید نهایی فرستاده است.', $old_href, $legacy_key, 7 ) );
+$legacy_again_id = notice_review_event( $review_task_id, 7 );
+$legacy_again_key = 'task_review_resubmitted:' . $legacy_again_id;
+check( true, crmb_notice_add( 8, 'task', 'اصلاحات کار برای تأیید مجدد ارسال شد',
+    'کارمند پس از اصلاح، وظیفه را دوباره برای بازبینی شما فرستاده است.',
+    $old_href, $legacy_again_key, 7 ) );
+$raw_before = $wpdb->get_row( $wpdb->prepare(
+    "SELECT title,read_utc FROM wp_crmb_notifications WHERE user_id=%d AND source_key=%s",
+    8, $legacy_key
+) );
+check( 'کار در انتظار تأیید شماست', $raw_before->title );
+check( null, $raw_before->read_utc );
+$legacy_feed = crmb_notice_list( 30 );
+$legacy = array_values( array_filter( $legacy_feed, static fn( $n ) =>
+    $n->source_key === $GLOBALS['legacy_key']
+) );
+check( 1, count( $legacy ) );
+check( true, str_contains( $legacy[0]->title, 'پیگیری تأمین کابل صنعتی' ) );
+check( true, str_contains( $legacy[0]->summary, 'ارسال‌کننده: Employee' ) );
+$legacy_again = array_values( array_filter( $legacy_feed, static fn( $n ) =>
+    $n->source_key === $GLOBALS['legacy_again_key']
+) );
+check( 1, count( $legacy_again ) );
+check( true, str_contains( $legacy_again[0]->title, 'پیگیری تأمین کابل صنعتی' ) );
+$raw_after = $wpdb->get_row( $wpdb->prepare(
+    "SELECT title,read_utc FROM wp_crmb_notifications WHERE user_id=%d AND source_key=%s",
+    8, $legacy_key
+) );
+check( 'کار در انتظار تأیید شماست', $raw_after->title );
+check( null, $raw_after->read_utc );
+check( false, crmb_notice_add( 8, 'task', 'Duplicate', 'No', $old_href, $legacy_key, 7 ) );
+
+// Reading an unrelated notification still respects recipient ownership.
+$uid = 7;
+check( false, crmb_notice_read( (int) $legacy[0]->id ) );
+$uid = 8;
+check( true, crmb_notice_read( (int) $legacy[0]->id ) );
+check( true, (bool) $wpdb->get_var( $wpdb->prepare(
+    "SELECT read_utc FROM wp_crmb_notifications WHERE id=%d", (int) $legacy[0]->id
+) ) );
+
 check(true, crmb_push_safe_endpoint('https://fcm.googleapis.com/fcm/send/demo'));
 check(true, crmb_push_safe_endpoint('https://updates.push.services.mozilla.com/wpush/v1/demo'));
 check(false, crmb_push_safe_endpoint('http://fcm.googleapis.com/fcm/send/demo'));

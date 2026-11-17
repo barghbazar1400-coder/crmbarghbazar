@@ -123,21 +123,59 @@ add_action( 'crmb_task_completed', function ( $task_id, $creator, $actor, $event
     crmb_notice_add( $creator, 'task_done', 'وظیفه تکمیل شد', 'یکی از وظایف واگذارشده تکمیل شده است.',
         crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ), 'completed:' . $event_id, $actor );
 }, 10, 4 );
-add_action( 'crmb_task_review_requested', function ( $task_id, $manager, $actor, $event_id ) {
-    if ( (int) $manager === (int) $actor ) { return; }
-    crmb_notice_add( $manager, 'task', 'کار در انتظار تأیید شماست',
-        'مسئول کار درخواست تأیید نهایی فرستاده است.',
+/**
+ * Compact, identifiable manager-review notice. Use the submitting actor
+ * rather than the task's current assignee: old notifications must continue
+ * naming the person who actually submitted them, even after reassignment.
+ */
+function crmb_notice_review_text( $task_id, $task_title, $actor_id, $resubmitted = false ) {
+    $name = crmb_work_user_name( (int) $actor_id );
+    $name = sanitize_text_field( $name );
+    $title = sanitize_text_field( $task_title );
+    if ( function_exists( 'mb_substr' ) ) {
+        $name = mb_substr( $name, 0, 60, 'UTF-8' );
+        $title = mb_substr( $title, 0, 90, 'UTF-8' );
+    } else {
+        // Unicode-safe fallback for older PHP installations without mbstring.
+        preg_match( '/^.{0,60}/us', $name, $n );
+        preg_match( '/^.{0,90}/us', $title, $t );
+        $name = $n[0] ?? '';
+        $title = $t[0] ?? '';
+    }
+    if ( '' === $title ) { $title = 'کار #' . (int) $task_id; }
+    return array(
+        'title' => ( $resubmitted ? 'ارسال مجدد برای تأیید: «' : 'در انتظار تأیید: «' ) . $title . '»',
+        'summary' => 'ارسال‌کننده: ' . $name . ' | شماره کار: #' . (int) $task_id,
+    );
+}
+function crmb_notice_review_task_text( $task_id, $actor_id, $resubmitted = false ) {
+    global $wpdb;
+    $tables = crmb_work_tables();
+    $task = $wpdb->get_row( $wpdb->prepare(
+        "SELECT id,title FROM {$tables['tasks']} WHERE id=%d",
+        (int) $task_id
+    ) );
+    return crmb_notice_review_text( $task_id, $task ? $task->title : '', $actor_id, $resubmitted );
+}
+function crmb_notice_task_review_requested( $task_id, $manager, $actor, $event_id ) {
+    if ( ! $manager || (int) $manager === (int) $actor ) { return; }
+    $text = crmb_notice_review_task_text( $task_id, $actor );
+    crmb_notice_add( $manager, 'task', $text['title'], $text['summary'],
         crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ),
         'task_review_request:' . $event_id, $actor );
-}, 10, 4 );
-// The last rejecting manager may be different from the original task creator.
-add_action( 'crmb_task_review_resubmitted', function ( $task_id, $reviewer, $actor, $event_id ) {
+}
+add_action( 'crmb_task_review_requested', 'crmb_notice_task_review_requested', 10, 4 );
+
+// The last rejecting manager may differ from the task creator. The notice
+// still identifies the employee and task instead of a generic resubmission.
+function crmb_notice_task_review_resubmitted( $task_id, $reviewer, $actor, $event_id ) {
     if ( ! $reviewer || (int) $reviewer === (int) $actor ) { return; }
-    crmb_notice_add( $reviewer, 'task', 'اصلاحات کار برای تأیید مجدد ارسال شد',
-        'کارمند پس از اصلاح، وظیفه را دوباره برای بازبینی شما فرستاده است.',
+    $text = crmb_notice_review_task_text( $task_id, $actor, true );
+    crmb_notice_add( $reviewer, 'task', $text['title'], $text['summary'],
         crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ),
         'task_review_resubmitted:' . $event_id, $actor );
-}, 10, 4 );
+}
+add_action( 'crmb_task_review_resubmitted', 'crmb_notice_task_review_resubmitted', 10, 4 );
 add_action( 'crmb_task_review_decided', function ( $task_id, $owner, $actor, $event_id, $approved ) {
     if ( (int) $owner === (int) $actor ) { return; }
     crmb_notice_add( $owner, 'task', $approved ? 'کار شما تأیید شد' : 'کار برای اصلاح برگشت',
@@ -159,14 +197,60 @@ function crmb_notice_count() {
     $count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t['notices']} WHERE user_id=%d AND read_utc IS NULL", get_current_user_id() ) );
     return $wpdb->last_error ? 0 : (int) $count;
 }
+/**
+ * Upgrade old, generic review notifications *on read*, without rewriting
+ * history, re-sending push, or marking them read. One batched event lookup
+ * covers the visible page, not one SQL query per notification.
+ */
+function crmb_notice_review_legacy_labels( $items ) {
+    if ( ! is_array( $items ) || ! $items || ! crmb_progress_ready() ) { return $items; }
+    $legacy = array();
+    foreach ( $items as $index => $item ) {
+        if ( ! isset( $item->source_key, $item->title ) ) { continue; }
+        $requested = 'کار در انتظار تأیید شماست' === $item->title
+            && preg_match( '/^task_review_request:([1-9][0-9]*)$/D', $item->source_key, $match );
+        $resubmitted = 'اصلاحات کار برای تأیید مجدد ارسال شد' === $item->title
+            && preg_match( '/^task_review_resubmitted:([1-9][0-9]*)$/D', $item->source_key, $match );
+        if ( $requested || $resubmitted ) {
+            $legacy[(int) $match[1]][] = array( $index, (bool) $resubmitted );
+        }
+    }
+    if ( ! $legacy ) { return $items; }
+    global $wpdb;
+    $events = crmb_progress_tables()['events'];
+    $tasks = crmb_work_tables()['tasks'];
+    $ids = array_keys( $legacy );
+    $marks = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        "SELECT e.id,e.task_id,e.actor_id,t.title
+           FROM {$events} e INNER JOIN {$tasks} t ON t.id=e.task_id
+          WHERE e.id IN ({$marks}) AND e.event_type='review'",
+        ...$ids
+    ) );
+    if ( $wpdb->last_error || ! is_array( $rows ) ) { return $items; }
+    foreach ( $rows as $event ) {
+        foreach ( $legacy[(int) $event->id] ?? array() as $match ) {
+            $index = $match[0];
+            // Source key is bound to the real review event and actor.
+            $label = crmb_notice_review_text(
+                (int) $event->task_id, $event->title, (int) $event->actor_id, $match[1]
+            );
+            $items[$index]->title = $label['title'];
+            $items[$index]->summary = $label['summary'];
+        }
+    }
+    return $items;
+}
 function crmb_notice_list( $limit = 30 ) {
     if ( ! is_user_logged_in() || ! crmb_notice_ready() ) { return array(); }
     global $wpdb;
     $t = crmb_notice_tables();
-    return $wpdb->get_results( $wpdb->prepare(
-        "SELECT id,kind,title,summary,detail,href,created_utc,read_utc FROM {$t['notices']} WHERE user_id=%d ORDER BY id DESC LIMIT %d",
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        "SELECT id,kind,title,summary,detail,href,created_utc,read_utc,source_key
+           FROM {$t['notices']} WHERE user_id=%d ORDER BY id DESC LIMIT %d",
         get_current_user_id(), max( 1, min( 50, (int) $limit ) )
-    ) ) ?: array();
+    ) );
+    return crmb_notice_review_legacy_labels( $rows ?: array() );
 }
 function crmb_notice_read( $id = 0, $all = false ) {
     if ( ! is_user_logged_in() || ! crmb_notice_ready() || ( ! $all && ! $id ) ) { return false; }
