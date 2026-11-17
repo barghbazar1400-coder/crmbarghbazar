@@ -118,7 +118,14 @@ function crmb_progress_transition( $id, $status ) {
     // Only the explicit manager review endpoint can approve or reject.
     if ( 'review' === $task->status && ( ! $admin || 'cancelled' !== $status ) ) { return crmb_progress_fail( 'denied' ); }
     if ( 'doing' === $status && ! $owner ) { return crmb_progress_fail( 'denied' ); }
-    $is_review_submission = 'done' === $status && $owner && ! $admin;
+    // A task owner can also have operations/SEO manager permissions.
+    // Completion is still only a *submission*; manager approval must use
+    // crmb_task_review_decide(), never the generic status dropdown/button.
+    $is_review_submission = 'done' === $status && $owner;
+    if ( 'done' === $status && ! $owner ) { return crmb_progress_fail( 'denied' ); }
+    if ( $is_review_submission && ! in_array( $task->status, array( 'todo', 'doing', 'paused' ), true ) ) {
+        return crmb_progress_fail( 'denied' );
+    }
     if ( $is_review_submission ) { $status = 'review'; }
     if ( $task->status === $status && ( 'doing' !== $status || $task->timer_started_utc ) ) { return crmb_progress_fail( 'changed' ); }
     $now = gmdate( 'Y-m-d H:i:s' );

@@ -4,6 +4,7 @@ define( 'ABSPATH', __DIR__ );
 $as_manager = false; $checks = 0;
 function is_user_logged_in() { return true; }
 function crmb_work_manage_team() { global $as_manager; return $as_manager; }
+function get_current_user_id() { global $as_manager; return $as_manager ? 1 : 3; }
 function crmb_work_task_counts( $team, $assigned_filter = 0 ) {
     global $count_filter;
     $count_filter = $assigned_filter;
@@ -99,6 +100,7 @@ $manager = render( true );
 verify( str_contains( $manager, 'class="crm-access-card crmb-tasks-editor"' ), 'Manager assignment form' );
 verify( str_contains( $manager, 'کارهای تیم' ), 'Team navigation' );
 verify( str_contains( $manager, 'value="cancelled"' ), 'Manager status rights' );
+verify( ! str_contains( $manager, '<option value="done"' ), 'Manager cannot directly complete another employee open task' );
 verify( str_contains( $manager, 'مسئول:' ), 'Manager sees assignee' );
 verify( str_contains( $manager, 'name="repeat"' ), 'Manager sees repeat selector' );
 verify( str_contains( $manager, '>هر روز</option>' ), 'Daily repeat choice' );

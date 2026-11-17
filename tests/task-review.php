@@ -58,6 +58,36 @@ check( 'denied', crmb_progress_transition( $id, 'doing' ) );
 check( 2, (int) $wpdb->get_var( "SELECT COUNT(*) FROM wp_crmb_task_events WHERE task_id={$id} AND event_type='review'" ) );
 check( 1, (int) $wpdb->get_var( "SELECT COUNT(*) FROM wp_crmb_task_events WHERE task_id={$id} AND event_type='review_rejected'" ) );
 check( 1, (int) $wpdb->get_var( "SELECT COUNT(*) FROM wp_crmb_task_events WHERE task_id={$id} AND event_type='review_approved'" ) );
+// Regression: task assignee with operations/manager permission must still
+// submit work for review, never complete it via the generic status endpoint.
+$logged = true; $admin = true; $uid = 8;
+$wpdb->insert( 'wp_crmb_tasks', array(
+    'title' => 'Manager-owned task also requires review',
+    'description' => '', 'assigned_to' => 8, 'created_by' => 1,
+    'priority' => 'normal', 'status' => 'todo',
+    'created_utc' => gmdate( 'Y-m-d H:i:s' ), 'updated_utc' => gmdate( 'Y-m-d H:i:s' ),
+) );
+$own_task_id = (int) $wpdb->insert_id;
+check( 'submitted', crmb_progress_transition( $own_task_id, 'done' ) );
+check( 'review', crmb_progress_task( $own_task_id )->status );
+check( null, crmb_progress_task( $own_task_id )->completed_utc );
+check( 1, (int) $wpdb->get_var(
+    "SELECT COUNT(*) FROM wp_crmb_tasks WHERE id={$own_task_id} AND status='review'"
+) );
+check( 'denied', crmb_progress_transition( $own_task_id, 'done' ) );
+check( 'approved', crmb_task_review_decide( $own_task_id, 'approve' ) );
+check( 'done', crmb_progress_task( $own_task_id )->status );
+check( 'denied', crmb_progress_transition( $own_task_id, 'done' ) );
+
+// A manager looking at another employee's open task cannot bypass review.
+$wpdb->insert( 'wp_crmb_tasks', array(
+    'title' => 'Team member task', 'description' => '', 'assigned_to' => 7,
+    'created_by' => 1, 'priority' => 'normal', 'status' => 'todo',
+    'created_utc' => gmdate( 'Y-m-d H:i:s' ), 'updated_utc' => gmdate( 'Y-m-d H:i:s' ),
+) );
+$team_task_id = (int) $wpdb->insert_id;
+check( 'denied', crmb_progress_transition( $team_task_id, 'done' ) );
+check( 'todo', crmb_progress_task( $team_task_id )->status );
 $logged = false;
 check( 'denied', crmb_task_review_decide( $id, 'approve' ) );
 

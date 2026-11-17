@@ -169,8 +169,12 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                                 <label for="status-<?php echo esc_attr( $task->id ); ?>">تغییر وضعیت</label>
                                 <select id="status-<?php echo esc_attr( $task->id ); ?>" name="status">
                                 <?php foreach ( $status_labels as $key => $label ) :
-                                    if ( 'review' === $key || ( ! $work_admin && 'cancelled' === $key ) ) { continue; }
-                                    $status_option_label = ! $work_admin && 'done' === $key ? 'ارسال برای تأیید مدیر' : $label; ?>
+                                    $is_assignee = (int) $task->assigned_to === get_current_user_id();
+                                    // Final approval has a dedicated manager action; the
+                                    // ordinary dropdown only sends the assignee's own work.
+                                    if ( 'review' === $key || ( ! $work_admin && 'cancelled' === $key )
+                                        || ( 'done' === $key && ! $is_assignee && 'done' !== $task->status ) ) { continue; }
+                                    $status_option_label = 'done' === $key && $is_assignee ? 'ارسال برای تأیید مدیر' : $label; ?>
                                     <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $task->status, $key ); ?>><?php echo esc_html( $status_option_label ); ?></option>
                                 <?php endforeach; ?>
                                 </select><button type="submit">ذخیره</button>
