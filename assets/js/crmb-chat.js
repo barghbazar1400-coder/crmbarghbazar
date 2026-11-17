@@ -217,6 +217,10 @@
             link.rel = 'noopener noreferrer';
             link.title = String(file.name || 'فایل');
             if (file.image) {
+                // Hand off click to the in-page private image dialog.
+                // The existing link remains an accessible fallback.
+                link.setAttribute('data-crmb-chat-image', '');
+                link.setAttribute('aria-label', 'نمایش تصویر ' + String(file.name || '') + ' در همین صفحه');
                 var img = document.createElement('img');
                 img.src = href;
                 img.loading = 'lazy';

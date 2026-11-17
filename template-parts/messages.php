@@ -143,6 +143,18 @@ if ( $selected && ! isset( $members_by_id[ $selected ] ) ) {
             <div class="crmb-messenger-status" id="crmb-chat-status" role="status" aria-live="polite"></div>
         </div>
     </div>
+    <dialog class="crmb-chat-image-modal" id="crmb-chat-image-modal"
+        aria-label="نمایش تصویر پیوست گفتگو" aria-modal="true">
+        <div class="crmb-chat-image-modal-content">
+            <div class="crmb-chat-image-modal-header">
+                <span id="crmb-chat-image-modal-caption" class="crmb-chat-image-modal-caption" dir="auto"></span>
+                <button type="button" id="crmb-chat-image-modal-close" class="crmb-chat-image-modal-close"
+                    aria-label="بستن تصویر"><i class="fa-solid fa-xmark" aria-hidden="true"></i> بستن</button>
+            </div>
+            <img id="crmb-chat-image-modal-photo" class="crmb-chat-image-modal-photo"
+                alt="تصویر پیوست گفتگو">
+        </div>
+    </dialog>
 </section>
 <?php
 $chat_script = get_template_directory() . '/assets/js/crmb-chat.js';
@@ -155,4 +167,9 @@ if ( is_readable( $chat_script ) ) :
 ?>
 <script>window.crmbChatConfig = <?php echo wp_json_encode( $chat_config, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP ); ?>;</script>
 <script id="crmb-chat-inline"><?php readfile( $chat_script ); ?></script>
+<?php
+$chat_modal_script = get_template_directory() . '/assets/js/crmb-chat-image-modal.js';
+if ( is_readable( $chat_modal_script ) ) : ?>
+<script id="crmb-chat-image-modal-inline"><?php readfile( $chat_modal_script ); ?></script>
+<?php endif; ?>
 <?php endif; ?>

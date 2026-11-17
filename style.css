@@ -4585,3 +4585,93 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
 .crmb-plan-personal-list a{font-weight:800;color:#6240ac;text-decoration:none}
 .crmb-plan-personal-list small{color:#887b98}
 @media(max-width:700px){.crmb-plan-heading{align-items:flex-start}.crmb-plan-row-body{min-width:0}.crmb-plan-row-actions{width:100%}.crmb-plan-row-actions form{flex:1}.crmb-plan-row-actions button{width:100%}}
+
+
+/* Private messenger image lightbox: native dialog is in the top layer,
+   so it is never clipped by the scrollable chat conversation or sidebar. */
+.crmb-chat-file-card[data-crmb-chat-image] { cursor:zoom-in; }
+.crmb-chat-file-card[data-crmb-chat-image]:focus-visible {
+  outline:3px solid #946ad7;
+  outline-offset:3px;
+}
+.crmb-chat-image-modal {
+  box-sizing:border-box;
+  width:max-content;
+  max-width:min(1160px,96vw);
+  max-height:95vh;
+  max-height:95dvh;
+  padding:0;
+  margin:auto;
+  border:0;
+  border-radius:16px;
+  background:transparent;
+  color:#fff;
+  overflow:visible;
+  box-shadow:0 24px 80px rgba(0,0,0,.4);
+}
+.crmb-chat-image-modal::backdrop {
+  background:rgba(17,10,34,.85);
+  backdrop-filter:blur(3px);
+}
+.crmb-chat-image-modal-content {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  box-sizing:border-box;
+  max-width:96vw;
+  padding:13px;
+  border-radius:16px;
+  background:#20152f;
+}
+.crmb-chat-image-modal-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:36px;
+}
+.crmb-chat-image-modal-caption {
+  flex:1;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:12px;
+  line-height:1.7;
+}
+.crmb-chat-image-modal-close {
+  flex:none;
+  display:inline-flex;
+  gap:8px;
+  align-items:center;
+  justify-content:center;
+  padding:8px 12px;
+  min-height:36px;
+  border-radius:9px;
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.13);
+  color:#fff;
+  font:inherit;
+  font-size:12px;
+  font-weight:750;
+  cursor:pointer;
+}
+.crmb-chat-image-modal-close:hover { background:rgba(255,255,255,.24); }
+.crmb-chat-image-modal-close:focus-visible { outline:2px solid #fff;outline-offset:3px; }
+.crmb-chat-image-modal-photo {
+  display:block;
+  width:auto;
+  height:auto;
+  min-width:0;
+  max-width:min(1100px,calc(96vw - 26px));
+  max-height:calc(95vh - 90px);
+  max-height:calc(95dvh - 90px);
+  object-fit:contain;
+  border-radius:8px;
+  background:#f7f5fb;
+}
+@media(max-width:600px) {
+ .crmb-chat-image-modal {max-width:98vw;}
+ .crmb-chat-image-modal-content {padding:9px;max-width:98vw;}
+ .crmb-chat-image-modal-photo {max-width:calc(98vw - 18px);}
+}

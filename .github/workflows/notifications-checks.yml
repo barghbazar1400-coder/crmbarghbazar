@@ -9,6 +9,8 @@ on:
       - 'inc/notifications-push.php'
       - 'assets/js/crmb-notices.js'
       - 'assets/js/crmb-chat.js'
+      - 'assets/js/crmb-chat-image-modal.js'
+      - 'tests/chat-image-modal.js'
       - 'assets/js/crmb-push-sw.js'
       - 'template-parts/messages.php'
       - 'template-parts/messages-list.php'
@@ -60,6 +62,8 @@ jobs:
         run: |
           node --check assets/js/crmb-notices.js
           node --check assets/js/crmb-chat.js
+          node --check assets/js/crmb-chat-image-modal.js
+          node --check tests/chat-image-modal.js
           node --check assets/js/crmb-push-sw.js
           node --check tests/notifications-client.js
           node --check tests/notifications-popover.js
@@ -77,5 +81,7 @@ jobs:
           node tests/notifications-client.js
           node tests/notifications-popover.js
           node tests/notifications-sound.js
+      - name: Chat private image modal and file fallback
+        run: node tests/chat-image-modal.js
       - name: Test true HTTP multipart upload and private download
         run: node tests/chat-uploads-http.js
