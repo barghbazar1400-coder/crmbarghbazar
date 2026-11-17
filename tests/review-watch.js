@@ -6,7 +6,7 @@ const vm=require('node:vm');
 const source=fs.readFileSync(__dirname+'/../assets/js/crmb-review-watch.js','utf8');
 function setup(draftOpen=false) {
   const requests=[],timers=[],listeners={},watch={
-    dataset:{nonce:'nonce',endpoint:'/wp-admin/admin-ajax.php',assigned:'7',version:'2',count:'0'}
+    dataset:{nonce:'nonce',endpoint:'/wp-admin/admin-ajax.php',assignee:'7',version:'2',count:'0'}
   },reloads=[];
   const link={hidden:true};
   let reply={version:2,count:0};
