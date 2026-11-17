@@ -3,6 +3,7 @@
 define( 'CRMB_TEST_BOOTSTRAP_ONLY', true );
 require __DIR__ . '/progress.php';
 function wp_json_encode( $value ) { return json_encode( $value, JSON_UNESCAPED_UNICODE ); }
+function sanitize_key( $value ) { return preg_replace( '/[^a-z0-9_-]/', '', strtolower( (string) $value ) ); }
 function get_users( $args = array() ) {
     return array(
         (object) array( 'ID'=>7, 'display_name'=>'کارمند اصلی' ),
