@@ -27,6 +27,7 @@ class ProgressDB {
         $this->db->exec("CREATE TABLE wp_crmb_tasks (id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT,description TEXT,assigned_to INTEGER,created_by INTEGER,priority TEXT,due_day TEXT,status TEXT,created_utc TEXT,updated_utc TEXT,first_started_utc TEXT,timer_started_utc TEXT,completed_utc TEXT,tracked_seconds INTEGER DEFAULT 0);
         CREATE TABLE wp_crmb_work_locks(user_id INTEGER PRIMARY KEY);
         CREATE TABLE wp_crmb_task_events(id INTEGER PRIMARY KEY AUTOINCREMENT,task_id INTEGER,actor_id INTEGER,event_type TEXT,body TEXT,created_utc TEXT);
+        CREATE TABLE wp_crmb_task_guidance_reads(event_id INTEGER,user_id INTEGER,read_utc TEXT,PRIMARY KEY(event_id,user_id));
         CREATE TABLE wp_crmb_daily_reports(id INTEGER PRIMARY KEY AUTOINCREMENT,user_id INTEGER,report_day TEXT,body TEXT,blockers TEXT,next_plan TEXT,status TEXT,created_utc TEXT,updated_utc TEXT,submitted_utc TEXT,reviewed_utc TEXT,reviewed_by INTEGER,UNIQUE(user_id,report_day));
         CREATE TABLE wp_crmb_report_images(id INTEGER PRIMARY KEY AUTOINCREMENT,report_id INTEGER,mime TEXT,image_data TEXT);
         CREATE TABLE wp_crmb_task_note_images(id INTEGER PRIMARY KEY AUTOINCREMENT,event_id INTEGER,mime TEXT,image_data TEXT);");
@@ -47,6 +48,7 @@ require __DIR__.'/../inc/work.php';
 require __DIR__.'/../inc/progress.php';
 require __DIR__.'/../inc/daily-reports.php';
 require __DIR__.'/../inc/task-rich-notes.php';
+require __DIR__.'/../inc/task-guidance.php';
 function check($a,$b) { global $checks; if($a!==$b) throw new RuntimeException('Check '.($checks+1).' expected '.var_export($a,true).' got '.var_export($b,true)); $checks++; }
 if (defined('CRMB_TEST_BOOTSTRAP_ONLY')) { return; }
 // The toolbar must not request a separate JS file from the public theme path.
@@ -158,9 +160,16 @@ $plugin_source = file_get_contents(__DIR__.'/../assets/js/crmb-task-table.js');
 check(true,is_string($plugin_source) && str_contains($plugin_source,'PluginManager.add("crmbtasktable"'));
 check(true,is_string($plugin_source) && str_contains($plugin_source,'windowManager.open'));
 check(true,str_contains($html,'راهنمایی مدیر')); check(false,str_contains($html,'id="crmb-manager-note"'));
+check(true,str_contains($html,'راهنمایی خوانده‌نشده از مدیر دارید'));
+check(true,str_contains($html,'name="event_id"'));
+check(true,str_contains($html,'خواندم'));
+check(true,str_contains($html,'crmb-task-guidance-alert'));
 check(true,str_contains($html,'crmb_task_note_image'));
 $admin=true; ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $admin_html=ob_get_clean();
 check(true,str_contains($admin_html,'id="crmb-manager-note"'));
+$uid=7; ob_start(); include __DIR__.'/../template-parts/task-progress.php'; $manager_html=ob_get_clean();
+check(true,str_contains($manager_html,'هنوز توسط مسئول خوانده نشده'));
+check(false,str_contains($manager_html,'name="event_id"'));
 $admin=false;
 $uid=7; $logged=false; ob_start(); include __DIR__.'/../template-parts/daily-reports.php'; check('',ob_get_clean());
 $logged=true;
