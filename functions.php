@@ -168,6 +168,7 @@ require_once get_template_directory() . '/inc/progress.php';
 require_once get_template_directory() . '/inc/work-recurring.php';
 require_once get_template_directory() . '/inc/daily-reports.php';
 require_once get_template_directory() . '/inc/task-rich-notes.php';
+require_once get_template_directory() . '/inc/task-guidance.php';
 require_once get_template_directory() . '/inc/notifications.php';
 require_once get_template_directory() . '/inc/notifications-push.php';
 require_once get_template_directory() . '/inc/seo.php';
