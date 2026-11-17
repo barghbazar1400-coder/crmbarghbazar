@@ -290,6 +290,9 @@ function crmb_task_plan_mutate( $data ) {
         } else {
             $template_id = isset( $data['template_id'] ) && is_scalar( $data['template_id'] )
                 ? absint( $data['template_id'] ) : 0;
+            if ( ! $template_id || ! $wpdb->get_var( $wpdb->prepare(
+                "SELECT id FROM {$t['templates']} WHERE id=%d", $template_id
+            ) ) ) { return crmb_task_plan_fail( 'invalid' ); }
             $count = $wpdb->get_var( $wpdb->prepare(
                 "SELECT COUNT(*) FROM {$t['steps']} WHERE task_id=%d AND deleted_utc IS NULL", $task_id
             ) );
