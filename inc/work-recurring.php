@@ -69,10 +69,14 @@ function crmb_task_repeat_rollback( $code = 'error' ) {
 }
 
 /** Manager saves an ordinary task, converts it to daily, or edits a daily series. */
-function crmb_task_repeat_save( $id, $values, $rule ) {
+function crmb_task_repeat_save( $id, $values, $rule, $plan_template_id = 0 ) {
     if ( ! crmb_work_manage_team() ) { return 'denied'; }
     if ( ! crmb_task_repeat_ready() ) { return 'error'; }
     if ( ! in_array( $rule, array( 'none', 'daily' ), true ) ) { return 'invalid'; }
+    $plan_template_id = (int) $plan_template_id;
+    if ( $plan_template_id && ( ! function_exists( 'crmb_task_plan_apply_locked' )
+        || ! crmb_task_plan_ready()
+        || ( 'daily' === $rule && ! crmb_task_plan_repeat_ready() ) ) ) { return 'error'; }
     global $wpdb;
     $tasks = crmb_work_tables()['tasks'];
     $series = crmb_task_repeat_table();
@@ -160,6 +164,14 @@ function crmb_task_repeat_save( $id, $values, $rule ) {
         $new_id = (int) $wpdb->insert_id;
         if ( ! $new_id ) { return crmb_task_repeat_rollback(); }
     }
+    if ( $plan_template_id ) {
+        if ( ! $new_id || ! crmb_task_plan_apply_locked(
+            $new_id, (int) $values['assigned_to'], $plan_template_id
+        ) ) { return crmb_task_repeat_rollback( 'invalid' ); }
+        if ( 'daily' === $rule && $series_id && false === $wpdb->update(
+            $series, array( 'plan_template_id' => $plan_template_id ), array( 'id' => $series_id )
+        ) ) { return crmb_task_repeat_rollback(); }
+    }
     if ( false === $wpdb->query( 'COMMIT' ) ) { return crmb_task_repeat_rollback(); }
     if ( function_exists( 'do_action' ) ) {
         if ( $new_id ) {
@@ -239,6 +251,13 @@ function crmb_task_repeat_generate( $day = null ) {
         );
         $inserted = $wpdb->query( $sql );
         $new_id = $inserted === 1 ? (int) $wpdb->insert_id : 0;
+        if ( $new_id && function_exists( 'crmb_task_plan_repeat_ready' )
+            && crmb_task_plan_repeat_ready() && ! empty( $template->plan_template_id )
+            && ! crmb_task_plan_apply_locked(
+                $new_id, (int) $template->assigned_to, (int) $template->plan_template_id
+            ) ) {
+            crmb_task_repeat_rollback(); return false;
+        }
         if ( false === $inserted || false === $wpdb->query( 'COMMIT' ) ) {
             crmb_task_repeat_rollback(); return false;
         }

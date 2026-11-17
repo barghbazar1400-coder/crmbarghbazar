@@ -100,6 +100,19 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                 <label for="task-description">شرح کار</label><textarea id="task-description" name="description" rows="4" maxlength="3000"><?php echo esc_textarea( $editing ? $editing->description : '' ); ?></textarea>
                 <label for="task-assignee">مسئول انجام</label><select id="task-assignee" name="assigned_to" required><option value="">انتخاب کارمند</option><?php foreach ( $members as $member ) : ?><option value="<?php echo esc_attr( $member->ID ); ?>" <?php selected( $editing ? $editing->assigned_to : $assigned_filter, $member->ID ); ?>><?php echo esc_html( $member->display_name ); ?></option><?php endforeach; ?></select>
                 <label for="task-priority">اولویت</label><select id="task-priority" name="priority"><?php foreach ( crmb_work_priorities() as $key => $label ) : ?><option value="<?php echo esc_attr( $key ); ?>" <?php selected( $editing ? $editing->priority : 'normal', $key ); ?>><?php echo esc_html( $label ); ?></option><?php endforeach; ?></select>
+                <?php if ( ! $editing && function_exists( 'crmb_task_plan_ready' ) && crmb_task_plan_ready() ) :
+                    $new_task_templates = crmb_task_plan_templates();
+                    if ( $new_task_templates ) : ?>
+                    <label for="crmb-task-plan-template">قالب آماده مراحل (اختیاری)</label>
+                    <select id="crmb-task-plan-template" name="plan_template_id">
+                        <option value="0">بدون قالب آماده</option>
+                        <?php foreach ( $new_task_templates as $item ) : ?>
+                            <option value="<?php echo esc_attr( $item->id ); ?>"><?php echo esc_html( $item->name ); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="crm-access-muted">مراحل قالب همراه تسک ساخته می‌شوند. در تسک‌های روزانه، هر نوبت به‌صورت مستقل مراحل تازه خواهد داشت.</p>
+                    <?php endif; ?>
+                <?php endif; ?>
                 <label for="task-repeat">تکرار وظیفه</label>
                 <select id="task-repeat" name="repeat">
                     <option value="none" <?php selected( ! empty( $editing->repeat_series_id ) ? 'daily' : 'none', 'none' ); ?>>بدون تکرار</option>

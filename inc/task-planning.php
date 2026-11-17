@@ -58,6 +58,57 @@ function crmb_task_plan_install() {
 }
 add_action( 'init', 'crmb_task_plan_install', 19 );
 
+/**
+ * Additive migration for recurring template selection. The older daily
+ * scheduler remains valid for series that have no chosen planning template.
+ */
+function crmb_task_plan_repeat_ready() {
+    return crmb_task_plan_ready() && function_exists( 'crmb_task_repeat_ready' )
+        && crmb_task_repeat_ready() && '1' === get_option( 'crmb_task_plan_repeat_v1' );
+}
+function crmb_task_plan_repeat_install() {
+    if ( crmb_task_plan_repeat_ready() || ! crmb_task_plan_ready()
+        || ! function_exists( 'crmb_task_repeat_ready' ) || ! crmb_task_repeat_ready() ) { return; }
+    global $wpdb;
+    $series = crmb_task_repeat_table();
+    $column = $wpdb->get_var( $wpdb->prepare(
+        "SHOW COLUMNS FROM {$series} LIKE %s", 'plan_template_id'
+    ) );
+    if ( $wpdb->last_error ) { return; }
+    if ( 'plan_template_id' !== $column && false === $wpdb->query(
+        "ALTER TABLE {$series} ADD COLUMN plan_template_id bigint(20) unsigned NOT NULL DEFAULT 0"
+    ) ) { return; }
+    update_option( 'crmb_task_plan_repeat_v1', '1', false );
+}
+add_action( 'init', 'crmb_task_plan_repeat_install', 20 );
+
+/** Insert a saved plan during a task creation transaction (no nested commit). */
+function crmb_task_plan_apply_locked( $task_id, $assignee, $template_id ) {
+    if ( ! crmb_task_plan_ready() || ! $task_id || ! $assignee || ! $template_id ) { return false; }
+    global $wpdb;
+    $t = crmb_task_plan_tables();
+    $template = $wpdb->get_row( $wpdb->prepare(
+        "SELECT name,items_json FROM {$t['templates']} WHERE id=%d", (int) $template_id
+    ) );
+    if ( ! $template ) { return false; }
+    $items = json_decode( $template->items_json, true );
+    if ( ! is_array( $items ) || ! $items || count( $items ) > 50 ) { return false; }
+    $now = gmdate( 'Y-m-d H:i:s' );
+    foreach ( $items as $item ) {
+        if ( ! isset( $item['kind'], $item['title'] ) || ! is_string( $item['title'] )
+            || ! in_array( $item['kind'], array( 'check', 'subtask' ), true )
+            || '' === $item['title'] || strlen( $item['title'] ) > 180 ) { return false; }
+        if ( false === $wpdb->insert( $t['steps'], array(
+            'task_id' => (int) $task_id, 'kind' => $item['kind'],
+            'title' => $item['title'], 'assigned_to' => (int) $assignee,
+            'due_day' => null, 'is_done' => 0, 'completed_by' => 0,
+            'completed_utc' => null, 'created_by' => get_current_user_id(),
+            'created_utc' => $now, 'updated_utc' => $now,
+        ) ) ) { return false; }
+    }
+    return crmb_progress_event( (int) $task_id, 'template_applied', $template->name );
+}
+
 function crmb_task_plan_steps( $task_id ) {
     if ( ! crmb_task_plan_ready() || ! crmb_progress_task( $task_id ) ) { return null; }
     global $wpdb;
@@ -239,38 +290,15 @@ function crmb_task_plan_mutate( $data ) {
         } else {
             $template_id = isset( $data['template_id'] ) && is_scalar( $data['template_id'] )
                 ? absint( $data['template_id'] ) : 0;
-            $template = $wpdb->get_row( $wpdb->prepare(
-                "SELECT items_json,name FROM {$t['templates']} WHERE id=%d", $template_id
-            ) );
-            if ( ! $template ) { return crmb_task_plan_fail( 'invalid' ); }
             $count = $wpdb->get_var( $wpdb->prepare(
                 "SELECT COUNT(*) FROM {$t['steps']} WHERE task_id=%d AND deleted_utc IS NULL", $task_id
             ) );
             if ( $wpdb->last_error || (int) $count > 0 ) {
                 return crmb_task_plan_fail( 'changed' );
             }
-            $items = json_decode( $template->items_json, true );
-            if ( ! is_array( $items ) || ! $items || count( $items ) > 50 ) {
-                return crmb_task_plan_fail( 'invalid' );
-            }
-            foreach ( $items as $item ) {
-                if ( ! isset( $item['title'], $item['kind'] )
-                    || ! is_string( $item['title'] ) || strlen( $item['title'] ) > 180
-                    || ! in_array( $item['kind'], array( 'check', 'subtask' ), true ) ) {
-                    return crmb_task_plan_fail( 'invalid' );
-                }
-                if ( false === $wpdb->insert( $t['steps'], array(
-                    'task_id' => $task_id, 'kind' => $item['kind'],
-                    'title' => $item['title'],
-                    // A reusable template never leaks the original staff member.
-                    'assigned_to' => (int) $parent->assigned_to, 'due_day' => null,
-                    'is_done' => 0, 'completed_by' => 0, 'completed_utc' => null,
-                    'created_by' => $uid, 'created_utc' => $now, 'updated_utc' => $now,
-                ) ) ) { return crmb_task_plan_fail(); }
-            }
-            if ( ! crmb_progress_event( $task_id, 'template_applied', $template->name ) ) {
-                return crmb_task_plan_fail();
-            }
+            if ( ! crmb_task_plan_apply_locked(
+                $task_id, (int) $parent->assigned_to, $template_id
+            ) ) { return crmb_task_plan_fail( 'invalid' ); }
         }
     }
     if ( false === $wpdb->query( 'COMMIT' ) ) { return crmb_task_plan_fail(); }

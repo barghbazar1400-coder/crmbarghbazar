@@ -95,7 +95,10 @@ function crmb_work_mutate( $data ) {
         if ( isset( $data['id'] ) && ( ! $id || ! $row ) ) { return 'invalid'; }
         $values = array( 'title' => $title, 'description' => $body, 'assigned_to' => $assigned, 'priority' => $priority, 'due_day' => $due, 'updated_utc' => $now );
         if ( function_exists( 'crmb_task_repeat_save' ) && crmb_task_repeat_ready() ) {
-            return crmb_task_repeat_save( $id, $values, $repeat );
+            $plan_template_id = ! $id && isset( $data['plan_template_id'] )
+                && is_scalar( $data['plan_template_id'] )
+                ? absint( $data['plan_template_id'] ) : 0;
+            return crmb_task_repeat_save( $id, $values, $repeat, $plan_template_id );
         }
         if ( 'daily' === $repeat ) { return 'error'; }
         if ( $id && function_exists( 'crmb_progress_edit_task' ) ) { return crmb_progress_edit_task( $id, $values ); }

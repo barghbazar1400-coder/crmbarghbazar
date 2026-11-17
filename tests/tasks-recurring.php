@@ -12,8 +12,12 @@ function add_filter( $hook, $callback ) {}
 function is_user_logged_in() { global $logged; return $logged; }
 function current_user_can( $cap ) { global $admin; return $admin && $cap === 'manage_options'; }
 function get_current_user_id() { return 7; }
+function crmb_progress_ready() { return true; }
 function get_option( $name, $default = false ) {
-    return in_array( $name, array( 'crmb_work_schema_v1','crmb_task_repeat_schema_v1' ), true ) ? '1' : $default;
+    return in_array( $name, array(
+        'crmb_work_schema_v1','crmb_task_repeat_schema_v1',
+        'crmb_task_plan_schema_v1','crmb_task_plan_repeat_v1'
+    ), true ) ? '1' : $default;
 }
 function absint( $n ) { return abs( (int) $n ); }
 function sanitize_text_field( $s ) { return trim( strip_tags( (string) $s ) ); }
@@ -50,13 +54,22 @@ class RepeatDB {
         );
         CREATE TABLE wp_crmb_task_repeat_series (
             id INTEGER PRIMARY KEY AUTOINCREMENT,title TEXT,description TEXT,assigned_to INTEGER,
-            created_by INTEGER,priority TEXT,start_day TEXT,active INTEGER,created_utc TEXT,updated_utc TEXT
+            created_by INTEGER,priority TEXT,start_day TEXT,active INTEGER,created_utc TEXT,updated_utc TEXT,plan_template_id INTEGER DEFAULT 0
         );
         CREATE TABLE wp_crmb_task_events (
             id INTEGER PRIMARY KEY AUTOINCREMENT,task_id INTEGER,actor_id INTEGER,event_type TEXT,body TEXT,created_utc TEXT
         );
         CREATE TABLE wp_crmb_messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,recipient_id INTEGER,sender_id INTEGER,body TEXT,subject TEXT,created_utc TEXT,read_utc TEXT
+        );
+        CREATE TABLE wp_crmb_task_steps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,task_id INTEGER,kind TEXT,title TEXT,
+            assigned_to INTEGER,due_day TEXT,is_done INTEGER DEFAULT 0,
+            completed_by INTEGER DEFAULT 0,completed_utc TEXT,created_by INTEGER,
+            created_utc TEXT,updated_utc TEXT,deleted_utc TEXT
+        );
+        CREATE TABLE wp_crmb_task_plan_templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT,items_json TEXT,created_by INTEGER,created_utc TEXT
         );' );
     }
     function prepare( $sql, ...$args ) {
@@ -131,6 +144,7 @@ function crmb_progress_event( $id, $kind, $body='' ) {
 }
 require __DIR__ . '/../inc/work.php';
 require __DIR__ . '/../inc/work-recurring.php';
+require __DIR__ . '/../inc/task-planning.php';
 
 $task = array( 'task'=>'save_task','title'=>'گزارش موجودی روزانه',
     'description'=>'بررسی سیم و کابل', 'assigned_to'=>'8','priority'=>'high','repeat'=>'daily' );
@@ -219,4 +233,71 @@ check(2,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_tasks WHERE repeat_ser
 check(true,crmb_task_repeat_generate(),'duplicate retry after archive');
 check(2,(int)$wpdb->get_var("SELECT COUNT(*) FROM wp_crmb_tasks WHERE repeat_series_id={$continuing_series}"),'duplicate never created');
 
-echo "$checks recurring, manager access, duplicate prevention, edit, delete and history checks passed\n";
+// Manager-selected templates must automatically appear on a new ordinary
+// task and on each daily occurrence, without replaying progress or notices.
+$wpdb->insert( 'wp_crmb_task_plan_templates', array(
+    'name'=>'چک‌لیست روزانه', 'created_by'=>7,
+    'items_json'=>json_encode( array(
+        array( 'kind'=>'check', 'title'=>'بررسی قیمت‌ها' ),
+        array( 'kind'=>'subtask', 'title'=>'ثبت گزارش روزانه' )
+    ), JSON_UNESCAPED_UNICODE ), 'created_utc'=>gmdate('Y-m-d H:i:s')
+) );
+$template_id=(int)$wpdb->insert_id;
+$today='2026-11-24';
+$daily = array_replace( $task, array(
+    'title'=>'روزانه با مراحل آماده', 'plan_template_id'=>(string)$template_id
+) );
+check( 'saved', crmb_work_mutate( $daily ), 'create daily with template' );
+$first_plan_id=(int)$wpdb->get_var(
+    "SELECT id FROM wp_crmb_tasks WHERE title='روزانه با مراحل آماده' ORDER BY id DESC LIMIT 1"
+);
+$plan_series=(int)$wpdb->get_var(
+    "SELECT repeat_series_id FROM wp_crmb_tasks WHERE id={$first_plan_id}"
+);
+check( $template_id, (int)$wpdb->get_var(
+    "SELECT plan_template_id FROM wp_crmb_task_repeat_series WHERE id={$plan_series}"
+), 'template pinned to daily series' );
+check( 2, (int)$wpdb->get_var(
+    "SELECT COUNT(*) FROM wp_crmb_task_steps WHERE task_id={$first_plan_id}"
+), 'first occurrence gets saved plan' );
+check( 8, (int)$wpdb->get_var(
+    "SELECT assigned_to FROM wp_crmb_task_steps WHERE task_id={$first_plan_id} ORDER BY id LIMIT 1"
+), 'task owner receives copied checklist' );
+$wpdb->query( "UPDATE wp_crmb_task_steps SET is_done=1 WHERE task_id={$first_plan_id}" );
+$today='2026-11-25';
+check( true, crmb_task_repeat_generate(), 'generate second day with plan' );
+$second_plan_id=(int)$wpdb->get_var(
+    "SELECT id FROM wp_crmb_tasks WHERE repeat_series_id={$plan_series} AND repeat_day='2026-11-25'"
+);
+check( true, $second_plan_id > 0, 'next daily instance exists' );
+check( 2, (int)$wpdb->get_var(
+    "SELECT COUNT(*) FROM wp_crmb_task_steps WHERE task_id={$second_plan_id}"
+), 'new independent steps each day' );
+check( 0, (int)$wpdb->get_var(
+    "SELECT SUM(is_done) FROM wp_crmb_task_steps WHERE task_id={$second_plan_id}"
+), 'new day starts untouched' );
+check( 2, (int)$wpdb->get_var(
+    "SELECT SUM(is_done) FROM wp_crmb_task_steps WHERE task_id={$first_plan_id}"
+), 'older day retains completion state' );
+check( true, crmb_task_repeat_generate(), 'retry same day with plan' );
+check( 2, (int)$wpdb->get_var(
+    "SELECT COUNT(*) FROM wp_crmb_task_steps WHERE task_id={$second_plan_id}"
+), 'cron retry does not duplicate plan' );
+$one_off=array_replace( $task, array(
+    'repeat'=>'none', 'title'=>'یک‌باره با قالب', 'plan_template_id'=>(string)$template_id
+) );
+check( 'saved', crmb_work_mutate( $one_off ), 'create one-time task from template' );
+$one_id=(int)$wpdb->get_var(
+    "SELECT id FROM wp_crmb_tasks WHERE title='یک‌باره با قالب' ORDER BY id DESC LIMIT 1"
+);
+check( 2, (int)$wpdb->get_var(
+    "SELECT COUNT(*) FROM wp_crmb_task_steps WHERE task_id={$one_id}"
+), 'ordinary task seeded from template' );
+$before_bad=(int)$wpdb->get_var( 'SELECT COUNT(*) FROM wp_crmb_tasks' );
+check( 'invalid', crmb_work_mutate( array_replace( $one_off, array(
+    'title'=>'قالب گم‌شده', 'plan_template_id'=>'99999'
+) ) ), 'unknown template refuses new task' );
+check( $before_bad, (int)$wpdb->get_var( 'SELECT COUNT(*) FROM wp_crmb_tasks' ),
+    'invalid template does not leave partial task' );
+
+echo "$checks recurring, manager access, duplicate prevention, edit, delete and templated daily checks passed\n";

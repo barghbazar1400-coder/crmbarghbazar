@@ -4,6 +4,9 @@ on:
     branches: [main]
     paths:
       - 'inc/task-planning.php'
+      - 'inc/work-recurring.php'
+      - 'inc/work.php'
+      - 'tests/tasks-recurring.php'
       - 'inc/daily-reports.php'
       - 'inc/progress.php'
       - 'functions.php'
@@ -33,6 +36,8 @@ jobs:
           for f in inc/task-planning.php inc/daily-reports.php inc/progress.php functions.php template-parts/tasks.php template-parts/task-progress.php template-parts/task-plan.php template-parts/task-plan-child.php tests/task-planning.php; do php -l "$f" || exit 1; done
       - name: Subtasks, steps, templates, permissions and audit rollback
         run: php tests/task-planning.php
+      - name: Automatic template steps in daily recurring tasks
+        run: php tests/tasks-recurring.php
       - name: Existing progress and task review
         run: |
           php tests/progress.php

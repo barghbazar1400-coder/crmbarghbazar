@@ -6,6 +6,7 @@ on:
       - 'functions.php'
       - 'inc/work.php'
       - 'inc/work-recurring.php'
+      - 'inc/task-planning.php'
       - 'inc/progress.php'
       - 'inc/leadership.php'
       - 'template-parts/tasks.php'
