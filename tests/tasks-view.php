@@ -17,7 +17,7 @@ function crmb_work_list( $kind, $page, $limit, $team, $sent = false, $active = f
         (object) array( 'id' => 42, 'title' => 'مانیتورهای سوزوکی',
             'description' => 'شرح محرمانه <script>alert(1)</script>',
             'priority' => 'high', 'status' => 'todo', 'due_day' => '2026-11-11',
-            'assigned_to' => 3, 'created_by' => 1, 'timer_started_utc' => null ),
+            'assigned_to' => 3, 'created_by' => 1, 'timer_started_utc' => null, 'repeat_series_id' => 12 ),
         (object) array( 'id' => 43, 'title' => 'تکمیل گزارش',
             'description' => 'گزارش آماده شد',
             'priority' => 'normal', 'status' => 'done', 'due_day' => null,
@@ -105,6 +105,11 @@ verify( str_contains( $manager, '>هر روز</option>' ), 'Daily repeat choice'
 verify( str_contains( $manager, 'value="delete_task"' ), 'Manager sees delete action' );
 verify( str_contains( $manager, 'حذف وظیفه' ), 'Manager sees clear delete button' );
 verify( str_contains( $manager, 'ویرایش وظیفه' ), 'Manager sees task edit button' );
+verify( str_contains( $manager, 'class="crmb-task-action-buttons"' ), 'Manager actions have a dedicated shared row' );
+verify( str_contains( $manager, 'class="crmb-task-delete-future"' ), 'Repeat checkbox remains visible for recurring task' );
+verify( strpos( $manager, 'class="crmb-task-delete-future"' ) < strpos( $manager, 'class="crmb-task-action-buttons"' ), 'Repeat checkbox is above edit/delete actions' );
+verify( (bool) preg_match( '/<div class="crmb-task-action-buttons">\s*<a class="crmb-task-card-edit"[^>]*>.*?<\/a>\s*<button type="submit" class="crmb-task-delete-button"/s', $manager ), 'Edit and delete are side-by-side in one action row' );
+
 verify( str_contains( $manager, 'فیلتر کارهای کارکنان' ), 'Manager-only assignee filter' );
 verify( ! str_contains( $employee, 'فیلتر کارهای کارکنان' ), 'Employee cannot access team filter' );
 $filtered = render( true, 'open', 3, true );

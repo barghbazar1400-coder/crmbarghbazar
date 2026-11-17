@@ -179,14 +179,16 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                     </div>
                     <?php if ( $work_admin ) : ?>
                         <div class="crmb-task-admin-actions">
-                            <a class="crmb-task-card-edit" href="<?php echo esc_url( add_query_arg( array( 'edit_task' => $task->id, 'scope' => 'team' ), $base ) ); ?>"><i class="fa-solid fa-pen" aria-hidden="true"></i> ویرایش وظیفه</a>
                             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
                                 class="crmb-task-delete-form" onsubmit="return confirm('این وظیفه از فهرست کارمندان حذف شود؟ سوابق برای بررسی مدیریتی نگه داشته می‌شود.');">
                                 <?php crmb_work_form_fields( 'delete_task', $task->id ); ?>
                                 <?php if ( ! empty( $task->repeat_series_id ) ) : ?>
                                     <label class="crmb-task-delete-future"><input type="checkbox" name="stop_repeat" value="1" checked> توقف تکرارهای روزهای بعد</label>
                                 <?php endif; ?>
-                                <button type="submit" class="crmb-task-delete-button"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> حذف وظیفه</button>
+                                <div class="crmb-task-action-buttons">
+                                    <a class="crmb-task-card-edit" href="<?php echo esc_url( add_query_arg( array( 'edit_task' => $task->id, 'scope' => 'team' ), $base ) ); ?>"><i class="fa-solid fa-pen" aria-hidden="true"></i> ویرایش وظیفه</a>
+                                    <button type="submit" class="crmb-task-delete-button"><i class="fa-solid fa-trash-can" aria-hidden="true"></i> حذف وظیفه</button>
+                                </div>
                             </form>
                         </div>
                     <?php endif; ?>
