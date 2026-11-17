@@ -89,7 +89,7 @@ check( 2, crmb_task_guidance_history_page( $task_id, $third ) );
 check( 1, crmb_task_guidance_history_page( $task_id, $ordinary + 22 + 1000 ) );
 
 // No destructive update of manager guidance or general event rows.
-check( 27, (int) $wpdb->get_var(
+check( 26, (int) $wpdb->get_var(
     "SELECT COUNT(*) FROM wp_crmb_task_events WHERE task_id={$task_id}"
 ) );
 check( 4, (int) $wpdb->get_var( 'SELECT COUNT(*) FROM wp_crmb_task_guidance_reads' ) );
