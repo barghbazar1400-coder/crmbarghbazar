@@ -22,7 +22,35 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
     $more = count( $events ?: array() ) > 20;
     $events = array_slice( $events ?: array(), 0, 20 );
     $gallery = $history_error ? array() : crmb_task_note_gallery( $events );
-    $detail = add_query_arg( 'task_id', $id, $base ); ?>
+    $detail = add_query_arg( 'task_id', $id, $base );
+    // Unread count is across the entire history; the visible page has its own read receipts.
+    $guidance_ready = function_exists( 'crmb_task_guidance_ready' ) && crmb_task_guidance_ready();
+    $guidance_state = array( 'count' => 0, 'latest_id' => 0, 'error' => false );
+    $guidance_reads = array();
+    if ( $guidance_ready ) {
+        $guidance_state = crmb_task_guidance_unread( $id, (int) $task->assigned_to );
+        $guidance_reads = crmb_task_guidance_reads( $events, (int) $task->assigned_to );
+    }
+    $guidance_jump = $guidance_state['latest_id']
+        ? add_query_arg(
+            'history_page',
+            crmb_task_guidance_history_page( $id, $guidance_state['latest_id'] ),
+            $detail
+        ) . '#crmb-task-guidance-' . (int) $guidance_state['latest_id']
+        : '';
+    ?>
+    <?php if ( $owner && $guidance_ready && $guidance_state['count'] > 0 ) : ?>
+    <section class="crmb-task-guidance-alert" role="status" aria-label="راهنمایی‌های خوانده‌نشده مدیر">
+        <span class="crmb-task-guidance-alert-icon"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></span>
+        <div class="crmb-task-guidance-alert-content">
+            <strong><?php echo esc_html( number_format_i18n( $guidance_state['count'] ) ); ?> راهنمایی خوانده‌نشده از مدیر دارید</strong>
+            <p>راهنمایی‌های مدیر در تاریخچه همین کار ثبت شده‌اند. پس از مطالعه هر مورد، دکمه «خواندم» را بزنید.</p>
+        </div>
+        <a class="crmb-task-guidance-alert-link" href="<?php echo esc_url( $guidance_jump ); ?>">مشاهده راهنمایی <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+    </section>
+    <?php elseif ( $owner && ( ! $guidance_ready || $guidance_state['error'] ) ) : ?>
+        <p class="crm-access-notice" role="status">وضعیت مطالعه راهنمایی‌های مدیر فعلاً در دسترس نیست؛ متن راهنمایی‌ها همچنان در تاریخچه قابل مشاهده است.</p>
+    <?php endif; ?>
     <section class="crm-access-card">
         <h2><?php echo esc_html( $task->title ); ?></h2>
         <p class="crmb-work-body"><?php echo esc_html( $task->description ); ?></p>
@@ -114,15 +142,35 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
             $rich = in_array( $event->event_type, array( 'rich_note', 'rich_blocker', 'manager_note' ), true );
             $from_manager = 'manager_note' === $event->event_type;
             ?>
-            <article class="crmb-work-item crmb-task-timeline-entry <?php echo $from_manager ? 'is-manager-note' : ''; ?>">
+            <article class="crmb-work-item crmb-task-timeline-entry <?php echo $from_manager ? 'is-manager-note' : ''; ?><?php echo $from_manager && $guidance_ready && ! isset( $guidance_reads[(int)$event->id] ) ? ' is-guidance-unread' : ''; ?>"
+                <?php if ( $from_manager ) : ?>id="crmb-task-guidance-<?php echo esc_attr( $event->id ); ?>"<?php endif; ?>>
                 <div class="crmb-task-timeline-head">
                     <span class="crmb-task-timeline-icon">
                         <i class="fa-solid <?php echo $from_manager ? 'fa-lightbulb' : ( $rich ? 'fa-file-lines' : 'fa-clock' ); ?>" aria-hidden="true"></i>
                     </span>
-                    <div>
+                    <div class="crmb-task-timeline-info">
                         <h3><?php echo esc_html( crmb_progress_event_labels()[ $event->event_type ] ?? 'تغییر وضعیت' ); ?></h3>
                         <p class="crm-access-muted"><?php echo esc_html( crmb_work_user_name( $event->actor_id ) . ' — ' . crmb_work_date( $event->created_utc ) ); ?></p>
                     </div>
+                    <?php if ( $from_manager && $guidance_ready ) : ?>
+                    <div class="crmb-task-guidance-read-action">
+                        <?php if ( isset( $guidance_reads[(int)$event->id] ) ) : ?>
+                            <span class="crmb-task-guidance-read-label is-read" title="تأیید مطالعه توسط مسئول فعلی کار">
+                                <i class="fa-solid fa-check-circle" aria-hidden="true"></i> خوانده شد
+                            </span>
+                        <?php elseif ( $owner ) : ?>
+                            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                <?php crmb_progress_form_fields( 'ack_guidance', $id ); ?>
+                                <input type="hidden" name="event_id" value="<?php echo esc_attr( $event->id ); ?>">
+                                <button type="submit" class="crmb-task-guidance-ack">
+                                    <i class="fa-solid fa-check" aria-hidden="true"></i> خواندم
+                                </button>
+                            </form>
+                        <?php elseif ( $admin ) : ?>
+                            <span class="crmb-task-guidance-read-label is-pending">هنوز توسط مسئول خوانده نشده</span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <?php if ( $rich ) : ?>
                     <div class="crmb-task-rich-body"><?php echo crmb_task_note_html( $event->body ); ?></div>
