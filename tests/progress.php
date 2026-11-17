@@ -7,7 +7,7 @@ function add_filter($a,$b) {}
 function is_user_logged_in() { global $logged; return $logged; }
 function current_user_can($cap) { global $admin; return $admin; }
 function get_current_user_id() { global $uid; return $uid; }
-function get_option($name) { global $ready; return $ready ? '1' : false; }
+function get_option($name) { global $ready,$test_options; return is_array($test_options??null) && array_key_exists($name,$test_options) ? $test_options[$name] : ($ready ? '1' : false); }
 function absint($v) { return abs((int)$v); }
 function sanitize_text_field($s) { return strip_tags($s); }
 function sanitize_textarea_field($s) { return strip_tags($s); }

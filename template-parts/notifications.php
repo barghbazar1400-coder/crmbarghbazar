@@ -80,6 +80,97 @@ $setup = isset( $_GET['push_setup'] ) ? sanitize_key( $_GET['push_setup'] ) : ''
         <?php endif; ?>
     </section>
 
+    <?php if ( current_user_can( 'manage_options' ) && function_exists( 'crmb_reminder_rules' ) ) :
+        $reminder_rules = crmb_reminder_rules();
+        $reminder_result = isset( $_GET['reminder_result'] ) && is_string( $_GET['reminder_result'] )
+            ? sanitize_key( $_GET['reminder_result'] ) : '';
+        ?>
+        <section class="crm-access-card crmb-reminder-rules" aria-labelledby="crmb-reminder-heading">
+            <div class="crmb-reminder-heading">
+                <span class="crmb-reminder-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></span>
+                <div><h2 id="crmb-reminder-heading">یادآوری هوشمند کارها و مشتریان</h2>
+                    <p class="crm-access-muted">زمان‌بندی روزانه با ساعت تهران؛ اعلان‌ها در زنگوله و سیستم پوش فعلی قرار می‌گیرند. موارد تکراری با شناسه اختصاصی حذف می‌شوند.</p>
+                </div>
+            </div>
+            <?php if ( $reminder_result ) : ?>
+                <p class="crm-access-notice" role="status"><?php echo esc_html( array(
+                    'saved' => 'تنظیمات یادآوری‌ها ثبت شد.',
+                    'invalid' => 'تنظیمات معتبر نیستند؛ دوباره بررسی کنید.',
+                    'denied' => 'اجازه تغییر تنظیمات را ندارید.',
+                    'error' => 'ذخیره تنظیمات انجام نشد.',
+                )[ $reminder_result ] ?? 'نتیجه مشخص نیست.' ); ?></p>
+            <?php endif; ?>
+            <p class="crmb-reminder-state"><?php echo $reminder_rules['enabled'] ? 'یادآوری‌های خودکار فعال هستند.' : 'یادآوری‌های خودکار هنوز فعال نشده‌اند.'; ?>
+                <?php $reminder_last = get_option( 'crmb_reminder_last_day', '' );
+                if ( is_string( $reminder_last ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/D', $reminder_last ) ) : ?>
+                    <small>آخرین بررسی: <?php echo esc_html( crmb_att_jdate( $reminder_last ) ); ?></small>
+                <?php endif; ?>
+            </p>
+            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form crmb-reminder-form">
+                <input type="hidden" name="action" value="crmb_reminder_rules">
+                <?php wp_nonce_field( 'crmb_reminder_rules', 'crmb_reminder_nonce' ); ?>
+                <label class="crmb-reminder-checkbox">
+                    <input type="checkbox" name="enabled" value="1" <?php checked( $reminder_rules['enabled'], 1 ); ?>>
+                    فعال‌سازی ارسال یادآوری‌ها
+                </label>
+                <div class="crmb-reminder-grid">
+                    <label class="crmb-reminder-checkbox">
+                        <input type="checkbox" name="due" value="1" <?php checked( $reminder_rules['due'], 1 ); ?>>
+                        یادآوری وظایف نزدیک موعد و روز سررسید
+                    </label>
+                    <label class="crmb-reminder-checkbox">
+                        <input type="checkbox" name="overdue" value="1" <?php checked( $reminder_rules['overdue'], 1 ); ?>>
+                        هشدار تأخیر کارها به مسئول و مدیر مربوطه
+                    </label>
+                    <label class="crmb-reminder-checkbox">
+                        <input type="checkbox" name="stalled" value="1" <?php checked( $reminder_rules['stalled'], 1 ); ?>>
+                        هشدار نبود گزارش پیشرفت تازه
+                    </label>
+                    <label class="crmb-reminder-checkbox">
+                        <input type="checkbox" name="followups" value="1" <?php checked( $reminder_rules['followups'], 1 ); ?>>
+                        یادآوری پیگیری‌های سررسیدشده مشتریان
+                    </label>
+                </div>
+                <div class="crmb-reminder-grid crmb-reminder-parameters">
+                    <div>
+                        <label for="crmb-reminder-advance">چند روز قبل از موعد وظیفه؟</label>
+                        <select name="advance_days" id="crmb-reminder-advance">
+                            <?php foreach ( array( 1, 2, 3 ) as $days ) : ?>
+                                <option value="<?php echo esc_attr( $days ); ?>" <?php selected( $reminder_rules['advance_days'], $days ); ?>><?php echo esc_html( $days ); ?> روز قبل</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="crmb-reminder-stale">آستانه نبود گزارش پیشرفت</label>
+                        <select name="stale_hours" id="crmb-reminder-stale">
+                            <?php foreach ( array( 24, 48, 72 ) as $hours ) : ?>
+                                <option value="<?php echo esc_attr( $hours ); ?>" <?php selected( $reminder_rules['stale_hours'], $hours ); ?>><?php echo esc_html( $hours ); ?> ساعت</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="crmb-reminder-time">ساعت اجرای روزانه (تهران)</label>
+                        <select name="hour" id="crmb-reminder-time">
+                            <?php for ( $hour = 7; $hour <= 18; $hour++ ) : ?>
+                                <option value="<?php echo esc_attr( $hour ); ?>" <?php selected( $reminder_rules['hour'], $hour ); ?>><?php echo esc_html( sprintf( '%02d:00', $hour ) ); ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="crmb-reminder-cap">حداکثر اعلان خودکار هر نفر در یک نوبت</label>
+                        <select name="daily_cap" id="crmb-reminder-cap">
+                            <?php foreach ( array( 5, 8, 12, 20, 30 ) as $cap ) : ?>
+                                <option value="<?php echo esc_attr( $cap ); ?>" <?php selected( $reminder_rules['daily_cap'], $cap ); ?>><?php echo esc_html( $cap ); ?> اعلان</option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="crm-access-primary">ذخیره تنظیمات یادآوری</button>
+            </form>
+            <p class="crm-access-muted">برای جلوگیری از اعلان‌های پشت‌سرهم، وظایف عقب‌افتاده در روز اول، سوم، هفتم و سپس هفتگی یادآوری می‌شوند. وضعیت بدون گزارش تازه هر ۷۲ ساعت یک‌بار تا ثبت گزارش جدید پیگیری می‌شود. این قابلیت برای اجرای منظم به WP-Cron یا Cron سرور وابسته است.</p>
+        </section>
+    <?php endif; ?>
+
     <?php if ( current_user_can( 'manage_options' ) ) : ?>
         <section class="crm-access-card" aria-labelledby="crmb-announce-heading">
             <h2 id="crmb-announce-heading">انتشار اطلاعیه مدیریتی</h2>

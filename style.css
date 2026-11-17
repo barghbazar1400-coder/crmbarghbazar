@@ -4675,3 +4675,45 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
  .crmb-chat-image-modal-content {padding:9px;max-width:98vw;}
  .crmb-chat-image-modal-photo {max-width:calc(98vw - 18px);}
 }
+
+
+/* Manager-only reminder rules: compact, auditable controls in notifications. */
+.crmb-reminder-rules {
+  display:grid;
+  gap:14px;
+  margin:18px 0;
+}
+.crmb-reminder-heading {
+  display:flex;align-items:flex-start;gap:12px;
+}
+.crmb-reminder-icon {
+  flex:0 0 42px;height:42px;display:grid;place-items:center;
+  border:1px solid #e1d6f4;border-radius:12px;
+  color:#6a3db0;background:#f4eeff;font-size:19px;
+}
+.crmb-reminder-heading h2 {margin:0 0 6px;font-size:17px;color:#412777;}
+.crmb-reminder-heading p {margin:0;line-height:1.9;}
+.crmb-reminder-state {
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  background:#f8f6ff;border:1px solid #e3dbf2;
+  color:#644593;border-radius:10px;padding:10px 13px;font-weight:750;
+}
+.crmb-reminder-state small {color:#807094;font-size:11px;}
+.crmb-reminder-grid {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
+}
+.crmb-reminder-checkbox {
+  display:flex;align-items:center;gap:10px;padding:11px 13px;
+  border:1px solid #e6dff0;border-radius:10px;
+  color:#4f3b6f;font-weight:700;cursor:pointer;
+}
+.crmb-reminder-checkbox input {
+  width:17px;height:17px;accent-color:#7141ba;flex-shrink:0;
+}
+.crmb-reminder-parameters > div {display:grid;gap:6px;min-width:0;}
+.crmb-reminder-parameters label {font-size:12px;font-weight:750;color:#604c7e;}
+.crmb-reminder-parameters select {min-width:0;width:100%;}
+@media(max-width:700px) {
+  .crmb-reminder-grid {grid-template-columns:minmax(0,1fr);}
+  .crmb-reminder-heading {align-items:flex-start;}
+}

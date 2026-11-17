@@ -1,0 +1,45 @@
+name: CRM Smart Reminder Rules
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/reminders.php'
+      - 'functions.php'
+      - 'template-parts/notifications.php'
+      - 'style.css'
+      - 'tests/reminders.php'
+      - 'tests/progress.php'
+      - '.github/workflows/smart-reminders-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smart-reminders:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring,fileinfo
+          coverage: none
+      - name: PHP lint
+        run: |
+          php -l inc/reminders.php
+          php -l functions.php
+          php -l template-parts/notifications.php
+          php -l tests/reminders.php
+          php -l tests/progress.php
+      - name: Reminder schedule, phases, recipients and settings
+        run: php tests/reminders.php
+      - name: Existing notification and task review regressions
+        run: |
+          php tests/notifications.php
+          php tests/progress.php
+          php tests/task-review.php
+          php tests/work.php
+      - name: Existing CRM sales handling
+        run: |
+          php tests/sales.php
+          php tests/sales-workbench.php
