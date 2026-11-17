@@ -15,6 +15,7 @@ function crmb_progress_tables() { return array( 'tasks' => 'wp_tasks', 'reports'
 function crmb_progress_ready() { return true; }
 function crmb_leave_table() { return 'wp_leaves'; }
 function crmb_att_today() { return '2026-10-30'; }
+function crmb_att_timezone() { return new DateTimeZone( 'Asia/Tehran' ); }
 function crmb_seo_access() { return false; }
 function crmb_seo_ready() { return false; }
 
@@ -56,14 +57,25 @@ expect( 2, $results['tasks_overdue'] );
 expect( 2, $results['leaves_pending'] );
 expect( 1, count( $results['recent'] ) );
 expect( null, $results['seo_review'] );
+$control = crmb_leadership_control_data();
+expect( true, is_array( $control['overdue'] ) );
+expect( true, is_array( $control['stalled'] ) );
+expect( true, is_array( $control['activity'] ) );
+expect( false, $control['sales_access'] );
+expect( true, (bool) array_filter( $wpdb->queries, fn( $q ) => str_contains( $q, 'AND NOT EXISTS' ) && str_contains( $q, 'rich_note' ) ) );
+expect( true, (bool) array_filter( $wpdb->queries, fn( $q ) => str_contains( $q, 'e.actor_id=t.assigned_to' ) ) );
 $wpdb->error = true;
 $results = crmb_leadership_data();
 expect( null, $results['tasks_open'] );
 expect( null, $results['recent'] );
+$control = crmb_leadership_control_data();
+expect( null, $control['overdue'] );
+expect( null, $control['activity'] );
 $wpdb->error = false; $coo = false; $admin = true;
 expect( true, crmbarghbazar_can_view_section( 'ceo' ) );
 expect( true, crmb_leadership_can_manage_tasks() );
 $logged = false;
 expect( false, crmb_leadership_can_manage_tasks() );
 expect( null, crmb_leadership_data()['tasks_open'] );
+expect( null, crmb_leadership_control_data() );
 echo "$checks leadership checks passed\n";

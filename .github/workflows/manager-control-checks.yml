@@ -1,0 +1,40 @@
+name: CRM Manager Control Center
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/leadership.php'
+      - 'template-parts/leadership.php'
+      - 'template-parts/manager-control.php'
+      - 'tests/leadership.php'
+      - 'tests/manager-control-view.php'
+      - 'style.css'
+      - '.github/workflows/manager-control-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  manager-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - name: PHP lint
+        run: |
+          php -l inc/leadership.php
+          php -l template-parts/leadership.php
+          php -l template-parts/manager-control.php
+          php -l tests/leadership.php
+          php -l tests/leadership-view.php
+          php -l tests/manager-control-view.php
+      - name: Leadership permissions, existing regressions and control queues
+        run: php tests/leadership.php
+      - name: Existing leadership overview rendering
+        run: php tests/leadership-view.php
+      - name: Control center rendering and sales privacy
+        run: php tests/manager-control-view.php
