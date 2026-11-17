@@ -146,7 +146,85 @@ $notice = isset( $_GET['sales_notice'] ) && is_string( $_GET['sales_notice'] ) ?
     $catalog_error = (bool) $wpdb->last_error;
     $edit_customer = crmb_sales_customer( crmb_sales_id( $_GET, 'edit_customer' ) );
     $last_import = get_option( 'crmb_sales_last_import', array() );
+    $sales_queue = isset( $_GET['sales_queue'] ) && is_string( $_GET['sales_queue'] )
+        && in_array( $_GET['sales_queue'], array( 'followups', 'calls_today' ), true ) ? $_GET['sales_queue'] : '';
+    $sales_queue_rows = null;
+    $sales_queue_total = null;
+    $sales_queue_page = isset( $_GET['sales_page'] ) && is_scalar( $_GET['sales_page'] )
+        ? max( 1, min( 100000, absint( $_GET['sales_page'] ) ) ) : 1;
+    if ( $sales_queue && crmb_sales_ops_ready() && '1' === get_option( 'crmb_sales_calls_v2' ) ) {
+        $calls_table = crmb_sales_ops_tables()['calls'];
+        $sales_scope = crmb_sales_scope( 'x' );
+        if ( 'followups' === $sales_queue ) {
+            $sales_condition = $wpdb->prepare(
+                "x.outcome='followup' AND x.next_followup_day<=%s
+                   AND x.id=(SELECT MAX(y.id) FROM {$calls_table} y WHERE y.customer_id=x.customer_id)",
+                crmb_att_today()
+            );
+            $sales_order = 'x.next_followup_day ASC,x.id DESC';
+        } else {
+            $midnight = new DateTimeImmutable( crmb_att_today() . ' 00:00:00', crmb_att_timezone() );
+            $start = $midnight->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+            $end = $midnight->modify( '+1 day' )->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+            $sales_condition = $wpdb->prepare(
+                'x.created_utc >= %s AND x.created_utc < %s', $start, $end
+            );
+            $sales_order = 'x.id DESC';
+        }
+        $sales_query = "FROM {$calls_table} x JOIN {$t['customers']} c ON c.id=x.customer_id
+                        WHERE {$sales_condition}{$sales_scope}";
+        $sales_queue_total = $wpdb->get_var( "SELECT COUNT(*) {$sales_query}" );
+        if ( ! $wpdb->last_error ) {
+            $sales_queue_rows = $wpdb->get_results( $wpdb->prepare(
+                "SELECT x.id,x.customer_id,x.owner_id,x.outcome,x.created_utc,x.next_followup_day,
+                    c.name AS customer_name {$sales_query}
+                 ORDER BY {$sales_order} LIMIT %d OFFSET %d",
+                50, ( $sales_queue_page - 1 ) * 50
+            ) );
+        }
+        if ( $wpdb->last_error ) { $sales_queue_rows = null; $sales_queue_total = null; }
+    }
     ?>
+    <?php if ( $sales_queue ) : ?>
+    <section class="crm-access-card crmb-sales-queue" id="crmb-sales-active-queue" aria-labelledby="crmb-sales-queue-title">
+        <div class="crmb-sales-queue-head">
+            <div>
+                <h2 id="crmb-sales-queue-title"><?php echo 'followups' === $sales_queue ? 'پیگیری‌های سررسیدشده مشتریان' : 'تماس‌های ثبت‌شده امروز'; ?></h2>
+                <p class="crm-access-muted">فیلتر مرکز کنترل مدیر؛ هر ردیف به پرونده واقعی همان مشتری متصل است.</p>
+            </div>
+            <a href="<?php echo esc_url( $base ); ?>">حذف فیلتر فروش</a>
+        </div>
+        <?php if ( null === $sales_queue_rows ) : ?>
+            <p role="status">فهرست مربوطه در دسترس نیست؛ اطلاعات را نمی‌توان به‌عنوان صفر نمایش داد.</p>
+        <?php elseif ( ! $sales_queue_rows ) : ?>
+            <p class="crm-access-muted">در این فیلتر موردی ثبت نشده است.</p>
+        <?php else : ?>
+            <p class="crm-access-muted">مجموع <?php echo esc_html( (string) $sales_queue_total ); ?> مورد · صفحه <?php echo esc_html( (string) $sales_queue_page ); ?></p>
+            <div class="crm-access-table-wrap"><table class="crm-access-table">
+                <thead><tr><th>مشتری</th><th>مسئول</th><th>نتیجه تماس</th><th><?php echo 'followups' === $sales_queue ? 'تاریخ پیگیری' : 'زمان تماس'; ?></th><th>عملیات</th></tr></thead>
+                <tbody>
+                <?php foreach ( $sales_queue_rows as $item ) :
+                    $customer_url = add_query_arg( array( 'sales_tab'=>'customers', 'customer'=>$item->customer_id ), $base ) . '#crmb-customer-file'; ?>
+                    <tr>
+                        <td><?php echo esc_html( $item->customer_name ); ?></td>
+                        <td><?php echo esc_html( crmb_work_user_name( $item->owner_id ) ); ?></td>
+                        <td><?php echo esc_html( crmb_sales_call_outcomes()[$item->outcome] ?? 'تماس' ); ?></td>
+                        <td><?php echo esc_html( 'followups' === $sales_queue ? crmb_att_jdate( $item->next_followup_day ) : crmb_work_date( $item->created_utc ) ); ?></td>
+                        <td><a href="<?php echo esc_url( $customer_url ); ?>">مشاهده پرونده</a></td>
+                    </tr>
+                <?php endforeach; ?>
+                </tbody>
+            </table></div>
+        <?php endif; ?>
+        <?php if ( null !== $sales_queue_total && $sales_queue_total > 50 ) :
+            $queue_url = add_query_arg( 'sales_queue', $sales_queue, $base ); ?>
+            <nav class="crm-access-pages" aria-label="صفحه‌بندی صف فروش">
+                <?php if ( $sales_queue_page > 1 ) : ?><a href="<?php echo esc_url( add_query_arg( 'sales_page', $sales_queue_page - 1, $queue_url ) ); ?>">صفحه قبل</a><?php endif; ?>
+                <?php if ( $sales_queue_page * 50 < $sales_queue_total ) : ?><a href="<?php echo esc_url( add_query_arg( 'sales_page', $sales_queue_page + 1, $queue_url ) ); ?>">صفحه بعد</a><?php endif; ?>
+            </nav>
+        <?php endif; ?>
+    </section>
+    <?php endif; ?>
     <nav class="crmb-sales-jump" aria-label="بخش‌های میز فروش">
         <a href="#crmb-sales-customers">مشتریان</a>
         <a href="#crmb-sales-calls">تماس‌ها و پیگیری‌ها</a>

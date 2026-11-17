@@ -4524,3 +4524,30 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   background:#ffebe7;
 }
 .crmb-task-revision-read-action .crmb-task-guidance-ack:hover {background:#ffdbd3;}
+
+
+/* Real CEO/COO drilldown filters, deliberately distinct from status tabs. */
+.crmb-control-active-filter {
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  margin:12px 0 18px;padding:15px 18px;border:1px solid #d5c2ef;border-inline-start:4px solid #7044bf;
+  border-radius:13px;background:#f8f4ff;color:#4c2f75;
+}
+.crmb-control-active-filter strong {display:inline-flex;align-items:center;gap:7px;font-size:14px;}
+.crmb-control-active-filter p {margin:4px 0 0;color:#79688f;font-size:12px;line-height:1.8;}
+.crmb-control-active-filter a {
+  display:inline-flex;align-items:center;justify-content:center;min-height:34px;
+  border:1px solid #cfb9ec;border-radius:9px;padding:7px 11px;
+  background:white;color:#6637a8;font-size:12px;font-weight:800;text-decoration:none;
+}
+.crmb-control-active-filter a:hover {background:#eee4fb;}
+.crmb-control-panel h3 a {color:inherit;text-decoration:none;}
+.crmb-control-panel h3 a:hover {color:#6735b5;text-decoration:underline;}
+.crmb-sales-queue {margin:15px 0;}
+.crmb-sales-queue-head {display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.crmb-sales-queue-head h2 {margin:0 0 5px;color:#38205b;font-size:18px;}
+.crmb-sales-queue-head a {color:#6536ac;border:1px solid #d9c4f2;padding:8px 12px;border-radius:9px;text-decoration:none;font-size:12px;font-weight:800;}
+@media (max-width:640px) {
+ .crmb-control-active-filter {align-items:stretch;}
+ .crmb-control-active-filter a {width:100%;}
+ .crmb-sales-queue-head a {width:100%;text-align:center;}
+}

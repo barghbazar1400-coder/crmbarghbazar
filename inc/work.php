@@ -212,8 +212,65 @@ function crmb_work_task_scope_where( $team = false, $assigned_filter = 0, $alias
     return '(' . $own . ' OR (' . $column . "status = 'review' AND (" . $reviewer . ')))';
 }
 
+/**
+ * Managers can drill down from CEO/COO metrics into the actual matching task
+ * subset. This predicate is shared by row and total queries: no decorative
+ * client-side filtering and no mismatch across pagination.
+ */
+function crmb_work_control_queues() {
+    return array(
+        'overdue' => 'وظایف عقب‌افتاده',
+        'stalled' => 'وظایف بدون گزارش تازه (۴۸ ساعت)',
+        'timers' => 'زمان‌سنج‌های فعال',
+        'activity' => 'فعالیت امروز کارکنان',
+    );
+}
+function crmb_work_control_queue_where( $queue, $alias = '' ) {
+    if ( ! isset( crmb_work_control_queues()[ $queue ] ) ) { return null; }
+    global $wpdb;
+    $prefix = $alias ? $alias . '.' : '';
+    $task = $prefix ? $prefix . 'id' : crmb_work_tables()['tasks'] . '.id';
+    $assignee = $prefix ? $prefix . 'assigned_to' : crmb_work_tables()['tasks'] . '.assigned_to';
+    if ( 'overdue' === $queue ) {
+        return $wpdb->prepare(
+            $prefix . "status IN ('todo','doing','paused','review') AND " . $prefix . 'due_day < %s',
+            crmb_att_today()
+        );
+    }
+    if ( 'timers' === $queue ) {
+        return $prefix . 'timer_started_utc IS NOT NULL';
+    }
+    if ( ! function_exists( 'crmb_progress_ready' ) || ! crmb_progress_ready() ) { return null; }
+    $events = crmb_progress_tables()['events'];
+    $event_types = "('doing','paused','done','todo','note','blocker','rich_note','rich_blocker')";
+    if ( 'stalled' === $queue ) {
+        $cutoff = gmdate( 'Y-m-d H:i:s', time() - 48 * 3600 );
+        return $wpdb->prepare(
+            $prefix . "status IN ('doing','paused') AND " . $prefix . "created_utc < %s
+             AND NOT EXISTS (
+                 SELECT 1 FROM {$events} e
+                  WHERE e.task_id={$task} AND e.actor_id={$assignee}
+                    AND e.event_type IN ('note','blocker','rich_note','rich_blocker')
+                    AND e.created_utc >= %s
+             )",
+            $cutoff, $cutoff
+        );
+    }
+    $midnight = new DateTimeImmutable( crmb_att_today() . ' 00:00:00', crmb_att_timezone() );
+    $start = $midnight->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+    $end = $midnight->modify( '+1 day' )->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+    return $wpdb->prepare(
+        "EXISTS (
+             SELECT 1 FROM {$events} e
+              WHERE e.task_id={$task} AND e.actor_id={$assignee}
+                AND e.event_type IN {$event_types}
+                AND e.created_utc >= %s AND e.created_utc < %s
+         )", $start, $end
+    );
+}
+
 /** Fixed-scope lists; team tasks are explicitly administrator-only. */
-function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = false, $active = false, $focus = 0, $status_view = 'all', $assigned_filter = 0 ) {
+function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = false, $active = false, $focus = 0, $status_view = 'all', $assigned_filter = 0, $control_queue = '' ) {
     $empty = array( 'rows' => array(), 'total' => 0, 'ready' => false );
     if ( ! is_user_logged_in() || '1' !== get_option( 'crmb_work_schema_v1' ) || ! in_array( $kind, array( 'tasks', 'messages' ), true ) ) { return $empty; }
     global $wpdb;
@@ -221,6 +278,11 @@ function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = f
     $limit = max( 1, min( 20, (int) $limit ) ); $page = max( 1, min( 100000, (int) $page ) );
     if ( 'tasks' === $kind ) {
         $where = crmb_work_task_scope_where( $team, $assigned_filter );
+        if ( $team && crmb_work_manage_team() && '' !== $control_queue ) {
+            $queue_where = crmb_work_control_queue_where( $control_queue );
+            if ( null === $queue_where ) { return $empty; }
+            $where .= ' AND (' . $queue_where . ')';
+        }
         if ( function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready() ) {
             $where .= ' AND deleted_utc IS NULL';
         }
@@ -295,12 +357,17 @@ add_action( 'wp_ajax_crmb_work_review_poll', 'crmb_work_review_poll' );
  * Scope-safe totals for all four task status filters and optional manager assignee.
  * Cancelled tasks remain discoverable through "all" but not open/done.
  */
-function crmb_work_task_counts( $team = false, $assigned_filter = 0 ) {
+function crmb_work_task_counts( $team = false, $assigned_filter = 0, $control_queue = '' ) {
     $empty = array( 'ready' => false, 'all' => null, 'open' => null, 'review' => null, 'done' => null );
     if ( ! is_user_logged_in() || '1' !== get_option( 'crmb_work_schema_v1' ) ) { return $empty; }
     global $wpdb;
     $t = crmb_work_tables();
     $where = crmb_work_task_scope_where( $team, $assigned_filter );
+    if ( $team && crmb_work_manage_team() && '' !== $control_queue ) {
+        $queue_where = crmb_work_control_queue_where( $control_queue );
+        if ( null === $queue_where ) { return $empty; }
+        $where .= ' AND (' . $queue_where . ')';
+    }
     if ( function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready() ) {
         $where .= ' AND deleted_utc IS NULL';
     }

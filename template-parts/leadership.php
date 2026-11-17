@@ -8,14 +8,14 @@ $base = home_url( '/main/' );
 $task_url = add_query_arg( array( 'crm_section' => 'tasks', 'scope' => 'team' ), $base );
 $seo_url = add_query_arg( array( 'crm_section' => 'seo', 'seo_tab' => 'workspace' ), $base );
 $metrics = array(
-    array( 'key' => 'tasks_open', 'label' => 'وظایف باز تیم', 'url' => $task_url ),
-    array( 'key' => 'tasks_overdue', 'label' => 'وظایف عقب‌افتاده', 'url' => $task_url ),
+    array( 'key' => 'tasks_open', 'label' => 'وظایف باز تیم', 'url' => add_query_arg( 'view', 'open', $task_url ) ),
+    array( 'key' => 'tasks_overdue', 'label' => 'وظایف عقب‌افتاده', 'url' => add_query_arg( array( 'view' => 'open', 'queue' => 'overdue' ), $task_url ) ),
     array( 'key' => 'tasks_review', 'label' => 'در انتظار تأیید مدیر', 'url' => add_query_arg( 'view', 'review', $task_url ) ),
-    array( 'key' => 'tasks_done', 'label' => 'وظایف تکمیل‌شده', 'url' => $task_url ),
-    array( 'key' => 'timers_active', 'label' => 'زمان‌سنج‌های فعال', 'url' => $task_url ),
+    array( 'key' => 'tasks_done', 'label' => 'وظایف تکمیل‌شده', 'url' => add_query_arg( 'view', 'done', $task_url ) ),
+    array( 'key' => 'timers_active', 'label' => 'زمان‌سنج‌های فعال', 'url' => add_query_arg( array( 'view' => 'open', 'queue' => 'timers' ), $task_url ) ),
     array( 'key' => 'reports_pending', 'label' => 'گزارش‌های نیازمند بررسی', 'url' => $is_ceo ? add_query_arg( array( 'crm_section' => 'reports', 'scope' => 'team' ), $base ) : '' ),
     array( 'key' => 'leaves_pending', 'label' => 'مرخصی‌های منتظر تصمیم', 'url' => $is_ceo ? add_query_arg( 'crm_section', 'attendance', $base ) : '' ),
-    array( 'key' => 'sales_followups', 'label' => 'پیگیری‌های فروش سررسید', 'url' => crmbarghbazar_can_view_section( 'sales' ) ? add_query_arg( 'crm_section', 'sales', $base ) : '' ),
+    array( 'key' => 'sales_followups', 'label' => 'پیگیری‌های فروش سررسید', 'url' => crmbarghbazar_can_view_section( 'sales' ) ? add_query_arg( array( 'crm_section'=>'sales', 'sales_queue'=>'followups' ), $base ) : '' ),
 );
 ?>
 <section class="crm-access-screen crmb-leadership" aria-labelledby="crmb-leadership-title">

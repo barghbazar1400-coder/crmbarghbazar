@@ -32,6 +32,12 @@ $html = view();
 check( str_contains( $html, 'مرکز کنترل و پیگیری مدیر' ), 'Heading' );
 check( str_contains( $html, 'کارهای' ) === false || str_contains( $html, 'وظایف بدون گزارش تازه' ), 'No-progress list' );
 check( str_contains( $html, 'فعالیت امروز کارکنان' ), 'Team activity' );
+check( str_contains( $html, 'queue=overdue' ), 'Overdue panel links to real filtered task queue' );
+check( str_contains( $html, 'queue=stalled' ), 'Stalled panel links to real filtered task queue' );
+check( str_contains( $html, 'queue=activity' ), 'Activity panel links to today's matching tasks' );
+check( str_contains( $html, 'view=review' ), 'Review panel retains review status' );
+check( str_contains( $html, 'sales_queue=followups' ), 'Sales followup panel uses a filtered queue' );
+
 check( str_contains( $html, 'کارهای در انتظار تأیید شما' ), 'Review queue' );
 check( str_contains( $html, 'تأیید یا برگشت برای اصلاح' ), 'Review action' );
 check( str_contains( $html, '&lt;script&gt;bad&lt;/script&gt;' ), 'Task title escaped' );

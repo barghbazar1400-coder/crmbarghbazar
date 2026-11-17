@@ -5,17 +5,20 @@ $as_manager = false; $checks = 0;
 function is_user_logged_in() { return true; }
 function crmb_work_manage_team() { global $as_manager; return $as_manager; }
 function get_current_user_id() { global $as_manager; return $as_manager ? 1 : 3; }
-function crmb_work_task_counts( $team, $assigned_filter = 0 ) {
-    global $count_filter;
+function crmb_work_control_queues() { return array( 'overdue'=>'وظایف عقب‌افتاده', 'stalled'=>'وظایف بدون گزارش تازه (۴۸ ساعت)', 'timers'=>'زمان‌سنج‌های فعال', 'activity'=>'فعالیت امروز کارکنان' ); }
+function crmb_work_task_counts( $team, $assigned_filter = 0, $queue = '' ) {
+    global $count_filter, $count_queue;
     $count_filter = $assigned_filter;
+    $count_queue = $queue;
     if ( ! $team && $GLOBALS['as_manager'] ) {
         return array( 'ready'=>true, 'all'=>3, 'open'=>2, 'review'=>1, 'done'=>1 );
     }
     return array( 'ready' => true, 'all' => $assigned_filter === 4 ? 0 : 2, 'open' => $assigned_filter === 4 ? 0 : 1, 'review' => 0, 'done' => $assigned_filter === 4 ? 0 : 1 );
 }
-function crmb_work_list( $kind, $page, $limit, $team, $sent = false, $active = false, $focus = 0, $view = 'all', $assigned_filter = 0 ) {
-    global $list_filter;
+function crmb_work_list( $kind, $page, $limit, $team, $sent = false, $active = false, $focus = 0, $view = 'all', $assigned_filter = 0, $queue = '' ) {
+    global $list_filter, $list_queue;
     $list_filter = $assigned_filter;
+    $list_queue = $queue;
     if ( $kind !== 'tasks' ) { throw new RuntimeException( 'Unexpected list' ); }
     $rows = array(
         (object) array( 'id' => 42, 'title' => 'مانیتورهای سوزوکی',
@@ -74,13 +77,14 @@ function verify( $condition, $name ) {
     ++$checks;
     if ( ! $condition ) { throw new RuntimeException( 'Task template assertion ' . $checks . ': ' . $name ); }
 }
-function render( $team = false, $view = null, $assignee = 0, $new = false, $managerPersonal = false ) {
+function render( $team = false, $view = null, $assignee = 0, $new = false, $managerPersonal = false, $queue = '' ) {
     global $as_manager;
     $as_manager = $team || $managerPersonal;
     $_GET = $team ? array( 'scope' => 'team' ) : array();
     if ( $assignee ) { $_GET['assigned_to'] = (string) $assignee; }
     if ( $new ) { $_GET['new_task'] = '1'; }
     if ( null !== $view ) { $_GET['view'] = $view; }
+    if ( $queue ) { $_GET['queue'] = $queue; }
     ob_start();
     include __DIR__ . '/../template-parts/tasks.php';
     return ob_get_clean();
@@ -149,4 +153,14 @@ verify( str_contains( $managerInbox, 'name="scope"' ) === false, 'No team select
 verify( str_contains( $managerInbox, 'data-scope="mine"' ), 'Personal review queue uses its own refresh scope' );
 verify( ! str_contains( $managerInbox, 'name="status"' ), 'Manager cannot change employee task status in personal review' );
 verify( ! str_contains( $managerInbox, 'value="delete_task"' ), 'Review inbox does not expose task deletion controls' );
+$queueHtml = render( true, 'open', 3, false, false, 'overdue' );
+verify( $list_queue === 'overdue' && $count_queue === 'overdue', 'List and all status counts use manager queue filter' );
+verify( str_contains( $queueHtml, 'فیلتر مرکز کنترل: وظایف عقب‌افتاده' ), 'Context and applied queue visible' );
+verify( str_contains( $queueHtml, 'name="queue" value="overdue"' ), 'Employee selector preserves queue filter' );
+verify( str_contains( $queueHtml, 'queue=overdue' ), 'Status and pagination links preserve queue filter' );
+verify( str_contains( $queueHtml, 'حذف فیلتر و نمایش همه کارهای تیم' ), 'Clear queue option exists' );
+verify( str_contains( $queueHtml, 'حذف فیلتر کارمند' ), 'Clear assignee keeps separate queue filter' );
+$notTeam = render( false, 'open', 0, false, false, 'overdue' );
+verify( $list_queue === '' && $count_queue === '', 'Unprivileged user cannot apply manager queue filter' );
+verify( ! str_contains( $notTeam, 'crmb-control-active-filter' ), 'No manager-only filter for employee' );
 echo "$checks task view checks passed\n";

@@ -1,0 +1,48 @@
+name: CRM Manager Control Drilldown Filters
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/work.php'
+      - 'template-parts/tasks.php'
+      - 'template-parts/leadership.php'
+      - 'template-parts/manager-control.php'
+      - 'template-parts/sales.php'
+      - 'tests/control-queue.php'
+      - 'tests/work.php'
+      - 'tests/tasks-view.php'
+      - 'tests/leadership-view.php'
+      - 'tests/manager-control-view.php'
+      - 'style.css'
+      - '.github/workflows/control-queue-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  queue-drilldowns:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring
+          coverage: none
+      - name: PHP syntax
+        run: |
+          for f in inc/work.php template-parts/tasks.php template-parts/leadership.php template-parts/manager-control.php template-parts/sales.php tests/control-queue.php tests/work.php tests/tasks-view.php tests/leadership-view.php tests/manager-control-view.php; do php -l "$f" || exit 1; done
+      - name: True server-side filters and scoped SQL
+        run: php tests/control-queue.php
+      - name: Existing task workflow and visual regressions
+        run: |
+          php tests/work.php
+          php tests/tasks-view.php
+      - name: Executive links and sales privacy
+        run: |
+          php tests/leadership-view.php
+          php tests/manager-control-view.php
+      - name: Sales desk regressions
+        run: |
+          php tests/sales.php
+          php tests/sales-workbench.php

@@ -11,10 +11,13 @@ if ( ! in_array( $view, array( 'all', 'open', 'review', 'done' ), true ) ) { $vi
 $members = $work_admin ? get_users( array( 'orderby' => 'display_name', 'order' => 'ASC' ) ) : array();
 $assigned_filter = $team ? crmb_work_id( $_GET, 'assigned_to' ) : 0;
 if ( $assigned_filter && ! get_userdata( $assigned_filter ) ) { $assigned_filter = 0; }
-$tasks = crmb_work_list( 'tasks', $page, 20, $team, false, false, 0, $view, $assigned_filter );
-$counts = crmb_work_task_counts( $team, $assigned_filter );
+$control_queue = $team && isset( $_GET['queue'] ) && is_string( $_GET['queue'] )
+    && isset( crmb_work_control_queues()[ $_GET['queue'] ] ) ? $_GET['queue'] : '';
+$tasks = crmb_work_list( 'tasks', $page, 20, $team, false, false, 0, $view, $assigned_filter, $control_queue );
+$counts = crmb_work_task_counts( $team, $assigned_filter, $control_queue );
 $base_args = array( 'crm_section' => 'tasks', 'scope' => $team ? 'team' : 'mine', 'view' => $view );
 if ( $team && $assigned_filter ) { $base_args['assigned_to'] = $assigned_filter; }
+if ( $control_queue ) { $base_args['queue'] = $control_queue; }
 $base = add_query_arg( $base_args, home_url( '/main/' ) );
 $selected_member = $assigned_filter ? get_userdata( $assigned_filter ) : null;
 $new_task_url = add_query_arg( array( 'new_task' => 1, 'view' => 'open', 'work_page' => 1 ), $base ) . '#crmb-task-editor';
@@ -45,6 +48,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                 <input type="hidden" name="crm_section" value="tasks">
                 <input type="hidden" name="scope" value="team">
                 <input type="hidden" name="view" value="<?php echo esc_attr( $view ); ?>">
+                <?php if ( $control_queue ) : ?><input type="hidden" name="queue" value="<?php echo esc_attr( $control_queue ); ?>"><?php endif; ?>
                 <label for="crmb-team-assignee">مسئول انجام کار</label>
                 <select id="crmb-team-assignee" name="assigned_to">
                     <option value="0">همه کارکنان</option>
@@ -53,7 +57,10 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                     <?php endforeach; ?>
                 </select>
                 <button type="submit" class="crm-access-primary">نمایش کارها</button>
-                <?php if ( $assigned_filter ) : ?><a href="<?php echo esc_url( add_query_arg( array( 'crm_section' => 'tasks', 'scope' => 'team', 'view' => $view ), home_url( '/main/' ) ) ); ?>">حذف فیلتر</a><?php endif; ?>
+                <?php if ( $assigned_filter ) :
+                    $clear_assignee_args = $base_args;
+                    unset( $clear_assignee_args['assigned_to'] );
+                    ?><a href="<?php echo esc_url( add_query_arg( $clear_assignee_args, home_url( '/main/' ) ) ); ?>">حذف فیلتر کارمند</a><?php endif; ?>
             </form>
         </section>
         <?php endif; ?>
@@ -81,6 +88,18 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
             </form>
         </details>
         <?php endif; ?>
+    <?php endif; ?>
+    <?php if ( $team && $control_queue ) :
+        $clear_queue_args = $base_args;
+        unset( $clear_queue_args['queue'] );
+        ?>
+        <section class="crmb-control-active-filter" role="status" aria-label="فیلتر مرکز کنترل">
+            <div><i class="fa-solid fa-filter" aria-hidden="true"></i>
+                <strong>فیلتر مرکز کنترل: <?php echo esc_html( crmb_work_control_queues()[ $control_queue ] ); ?></strong>
+                <p>فقط وظایفی نمایش داده می‌شوند که با این شرط مطابقت دارند. شمارنده‌ها و صفحه‌بندی هم بر اساس همین فیلتر هستند.</p>
+            </div>
+            <a href="<?php echo esc_url( add_query_arg( $clear_queue_args, home_url( '/main/' ) ) ); ?>">حذف فیلتر و نمایش همه کارهای تیم</a>
+        </section>
     <?php endif; ?>
     <?php
     $status_labels = crmb_work_statuses();
@@ -129,7 +148,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
     <?php endif; ?>
     <section class="crmb-tasks-section" aria-labelledby="crmb-tasks-list-title">
         <div class="crmb-tasks-section-heading">
-            <div><h2 id="crmb-tasks-list-title"><?php echo esc_html( $views[ $view ]['label'] ); ?><?php echo $team ? ( $selected_member ? ' — ' . esc_html( $selected_member->display_name ) : ' تیم' ) : ''; ?></h2>
+            <div><h2 id="crmb-tasks-list-title"><?php echo esc_html( $control_queue ? crmb_work_control_queues()[ $control_queue ] . ' — ' . $views[ $view ]['label'] : $views[ $view ]['label'] ); ?><?php echo $team ? ( $selected_member ? ' — ' . esc_html( $selected_member->display_name ) : ' تیم' ) : ''; ?></h2>
                 <p><?php echo 'done' === $view ? 'فقط کارهای تأیید نهایی‌شده در بایگانی قرار می‌گیرند.' : ( 'review' === $view ? ( $work_admin && ! $team ? 'تسک‌های خودتان و کارهای کارکنان که برای تصمیم نهایی به شما ارجاع شده‌اند.' : 'کارهایی که تحویل داده شده‌اند و منتظر تصمیم مدیر هستند.' ) : ( 'open' === $view ? 'کارهای در حال انجام و منتظر تأیید، تا تصمیم نهایی باز می‌مانند.' : 'تمام کارها، شامل موارد بایگانی‌شده و لغوشده.' ) ); ?></p></div>
             <span class="crmb-tasks-section-count"><?php echo $tasks['ready'] ? esc_html( (string) count( $tasks['rows'] ) ) : '—'; ?> مورد در این صفحه</span>
         </div>

@@ -40,6 +40,11 @@ function render_leadership() { ob_start(); include __DIR__ . '/../template-parts
 $html = render_leadership();
 verify_view( str_contains( $html, 'crmb-leadership-priorities' ), 'Independent priorities section' );
 verify_view( str_contains( $html, 'در انتظار تأیید مدیر' ), 'Review metric' );
+verify_view( str_contains( $html, 'queue=overdue' ), 'Overdue KPI has real queue parameter' );
+verify_view( str_contains( $html, 'queue=timers' ), 'Running timers KPI has real queue parameter' );
+verify_view( str_contains( $html, 'view=done' ), 'Completed KPI opens completed archive' );
+verify_view( str_contains( $html, 'view=open' ), 'Open KPI opens open tasks' );
+
 verify_view( str_contains( $html, 'crmb-priorities-list' ), 'Compact list exists' );
 verify_view( substr_count( $html, 'class="crmb-priority-item"' ) === 1, 'One row per task' );
 verify_view( str_contains( $html, 'عقب‌افتاده' ), 'Overdue label' );

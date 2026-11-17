@@ -38,7 +38,7 @@ $tasks_url = add_query_arg( array( 'crm_section'=>'tasks', 'scope'=>'team' ), $b
             <a class="crmb-control-action" href="<?php echo esc_url( add_query_arg( 'view', 'review', $tasks_url ) ); ?>">مشاهده همه کارهای منتظر تأیید</a>
         </section>
         <section class="crm-access-card crmb-control-panel" aria-labelledby="crmb-control-overdue">
-            <h3 id="crmb-control-overdue"><i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i> وظایف عقب‌افتاده</h3>
+            <h3 id="crmb-control-overdue"><i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i> <a href="<?php echo esc_url( add_query_arg( array( 'view'=>'open', 'queue'=>'overdue' ), $tasks_url ) ); ?>">وظایف عقب‌افتاده</a></h3>
             <p class="crm-access-muted">قدیمی‌ترین موعدها · حداکثر ۱۰ مورد</p>
             <?php if ( null === $control['overdue'] ) : ?>
                 <p role="status">اطلاعات وظایف در دسترس نیست.</p>
@@ -56,9 +56,10 @@ $tasks_url = add_query_arg( array( 'crm_section'=>'tasks', 'scope'=>'team' ), $b
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
+            <a class="crmb-control-action" href="<?php echo esc_url( add_query_arg( array( 'view'=>'open', 'queue'=>'overdue' ), $tasks_url ) ); ?>">مشاهده همه وظایف عقب‌افتاده</a>
         </section>
         <section class="crm-access-card crmb-control-panel" aria-labelledby="crmb-control-stalled">
-            <h3 id="crmb-control-stalled"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> وظایف بدون گزارش تازه</h3>
+            <h3 id="crmb-control-stalled"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> <a href="<?php echo esc_url( add_query_arg( array( 'view'=>'open', 'queue'=>'stalled' ), $tasks_url ) ); ?>">وظایف بدون گزارش تازه</a></h3>
             <p class="crm-access-muted">کارهای شروع‌شده یا متوقف‌شده که بیش از ۴۸ ساعت بدون گزارش کارمند مانده‌اند</p>
             <?php if ( null === $control['stalled'] ) : ?>
                 <p role="status">اطلاعات گزارش‌های پیشرفت در دسترس نیست.</p>
@@ -76,9 +77,10 @@ $tasks_url = add_query_arg( array( 'crm_section'=>'tasks', 'scope'=>'team' ), $b
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
+            <a class="crmb-control-action" href="<?php echo esc_url( add_query_arg( array( 'view'=>'open', 'queue'=>'stalled' ), $tasks_url ) ); ?>">مشاهده همه وظایف بدون گزارش تازه</a>
         </section>
         <section class="crm-access-card crmb-control-panel" aria-labelledby="crmb-control-followups">
-            <h3 id="crmb-control-followups"><i class="fa-solid fa-phone-volume" aria-hidden="true"></i> پیگیری مشتریان</h3>
+            <h3 id="crmb-control-followups"><i class="fa-solid fa-phone-volume" aria-hidden="true"></i> <a href="<?php echo esc_url( add_query_arg( array( 'crm_section'=>'sales', 'sales_queue'=>'followups' ), $base ) ); ?>">پیگیری مشتریان</a></h3>
             <p class="crm-access-muted">سررسیدشده بر اساس آخرین تماس هر مشتری و محدوده دسترسی فروش شما</p>
             <?php if ( ! $control['sales_access'] ) : ?>
                 <p class="crm-access-muted">برای مشاهده این بخش به دسترسی «میز فروش» نیاز دارید.</p>
@@ -98,9 +100,12 @@ $tasks_url = add_query_arg( array( 'crm_section'=>'tasks', 'scope'=>'team' ), $b
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
+            <?php if ( $control['sales_access'] ) : ?>
+                <a class="crmb-control-action" href="<?php echo esc_url( add_query_arg( array( 'crm_section'=>'sales', 'sales_queue'=>'followups' ), $base ) ); ?>">مشاهده همه پیگیری‌های سررسیدشده</a>
+            <?php endif; ?>
         </section>
         <section class="crm-access-card crmb-control-panel" aria-labelledby="crmb-control-activity">
-            <h3 id="crmb-control-activity"><i class="fa-solid fa-list-check" aria-hidden="true"></i> فعالیت امروز کارکنان</h3>
+            <h3 id="crmb-control-activity"><i class="fa-solid fa-list-check" aria-hidden="true"></i> <a href="<?php echo esc_url( add_query_arg( array( 'view'=>'all', 'queue'=>'activity' ), $tasks_url ) ); ?>">فعالیت امروز کارکنان</a></h3>
             <p class="crm-access-muted">۱۲ اقدام اخیر ثبت‌شده توسط مسئول هر کار (راهنمایی مدیر شامل نمی‌شود)</p>
             <?php if ( null === $control['activity'] ) : ?>
                 <p role="status">فعالیت‌های امروز در دسترس نیست.</p>
@@ -117,11 +122,12 @@ $tasks_url = add_query_arg( array( 'crm_section'=>'tasks', 'scope'=>'team' ), $b
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
+            <a class="crmb-control-action" href="<?php echo esc_url( add_query_arg( array( 'view'=>'all', 'queue'=>'activity' ), $tasks_url ) ); ?>">همه تسک‌های دارای فعالیت امروز</a>
         </section>
         <?php if ( $control['sales_access'] ) : ?>
         <section class="crm-access-card crmb-control-panel" aria-labelledby="crmb-control-calls">
             <div class="crmb-control-summary">
-                <h3 id="crmb-control-calls"><i class="fa-solid fa-headset" aria-hidden="true"></i> تماس‌های ثبت‌شده امروز</h3>
+                <h3 id="crmb-control-calls"><i class="fa-solid fa-headset" aria-hidden="true"></i> <a href="<?php echo esc_url( add_query_arg( array( 'crm_section'=>'sales', 'sales_queue'=>'calls_today' ), $base ) ); ?>">تماس‌های ثبت‌شده امروز</a></h3>
                 <strong><?php echo null === $control['calls_today'] ? '—' : esc_html( (string) $control['calls_today'] ); ?></strong>
             </div>
             <p class="crm-access-muted">آخرین ۸ تماس در محدوده دسترسی میز فروش</p>
@@ -140,7 +146,7 @@ $tasks_url = add_query_arg( array( 'crm_section'=>'tasks', 'scope'=>'team' ), $b
                     <?php endforeach; ?>
                 </ul>
             <?php endif; ?>
-            <a class="crmb-control-action" href="<?php echo esc_url( add_query_arg( 'crm_section', 'sales', $base ) ); ?>">ثبت تماس در میز فروش</a>
+            <a class="crmb-control-action" href="<?php echo esc_url( add_query_arg( array( 'crm_section'=>'sales', 'sales_queue'=>'calls_today' ), $base ) ); ?>">مشاهده همه تماس‌های امروز</a>
         </section>
         <?php endif; ?>
     </div>
