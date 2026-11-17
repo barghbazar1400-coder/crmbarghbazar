@@ -1,0 +1,42 @@
+name: CRM Task Guidance Read Receipts
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/task-guidance.php'
+      - 'inc/daily-reports.php'
+      - 'inc/notifications.php'
+      - 'template-parts/task-progress.php'
+      - 'functions.php'
+      - 'tests/progress.php'
+      - 'tests/task-guidance.php'
+      - 'style.css'
+      - '.github/workflows/task-guidance-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  guidance-reads:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP 8.4 with SQLite
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring
+          coverage: none
+      - name: Lint task guidance files
+        run: |
+          php -l functions.php
+          php -l inc/task-guidance.php
+          php -l inc/daily-reports.php
+          php -l inc/notifications.php
+          php -l template-parts/task-progress.php
+          php -l tests/progress.php
+          php -l tests/task-guidance.php
+      - name: Existing progress and note regression
+        run: php tests/progress.php
+      - name: Per-note acknowledgement, access and unread counter
+        run: php tests/task-guidance.php
