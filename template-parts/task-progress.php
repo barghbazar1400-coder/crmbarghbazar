@@ -256,7 +256,7 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
                     <?php endif; ?>
                 </div>
                 <?php if ( $rich ) : ?>
-                    <div class="crmb-task-rich-body"><?php echo crmb_task_note_html( $event->body ); ?></div>
+                    <div class="crmb-task-rich-body"><?php echo crmb_task_note_render_html( $event->body ); ?></div>
                 <?php else : ?>
                     <p class="crmb-work-body"><?php echo esc_html( $event->body ); ?></p>
                 <?php endif; ?>

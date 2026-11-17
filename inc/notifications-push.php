@@ -147,7 +147,7 @@ function crmb_push_worker() {
     $t = crmb_notice_tables();
     $now = gmdate( 'Y-m-d H:i:s' );
     $jobs = $wpdb->get_results( $wpdb->prepare(
-        "SELECT * FROM {$t['notices']} WHERE push_state IN ('pending','retry','sending') AND next_try_utc<=%s AND attempts<3 ORDER BY id ASC LIMIT 15", $now
+        "SELECT * FROM {$t['notices']} WHERE read_utc IS NULL AND push_state IN ('pending','retry','sending') AND next_try_utc<=%s AND attempts<3 ORDER BY id ASC LIMIT 15", $now
     ) );
     if ( ! $jobs ) { return; }
     $keys = crmb_push_keys();
@@ -160,7 +160,7 @@ function crmb_push_worker() {
         // Atomic claim avoids two overlapping WP cron runs sending the same job.
         $claimed = $wpdb->query( $wpdb->prepare(
             "UPDATE {$t['notices']} SET push_state='sending',attempts=attempts+1,next_try_utc=%s
-            WHERE id=%d AND push_state=%s AND attempts=%d",
+            WHERE id=%d AND read_utc IS NULL AND push_state=%s AND attempts=%d",
             gmdate( 'Y-m-d H:i:s', time() + 300 ), $job->id, $job->push_state, $job->attempts
         ) );
         if ( 1 !== $claimed ) { continue; }

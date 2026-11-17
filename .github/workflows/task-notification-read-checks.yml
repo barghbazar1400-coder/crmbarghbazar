@@ -1,0 +1,41 @@
+name: CRM Task Links and Automatic Notification Read
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/task-rich-notes.php'
+      - 'inc/notifications.php'
+      - 'inc/notifications-push.php'
+      - 'template-parts/task-progress.php'
+      - 'tests/task-note-links.php'
+      - 'tests/notification-task-lifecycle.php'
+      - 'tests/progress.php'
+      - '.github/workflows/task-notification-read-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  task-links-and-notifications:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring
+          coverage: none
+      - name: Syntax
+        run: |
+          for f in inc/task-rich-notes.php inc/notifications.php inc/notifications-push.php template-parts/task-progress.php tests/task-note-links.php tests/notification-task-lifecycle.php tests/progress.php; do php -l "$f" || exit 1; done
+      - name: Old and new rich task links
+        run: php tests/task-note-links.php
+      - name: Task navigation and review notification lifecycle
+        run: php tests/notification-task-lifecycle.php
+      - name: Existing task, notifications and read receipts
+        run: |
+          php tests/progress.php
+          php tests/notifications.php
+          php tests/task-review.php
+          php tests/task-guidance.php
+          php tests/task-revision-reads.php

@@ -121,6 +121,18 @@ function crmb_task_note_html( $html ) {
     );
     return wp_kses( $html, $allowed, array( 'http', 'https', 'mailto' ) );
 }
+/**
+ * Turn plain URLs from both old and new rich progress reports into links
+ * without ever trusting employee-submitted markup. Existing links are
+ * preserved by WordPress make_clickable; the result is sanitized again.
+ */
+function crmb_task_note_render_html( $body ) {
+    $safe = crmb_task_note_html( $body );
+    if ( function_exists( 'make_clickable' ) ) {
+        $safe = make_clickable( $safe );
+    }
+    return crmb_task_note_html( $safe );
+}
 function crmb_task_note_is_manager( $task_id ) {
     return crmb_work_manage_team()
         || ( function_exists( 'crmb_seo_can_manage_task' ) && crmb_seo_can_manage_task( $task_id ) );

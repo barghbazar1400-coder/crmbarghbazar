@@ -2,7 +2,13 @@
 /** SQLite-backed behavioral tests. Run with PHP PDO SQLite enabled. */
 define('ABSPATH', __DIR__);
 $uid=7; $admin=false; $logged=true; $ready=true; $checks=0;
-function add_action($a,$b,$p=10) {}
+function add_action($a,$b,$p=10,$accepted_args=1) {
+    // Integration fixtures can capture WP actions without changing the
+    // behavior of existing standalone tests that intentionally omit do_action.
+    if (defined('CRMB_CAPTURE_ACTIONS') && CRMB_CAPTURE_ACTIONS) {
+        $GLOBALS['crmb_test_actions'][$a][$p][] = array($b,$accepted_args);
+    }
+}
 function add_filter($a,$b) {}
 function is_user_logged_in() { global $logged; return $logged; }
 function current_user_can($cap) { global $admin; return $admin; }
@@ -16,7 +22,7 @@ function crmb_att_today() { return '2026-10-30'; }
 function crmb_att_timezone() { return new DateTimeZone('Asia/Tehran'); }
 function crmb_att_jdate($s) { return $s; }
 function crmb_leave_parse_day($s) { return preg_match('/^2026-\d{2}-\d{2}$/D',$s) && checkdate((int)substr($s,5,2),(int)substr($s,8,2),2026) ? $s : false; }
-function wp_kses($html,$allowed,$protocols) { global $allowed_html,$allowed_protocols; $allowed_html=$allowed; $allowed_protocols=$protocols; return strip_tags($html, '<p><strong><em><ul><ol><li><h3>'); }
+function wp_kses($html,$allowed,$protocols) { global $allowed_html,$allowed_protocols; $allowed_html=$allowed; $allowed_protocols=$protocols; return strip_tags($html, '<p><a><strong><em><ul><ol><li><h3>'); }
 function wp_strip_all_tags($s) { return strip_tags($s); }
 function is_wp_error($v) { return $v instanceof WP_Error; }
 class WP_Error { function __construct($code) {} }

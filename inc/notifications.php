@@ -190,8 +190,198 @@ add_action( 'crmb_task_status_updated', function ( $task_id, $owner, $actor, $ev
         crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ), 'task_status:' . $event_id, $actor );
 }, 10, 4 );
 
+/**
+ * Strictly match the canonical private task URL; never use a substring such
+ * as "%task_id=12%" that would accidentally match task #123.
+ */
+function crmb_notice_task_url( $task_id ) {
+    return crmb_notice_url( 'tasks', array( 'task_id' => (int) $task_id ) );
+}
+/**
+ * Viewing the actual task (even via the menu) acknowledges its BELL alerts.
+ * It deliberately does not write to manager guidance/revision receipt tables:
+ * those explicit "خواندم" confirmations retain their separate meaning.
+ */
+function crmb_notice_read_task_view( $task_id ) {
+    if ( ! is_user_logged_in() || ! crmb_notice_ready() || ! $task_id
+        || ! function_exists( 'crmb_progress_task' )
+        || ! crmb_progress_task( (int) $task_id ) ) { return false; }
+    global $wpdb;
+    $t = crmb_notice_tables()['notices'];
+    $result = $wpdb->query( $wpdb->prepare(
+        "UPDATE {$t} SET read_utc=%s,
+          push_state=CASE WHEN push_state IN ('pending','retry') THEN 'skipped' ELSE push_state END
+         WHERE user_id=%d AND href=%s AND kind IN ('task','manager','task_done')
+           AND read_utc IS NULL",
+        gmdate( 'Y-m-d H:i:s' ), get_current_user_id(),
+        crmb_notice_task_url( $task_id )
+    ) );
+    return false !== $result;
+}
+/** Applied before the topbar bell is rendered, not after the task page. */
+function crmb_notice_task_view_route() {
+    if ( ! is_user_logged_in() || ! function_exists( 'is_page' )
+        || ! is_page( 'main' ) || ! isset( $_GET['task_id'] )
+        || ! is_scalar( $_GET['task_id'] ) ) { return; }
+    $section = isset( $_GET['crm_section'] ) && is_string( $_GET['crm_section'] )
+        ? sanitize_key( wp_unslash( $_GET['crm_section'] ) ) : '';
+    if ( 'tasks' !== $section ) { return; }
+    crmb_notice_read_task_view( absint( $_GET['task_id'] ) );
+}
+add_action( 'template_redirect', 'crmb_notice_task_view_route', 9 );
+
+/**
+ * Resolve old status alerts when the real task condition changes, rather
+ * than making each recipient visit the notification popover.
+ * Prefixes are fixed internal keys, not user-submitted SQL patterns.
+ */
+function crmb_notice_resolve_task( $task_id, $prefixes, $user_id = 0 ) {
+    if ( ! crmb_notice_ready() || ! $task_id || ! is_array( $prefixes )
+        || ! $prefixes ) { return false; }
+    $allowed = array(
+        'task_review_request:', 'task_review_resubmitted:',
+        'task_review_decision:', 'task_status:', 'task:', 'guide:', 'completed:',
+        'reminder:task:', 'reminder:stale:',
+    );
+    $where_prefixes = array();
+    $args = array( gmdate( 'Y-m-d H:i:s' ), crmb_notice_task_url( $task_id ) );
+    foreach ( array_unique( $prefixes ) as $prefix ) {
+        if ( ! in_array( $prefix, $allowed, true ) ) { return false; }
+        $where_prefixes[] = 'source_key LIKE %s';
+        $args[] = $prefix . '%';
+    }
+    $scope = '';
+    if ( $user_id ) {
+        $scope = ' AND user_id=%d';
+        $args[] = (int) $user_id;
+    }
+    global $wpdb;
+    $notices = crmb_notice_tables()['notices'];
+    $query = $wpdb->prepare(
+        "UPDATE {$notices} SET read_utc=%s,
+         push_state=CASE WHEN push_state IN ('pending','retry') THEN 'skipped' ELSE push_state END
+         WHERE href=%s AND read_utc IS NULL
+           AND (" . implode( ' OR ', $where_prefixes ) . ")" . $scope,
+        ...$args
+    );
+    return false !== $wpdb->query( $query );
+}
+// Clear a manager's pending review request when they decide, without
+// acknowledging the employee's newly-created decision notification.
+add_action( 'crmb_task_review_decided', function ( $task_id ) {
+    crmb_notice_resolve_task( $task_id, array(
+        'task_review_request:', 'task_review_resubmitted:',
+        'reminder:task:', 'reminder:stale:',
+    ) );
+}, 5, 1 );
+// A resubmission resolves the employee's previous correction notification,
+// not the new manager review request being created.
+add_action( 'crmb_task_review_requested', function ( $task_id, $manager, $actor ) {
+    // Once the employee has submitted the corrected task, any older
+    // assignment, correction or manager-status alert for that employee
+    // is informational history rather than an outstanding action.
+    crmb_notice_resolve_task( $task_id, array(
+        'task_review_decision:', 'task:', 'task_status:', 'guide:',
+        'reminder:task:', 'reminder:stale:',
+    ), (int) $actor );
+}, 5, 3 );
+// Manager's status update supersedes a previous manager status notice.
+add_action( 'crmb_task_status_updated', function ( $task_id ) {
+    crmb_notice_resolve_task( $task_id, array( 'task_status:' ) );
+    // Cancelling or archiving a task invalidates old action-required
+    // reminders for it, including outstanding review requests.
+    global $wpdb;
+    $table = crmb_work_tables()['tasks'];
+    $current = $wpdb->get_var( $wpdb->prepare(
+        "SELECT status FROM {$table} WHERE id=%d", (int) $task_id
+    ) );
+    if ( in_array( $current, array( 'cancelled', 'done' ), true ) ) {
+        crmb_notice_resolve_task( $task_id, array(
+            'task:', 'task_review_request:', 'task_review_resubmitted:',
+            'task_review_decision:', 'guide:', 'completed:',
+            'reminder:task:', 'reminder:stale:',
+        ) );
+    }
+}, 5, 1 );
+// On reassignment, the former assignee cannot see that task anymore.
+// Do not keep a pointless unread bell notification for that former owner.
+add_action( 'crmb_task_assigned', function ( $task_id, $recipient, $actor, $previous = 0 ) {
+    if ( $previous && (int) $previous !== (int) $recipient ) {
+        crmb_notice_resolve_task( $task_id, array(
+            'task:', 'task_status:', 'task_review_decision:', 'guide:',
+            'reminder:task:', 'reminder:stale:',
+        ), (int) $previous );
+    }
+}, 5, 4 );
+
+/**
+ * One bounded pass for legacy review alerts created before this change.
+ * A request only remains current while its own review event is the latest
+ * submission and the task is STILL waiting for a manager decision.
+ * Per-request memoization avoids repeating this query for bell count/list.
+ */
+function crmb_notice_reconcile_old_reviews() {
+    static $checked = false;
+    if ( $checked || ! is_user_logged_in() || ! crmb_notice_ready()
+        || ! function_exists( 'crmb_progress_ready' ) || ! crmb_progress_ready() ) { return; }
+    $checked = true;
+    global $wpdb;
+    $n = crmb_notice_tables()['notices'];
+    $pending = $wpdb->get_results( $wpdb->prepare(
+        "SELECT id,source_key FROM {$n}
+          WHERE user_id=%d AND read_utc IS NULL
+            AND (source_key LIKE 'task_review_request:%%'
+                 OR source_key LIKE 'task_review_resubmitted:%%')
+          ORDER BY id DESC LIMIT 150", get_current_user_id()
+    ) );
+    if ( $wpdb->last_error || ! $pending ) { return; }
+    $ids = array();
+    $notices = array();
+    foreach ( $pending as $notice ) {
+        if ( preg_match( '/^task_review_(?:request|resubmitted):([1-9][0-9]*)$/D',
+            $notice->source_key, $match ) ) {
+            $event_id = (int) $match[1];
+            $ids[$event_id] = $event_id;
+            $notices[$event_id][] = (int) $notice->id;
+        }
+    }
+    if ( ! $ids ) { return; }
+    $events = crmb_progress_tables()['events'];
+    $tasks = crmb_work_tables()['tasks'];
+    $marks = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+    $rows = $wpdb->get_results( $wpdb->prepare(
+        "SELECT e.id,t.status,
+          (SELECT MAX(x.id) FROM {$events} x
+             WHERE x.task_id=e.task_id AND x.event_type='review') AS latest_review
+           FROM {$events} e LEFT JOIN {$tasks} t ON t.id=e.task_id
+          WHERE e.id IN ({$marks}) AND e.event_type='review'",
+        ...array_values( $ids )
+    ) );
+    if ( $wpdb->last_error || ! is_array( $rows ) ) { return; }
+    $active = array();
+    foreach ( $rows as $row ) {
+        if ( 'review' === $row->status && (int) $row->latest_review === (int) $row->id ) {
+            $active[(int) $row->id] = true;
+        }
+    }
+    $close = array();
+    foreach ( $notices as $event_id => $notice_ids ) {
+        if ( ! isset( $active[$event_id] ) ) {
+            $close = array_merge( $close, $notice_ids );
+        }
+    }
+    if ( ! $close ) { return; }
+    $marks = implode( ',', array_fill( 0, count( $close ), '%d' ) );
+    $wpdb->query( $wpdb->prepare(
+        "UPDATE {$n} SET read_utc=%s,
+          push_state=CASE WHEN push_state IN ('pending','retry') THEN 'skipped' ELSE push_state END
+           WHERE user_id=%d AND read_utc IS NULL AND id IN ({$marks})",
+        gmdate( 'Y-m-d H:i:s' ), get_current_user_id(), ...$close
+    ) );
+}
 function crmb_notice_count() {
     if ( ! is_user_logged_in() || ! crmb_notice_ready() ) { return 0; }
+    crmb_notice_reconcile_old_reviews();
     global $wpdb;
     $t = crmb_notice_tables();
     $count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t['notices']} WHERE user_id=%d AND read_utc IS NULL", get_current_user_id() ) );
@@ -243,6 +433,7 @@ function crmb_notice_review_legacy_labels( $items ) {
 }
 function crmb_notice_list( $limit = 30 ) {
     if ( ! is_user_logged_in() || ! crmb_notice_ready() ) { return array(); }
+    crmb_notice_reconcile_old_reviews();
     global $wpdb;
     $t = crmb_notice_tables();
     $rows = $wpdb->get_results( $wpdb->prepare(
