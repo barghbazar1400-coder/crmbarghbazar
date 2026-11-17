@@ -94,8 +94,15 @@ check(false, isset($allowed_html['img']));
 check(false, str_contains(crmb_task_note_html('<script>bad</script><p>safe</p>'), '<script>'));
 
 $wpdb->fail_table='wp_crmb_task_events'; check('error',crmb_progress_transition($id,'done')); check('doing',crmb_progress_task($id)->status); check(true,(bool)crmb_progress_task($id)->timer_started_utc); $wpdb->fail_table='';
-check('saved',crmb_progress_transition($id,'done')); check(true,(bool)crmb_progress_task($id)->completed_utc); check(null,crmb_progress_task($id)->timer_started_utc);
-check('locked',crmb_task_rich_save($id,'rich_note','Cannot append after done'));
+check('submitted',crmb_progress_transition($id,'done')); check('review',crmb_progress_task($id)->status); check(null,crmb_progress_task($id)->completed_utc); check(null,crmb_progress_task($id)->timer_started_utc);
+check('locked',crmb_task_rich_save($id,'rich_note','Cannot append while awaiting approval'));
+check('denied',crmb_progress_transition($id,'doing')); check('invalid',crmb_progress_transition($id,'review'));
+$uid=8; $admin=true;
+check('denied',crmb_progress_transition($id,'done')); // A generic manager status cannot approve.
+check('approved',crmb_task_review_decide($id,'approve','Manager approved'));
+check('changed',crmb_task_review_decide($id,'approve','Again'));
+$uid=7; $admin=false;
+check('done',crmb_progress_task($id)->status); check(true,(bool)crmb_progress_task($id)->completed_utc);
 
 check('saved',crmb_progress_note($id,'blocker','Need feedback')); check('invalid',crmb_progress_note($id,'note',''));
 $uid=8; check('denied',crmb_progress_note($id,'note','Foreign')); $admin=true; check(true,(bool)crmb_progress_task($id)); check('denied',crmb_progress_transition($id,'doing')); check('saved',crmb_progress_transition($id,'cancelled'));

@@ -10,6 +10,7 @@ $seo_url = add_query_arg( array( 'crm_section' => 'seo', 'seo_tab' => 'workspace
 $metrics = array(
     array( 'key' => 'tasks_open', 'label' => 'وظایف باز تیم', 'url' => $task_url ),
     array( 'key' => 'tasks_overdue', 'label' => 'وظایف عقب‌افتاده', 'url' => $task_url ),
+    array( 'key' => 'tasks_review', 'label' => 'در انتظار تأیید مدیر', 'url' => add_query_arg( 'view', 'review', $task_url ) ),
     array( 'key' => 'tasks_done', 'label' => 'وظایف تکمیل‌شده', 'url' => $task_url ),
     array( 'key' => 'timers_active', 'label' => 'زمان‌سنج‌های فعال', 'url' => $task_url ),
     array( 'key' => 'reports_pending', 'label' => 'گزارش‌های نیازمند بررسی', 'url' => $is_ceo ? add_query_arg( array( 'crm_section' => 'reports', 'scope' => 'team' ), $base ) : '' ),

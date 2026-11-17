@@ -4289,3 +4289,17 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   .crmb-control-grid { grid-template-columns:minmax(0,1fr); }
   .crmb-control-panel { padding:15px; }
 }
+
+/* Explicit manager approval workflow for task completion. */
+.crmb-task-review-alert { margin:16px 0; border:1px solid #e6d3a4; background:#fffaf0; }
+.crmb-task-review-alert > h2 { display:flex; align-items:center; gap:9px; color:#725317; margin:0 0 10px; font-size:19px; }
+.crmb-task-review-alert > p { color:#654d29; margin:0 0 12px; }
+.crmb-task-review-controls { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; align-items:start; }
+.crmb-task-review-controls form { min-width:0; border:1px solid #eadfc6; border-radius:12px; background:#fff; padding:14px; }
+.crmb-task-review-controls textarea { width:100%; min-height:64px; box-sizing:border-box; resize:vertical; }
+.crmb-task-review-reject { background:#fff0ed; border:1px solid #d08c7a; color:#943e32; border-radius:10px; padding:10px 16px; cursor:pointer; font-weight:700; }
+.crmb-task-review-reject:hover { background:#ffe3db; }
+.crmb-task-card.is-status-review { border-color:#e7d29d; }
+.crmb-task-card-status.is-review, .crmb-priority-status.is-review { background:#fff1cb; color:#7b520b; }
+.crmb-control-review-panel { border-color:#e6d5a6; }
+@media (max-width:820px) { .crmb-task-review-controls { grid-template-columns:minmax(0,1fr); } }

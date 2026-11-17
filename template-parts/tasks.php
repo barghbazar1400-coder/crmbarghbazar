@@ -7,7 +7,7 @@ $work_admin = crmb_work_manage_team();
 $team = $work_admin && isset( $_GET['scope'] ) && 'team' === $_GET['scope'];
 $page = isset( $_GET['work_page'] ) && is_scalar( $_GET['work_page'] ) ? max( 1, absint( $_GET['work_page'] ) ) : 1;
 $view = isset( $_GET['view'] ) && is_string( $_GET['view'] ) ? $_GET['view'] : 'open';
-if ( ! in_array( $view, array( 'all', 'open', 'done' ), true ) ) { $view = 'open'; }
+if ( ! in_array( $view, array( 'all', 'open', 'review', 'done' ), true ) ) { $view = 'open'; }
 $tasks = crmb_work_list( 'tasks', $page, 20, $team, false, false, 0, $view );
 $counts = crmb_work_task_counts( $team );
 $base = add_query_arg( array( 'crm_section' => 'tasks', 'scope' => $team ? 'team' : 'mine', 'view' => $view ), home_url( '/main/' ) );
@@ -54,6 +54,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
     $views = array(
         'all' => array( 'label' => 'همه کارها', 'icon' => 'fa-list-check' ),
         'open' => array( 'label' => 'کارهای باز', 'icon' => 'fa-clock' ),
+        'review' => array( 'label' => 'در انتظار تأیید', 'icon' => 'fa-clipboard-check' ),
         'done' => array( 'label' => 'کارهای تکمیل‌شده', 'icon' => 'fa-circle-check' ),
     );
     ?>
@@ -79,14 +80,14 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
     <section class="crmb-tasks-section" aria-labelledby="crmb-tasks-list-title">
         <div class="crmb-tasks-section-heading">
             <div><h2 id="crmb-tasks-list-title"><?php echo esc_html( $views[ $view ]['label'] ); ?><?php echo $team ? ' تیم' : ''; ?></h2>
-                <p><?php echo 'done' === $view ? 'بایگانی کارهای انجام‌شده؛ برای دیدن جزئیات، هر کار را باز کنید.' : ( 'open' === $view ? 'فقط کارهای انجام‌نشده، در حال انجام و توقف موقت نمایش داده می‌شوند.' : 'تمام کارها، شامل موارد بایگانی‌شده و لغوشده.' ); ?></p></div>
+                <p><?php echo 'done' === $view ? 'فقط کارهای تأیید نهایی‌شده در بایگانی قرار می‌گیرند.' : ( 'review' === $view ? 'کارهایی که تحویل داده شده‌اند و منتظر تصمیم مدیر هستند.' : ( 'open' === $view ? 'کارهای در حال انجام و منتظر تأیید، تا تصمیم نهایی باز می‌مانند.' : 'تمام کارها، شامل موارد بایگانی‌شده و لغوشده.' ) ); ?></p></div>
             <span class="crmb-tasks-section-count"><?php echo $tasks['ready'] ? esc_html( (string) count( $tasks['rows'] ) ) : '—'; ?> مورد در این صفحه</span>
         </div>
         <?php if ( ! $tasks['ready'] ) : ?>
             <p class="crmb-tasks-empty" role="status">دریافت وظایف انجام نشد؛ لطفاً صفحه را دوباره بارگذاری کنید.</p>
         <?php elseif ( ! $tasks['rows'] ) : ?>
             <div class="crmb-tasks-empty"><span aria-hidden="true"><i class="fa-solid fa-circle-check"></i></span>
-                <strong><?php echo 'done' === $view ? 'هنوز کار تکمیل‌شده‌ای ندارید.' : ( 'open' === $view ? 'فعلاً کار بازی ندارید.' : 'کاری برای نمایش وجود ندارد.' ); ?></strong>
+                <strong><?php echo 'done' === $view ? 'هنوز کار تأییدشده‌ای ندارید.' : ( 'review' === $view ? 'کاری در انتظار تأیید نیست.' : ( 'open' === $view ? 'فعلاً کار بازی ندارید.' : 'کاری برای نمایش وجود ندارد.' ) ); ?></strong>
                 <p><?php echo 'done' === $view ? 'پس از تکمیل هر کار، در این بایگانی قابل مشاهده خواهد بود.' : 'برای دیدن وضعیت‌های دیگر، از فیلترهای بالای صفحه استفاده کنید.'; ?></p>
             </div>
         <?php else : ?>
@@ -94,7 +95,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
             <?php foreach ( $tasks['rows'] as $task ) :
                 $status_key = isset( $status_labels[ $task->status ] ) ? $task->status : 'todo';
                 $priority_key = isset( $priority_labels[ $task->priority ] ) ? $task->priority : 'normal';
-                $is_open = in_array( $task->status, array( 'todo', 'doing', 'paused' ), true );
+                $is_open = in_array( $task->status, array( 'todo', 'doing', 'paused', 'review' ), true );
                 $overdue = $task->due_day && $task->due_day < crmb_att_today() && $is_open;
                 $due_today = $task->due_day && $task->due_day === crmb_att_today() && $is_open;
                 $task_url = add_query_arg( 'task_id', $task->id, $base );
@@ -128,14 +129,15 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                             <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
                             مشاهده جزئیات و ثبت پیشرفت
                         </a>
-                        <?php if ( $work_admin || 'cancelled' !== $task->status ) : ?>
+                        <?php if ( 'review' !== $task->status && ( $work_admin || ! in_array( $task->status, array( 'cancelled', 'done' ), true ) ) ) : ?>
                             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crmb-task-card-status-form">
                                 <?php crmb_work_form_fields( 'task_status', $task->id ); ?>
                                 <label for="status-<?php echo esc_attr( $task->id ); ?>">تغییر وضعیت</label>
                                 <select id="status-<?php echo esc_attr( $task->id ); ?>" name="status">
                                 <?php foreach ( $status_labels as $key => $label ) :
-                                    if ( ! $work_admin && 'cancelled' === $key ) { continue; } ?>
-                                    <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $task->status, $key ); ?>><?php echo esc_html( $label ); ?></option>
+                                    if ( 'review' === $key || ( ! $work_admin && 'cancelled' === $key ) ) { continue; }
+                                    $status_option_label = ! $work_admin && 'done' === $key ? 'ارسال برای تأیید مدیر' : $label; ?>
+                                    <option value="<?php echo esc_attr( $key ); ?>" <?php selected( $task->status, $key ); ?>><?php echo esc_html( $status_option_label ); ?></option>
                                 <?php endforeach; ?>
                                 </select><button type="submit">ذخیره</button>
                             </form>

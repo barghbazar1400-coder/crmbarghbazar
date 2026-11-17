@@ -16,6 +16,27 @@ $tasks_url = add_query_arg( array( 'crm_section'=>'tasks', 'scope'=>'team' ), $b
         <a href="<?php echo esc_url( $tasks_url ); ?>">مشاهده همه کارهای تیم</a>
     </header>
     <div class="crmb-control-grid">
+        <section class="crm-access-card crmb-control-panel crmb-control-review-panel" aria-labelledby="crmb-control-review">
+            <h3 id="crmb-control-review"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> کارهای در انتظار تأیید شما</h3>
+            <p class="crm-access-muted">کارهایی که مسئول تحویل داده اما هنوز بایگانی نشده‌اند</p>
+            <?php if ( null === $control['reviews'] ) : ?>
+                <p role="status">دریافت صف تأیید مدیر ممکن نشد.</p>
+            <?php elseif ( ! $control['reviews'] ) : ?>
+                <p class="crm-access-muted">کاری در انتظار تأیید نیست.</p>
+            <?php else : ?>
+                <ul class="crmb-control-list">
+                    <?php foreach ( $control['reviews'] as $item ) :
+                        $url = add_query_arg( 'task_id', $item->id, $tasks_url ); ?>
+                        <li>
+                            <a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $item->title ); ?></a>
+                            <small>مسئول: <?php echo esc_html( crmb_work_user_name( $item->assigned_to ) ); ?></small>
+                            <a class="crmb-control-action" href="<?php echo esc_url( $url ); ?>">تأیید یا برگشت برای اصلاح</a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+            <a class="crmb-control-action" href="<?php echo esc_url( add_query_arg( 'view', 'review', $tasks_url ) ); ?>">مشاهده همه کارهای منتظر تأیید</a>
+        </section>
         <section class="crm-access-card crmb-control-panel" aria-labelledby="crmb-control-overdue">
             <h3 id="crmb-control-overdue"><i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i> وظایف عقب‌افتاده</h3>
             <p class="crm-access-muted">قدیمی‌ترین موعدها · حداکثر ۱۰ مورد</p>

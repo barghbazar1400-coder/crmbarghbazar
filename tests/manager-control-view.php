@@ -19,6 +19,7 @@ function esc_html( $value ) { return htmlspecialchars( (string) $value, ENT_QUOT
 function esc_url( $value ) { return htmlspecialchars( (string) $value, ENT_QUOTES, 'UTF-8' ); }
 $control = array(
     'overdue'=>array( (object) array( 'id'=>17, 'title'=>'کار <script>bad</script>', 'assigned_to'=>7, 'due_day'=>'2026-11-16' ) ),
+    'reviews'=>array( (object) array( 'id'=>19, 'title'=>'تأیید پروژه', 'assigned_to'=>7 ) ),
     'stalled'=>array( (object) array( 'id'=>18, 'title'=>'گزارش مانده', 'assigned_to'=>7, 'status'=>'paused' ) ),
     'activity'=>array( (object) array( 'task_id'=>17, 'actor_id'=>7, 'event_type'=>'rich_note', 'created_utc'=>'2026-11-17 09:30:00', 'title'=>'گزارش جدید' ) ),
     'sales_access'=>false, 'sales_ready'=>false, 'calls_today'=>null, 'calls'=>null, 'followups'=>null,
@@ -31,6 +32,8 @@ $html = view();
 check( str_contains( $html, 'مرکز کنترل و پیگیری مدیر' ), 'Heading' );
 check( str_contains( $html, 'کارهای' ) === false || str_contains( $html, 'وظایف بدون گزارش تازه' ), 'No-progress list' );
 check( str_contains( $html, 'فعالیت امروز کارکنان' ), 'Team activity' );
+check( str_contains( $html, 'کارهای در انتظار تأیید شما' ), 'Review queue' );
+check( str_contains( $html, 'تأیید یا برگشت برای اصلاح' ), 'Review action' );
 check( str_contains( $html, '&lt;script&gt;bad&lt;/script&gt;' ), 'Task title escaped' );
 check( ! str_contains( $html, '<script>bad</script>' ), 'No raw HTML from title' );
 check( str_contains( $html, 'task_id=17' ), 'Manager task drilldown' );

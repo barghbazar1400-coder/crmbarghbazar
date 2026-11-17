@@ -14,6 +14,11 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
     $owner = (int) $task->assigned_to === get_current_user_id();
     $admin = crmb_work_manage_team() || ( function_exists( 'crmb_seo_can_manage_task' ) && crmb_seo_can_manage_task( $id ) );
     $is_open = in_array( $task->status, array( 'todo', 'doing', 'paused' ), true );
+    $under_review = 'review' === $task->status;
+    $review_revisions = $wpdb->get_var( $wpdb->prepare(
+        "SELECT COUNT(*) FROM {$tables['events']} WHERE task_id=%d AND event_type='review_rejected'", $id
+    ) );
+    $review_revisions = $wpdb->last_error ? null : (int) $review_revisions;
     $retry = get_transient( 'crmb_task_note_retry_' . get_current_user_id() . '_' . $id );
     $retry = is_array( $retry ) ? $retry : array();
     $event_page = isset( $_GET['history_page'] ) && is_scalar( $_GET['history_page'] ) ? max( 1, min( 100000, absint( $_GET['history_page'] ) ) ) : 1;
@@ -51,19 +56,44 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
     <?php elseif ( $owner && ( ! $guidance_ready || $guidance_state['error'] ) ) : ?>
         <p class="crm-access-notice" role="status">وضعیت مطالعه راهنمایی‌های مدیر فعلاً در دسترس نیست؛ متن راهنمایی‌ها همچنان در تاریخچه قابل مشاهده است.</p>
     <?php endif; ?>
+    <?php if ( $under_review ) : ?>
+    <section class="crm-access-card crmb-task-review-alert" role="status" aria-label="وضعیت تأیید نهایی کار">
+        <h2><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> در انتظار تأیید مدیر</h2>
+        <p><?php echo $owner && ! $admin ? 'کار شما برای بازبینی ارسال شده است. تا تأیید مدیر در بایگانی قرار نمی‌گیرد.' : 'این کار برای تصمیم نهایی آماده است؛ پس از مطالعه گزارش‌ها تأیید یا با دلیل برای اصلاح برگردانید.'; ?></p>
+        <?php if ( $admin ) : ?>
+            <div class="crmb-task-review-controls">
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form">
+                    <?php crmb_progress_form_fields( 'review_task', $id ); ?>
+                    <input type="hidden" name="decision" value="approve">
+                    <label for="crmb-review-approve-reason">یادداشت تأیید (اختیاری)</label>
+                    <textarea id="crmb-review-approve-reason" name="review_reason" maxlength="3000" rows="2" placeholder="نتیجه بازبینی را می‌توانید ثبت کنید."></textarea>
+                    <button type="submit" class="crm-access-primary">تأیید نهایی و بایگانی کار</button>
+                </form>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crm-access-form">
+                    <?php crmb_progress_form_fields( 'review_task', $id ); ?>
+                    <input type="hidden" name="decision" value="reject">
+                    <label for="crmb-review-reject-reason">دلیل برگشت برای اصلاح (الزامی)</label>
+                    <textarea id="crmb-review-reject-reason" name="review_reason" maxlength="3000" rows="3" required minlength="3" placeholder="مشخص کنید چه مواردی باید اصلاح شود."></textarea>
+                    <button type="submit" class="crmb-task-review-reject">برگرداندن برای اصلاح</button>
+                </form>
+            </div>
+        <?php endif; ?>
+    </section>
+    <?php endif; ?>
     <section class="crm-access-card">
         <h2><?php echo esc_html( $task->title ); ?></h2>
         <p class="crmb-work-body"><?php echo esc_html( $task->description ); ?></p>
         <p>مسئول: <?php echo esc_html( crmb_work_user_name( $task->assigned_to ) ); ?> | وضعیت: <?php echo esc_html( crmb_work_statuses()[ $task->status ] ?? 'نامشخص' ); ?></p>
+        <p class="crm-access-muted">تعداد دفعات برگشت برای اصلاح: <?php echo null === $review_revisions ? '—' : esc_html( (string) $review_revisions ); ?></p>
         <dl class="crmb-task-times">
             <div><dt>اولین شروع</dt><dd><?php echo esc_html( crmb_work_date( $task->first_started_utc ) ); ?></dd></div>
             <div><dt>پایان</dt><dd><?php echo esc_html( crmb_work_date( $task->completed_utc ) ); ?></dd></div>
             <div><dt>زمان کار ثبت‌شده</dt><dd dir="ltr"><strong id="crmb-task-timer" data-seconds="<?php echo esc_attr( crmb_progress_seconds( $task ) ); ?>" data-running="<?php echo $task->timer_started_utc ? '1' : '0'; ?>"><?php echo esc_html( crmb_progress_duration( crmb_progress_seconds( $task ) ) ); ?></strong></dd></div>
         </dl>
         <p class="crm-access-muted">ساعت‌ها تهران و زمان ثبت براساس سرور است. توقف موقت از مدت کار کم می‌شود. زمان ثبت‌شده با حضور و غیاب یا حقوق یکی نیست.</p>
-        <?php if ( $owner && ! in_array( $task->status, array( 'done', 'cancelled' ), true ) ) : ?>
+        <?php if ( $owner && $is_open ) : ?>
             <div class="crmb-task-controls">
-            <?php foreach ( $task->timer_started_utc ? array( 'paused' => 'توقف موقت', 'done' => 'پایان کار' ) : array( 'doing' => 'شروع / ادامه کار', 'done' => 'پایان کار' ) as $status => $label ) : ?>
+            <?php foreach ( $task->timer_started_utc ? array( 'paused' => 'توقف موقت', 'done' => 'ارسال برای تأیید مدیر' ) : array( 'doing' => 'شروع / ادامه کار', 'done' => 'ارسال برای تأیید مدیر' ) as $status => $label ) : ?>
                 <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><?php crmb_work_form_fields( 'task_status', $id ); ?><input type="hidden" name="status" value="<?php echo esc_attr( $status ); ?>"><button type="submit" class="crm-access-primary crmb-work-button"><?php echo esc_html( $label ); ?></button></form>
             <?php endforeach; ?>
             </div>
@@ -134,7 +164,7 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
     </section>
     <?php endif; ?>
     <?php if ( ! $is_open ) : ?>
-        <p class="crm-access-muted">این کار تکمیل یا لغو شده است. تاریخچه محفوظ است و گزارش جدید تنها پس از بازگشایی کار ثبت می‌شود.</p>
+        <p class="crm-access-muted"><?php echo $under_review ? 'گزارش جدید تا تصمیم مدیر ثبت نمی‌شود؛ در صورت برگشت برای اصلاح، کار دوباره باز می‌شود.' : 'این کار تکمیل یا لغو شده است. تاریخچه محفوظ است و گزارش جدید تنها پس از بازگشایی کار ثبت می‌شود.'; ?></p>
     <?php endif; ?>
     <section class="crm-access-card"><h2>تاریخچه انجام کار</h2>
         <?php if ( $history_error ) : ?><p role="status">دریافت تاریخچه انجام نشد.</p><?php elseif ( ! $events ) : ?><p class="crm-access-muted">هنوز رویدادی ثبت نشده است. زمان‌های قبل از فعال‌شدن این قابلیت بازسازی نمی‌شوند.</p><?php endif; ?>

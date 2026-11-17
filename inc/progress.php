@@ -106,7 +106,7 @@ function crmb_progress_commit() { global $wpdb; return false === $wpdb->query( '
 function crmb_progress_transition( $id, $status ) {
     if ( ! is_user_logged_in() ) { return 'denied'; }
     if ( ! crmb_progress_ready() ) { return 'error'; }
-    if ( ! $id || ! isset( crmb_work_statuses()[ $status ] ) ) { return 'invalid'; }
+    if ( ! $id || ! isset( crmb_work_statuses()[ $status ] ) || 'review' === $status ) { return 'invalid'; }
     global $wpdb; $t = crmb_progress_tables(); $uid = get_current_user_id();
     if ( false === $wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO {$t['locks']} (user_id) VALUES (%d)", $uid ) ) ) { return 'error'; }
     if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return 'error'; }
@@ -114,8 +114,12 @@ function crmb_progress_transition( $id, $status ) {
     $task = crmb_progress_task( $id, true );
     if ( ! $task ) { return crmb_progress_fail( $wpdb->last_error ? 'error' : 'denied' ); }
     $admin = crmb_work_manage_team() || ( function_exists( 'crmb_seo_can_manage_task' ) && crmb_seo_can_manage_task( $id ) ); $owner = (int) $task->assigned_to === $uid;
-    if ( ! $admin && ( ! $owner || 'cancelled' === $task->status || 'cancelled' === $status ) ) { return crmb_progress_fail( 'denied' ); }
+    if ( ! $admin && ( ! $owner || ! in_array( $task->status, array( 'todo', 'doing', 'paused' ), true ) || 'cancelled' === $status ) ) { return crmb_progress_fail( 'denied' ); }
+    // Only the explicit manager review endpoint can approve or reject.
+    if ( 'review' === $task->status && ( ! $admin || 'cancelled' !== $status ) ) { return crmb_progress_fail( 'denied' ); }
     if ( 'doing' === $status && ! $owner ) { return crmb_progress_fail( 'denied' ); }
+    $is_review_submission = 'done' === $status && $owner && ! $admin;
+    if ( $is_review_submission ) { $status = 'review'; }
     if ( $task->status === $status && ( 'doing' !== $status || $task->timer_started_utc ) ) { return crmb_progress_fail( 'changed' ); }
     $now = gmdate( 'Y-m-d H:i:s' );
     $values = array( 'status' => $status, 'updated_utc' => $now );
@@ -133,19 +137,63 @@ function crmb_progress_transition( $id, $status ) {
         $values['completed_utc'] = null;
     }
     if ( 'done' === $status ) { $values['completed_utc'] = $now; }
-    if ( in_array( $status, array( 'todo', 'paused', 'cancelled' ), true ) ) { $values['completed_utc'] = null; }
+    if ( in_array( $status, array( 'todo', 'paused', 'cancelled', 'review' ), true ) ) { $values['completed_utc'] = null; }
     if ( false === $wpdb->update( $t['tasks'], $values, array( 'id' => $id ) ) || ! crmb_progress_event( $id, $status ) ) { return crmb_progress_fail(); }
     $event_id = (int) $wpdb->insert_id;
     $result = crmb_progress_commit();
     if ( 'saved' === $result && function_exists( 'do_action' ) ) {
-        if ( 'done' === $status ) {
+        if ( 'review' === $status ) {
+            do_action( 'crmb_task_review_requested', $id, (int) $task->created_by, $uid, $event_id );
+        } elseif ( 'done' === $status ) {
             do_action( 'crmb_task_completed', $id, (int) $task->created_by, $uid, $event_id );
         }
         if ( $admin && ! $owner ) {
             do_action( 'crmb_task_status_updated', $id, (int) $task->assigned_to, $uid, $event_id );
         }
     }
-    return $result;
+    return 'saved' === $result && $is_review_submission ? 'submitted' : $result;
+}
+
+/**
+ * Explicit review workflow. No new tables or columns: every decision, actor
+ * and optional review text is recorded immutably in the task event timeline.
+ */
+function crmb_task_review_decide( $id, $decision, $reason = '' ) {
+    if ( ! is_user_logged_in() ) { return 'denied'; }
+    if ( ! crmb_progress_ready() ) { return 'error'; }
+    if ( ! $id || ! in_array( $decision, array( 'approve', 'reject' ), true ) || ! is_string( $reason ) ) { return 'invalid'; }
+    $reason = trim( sanitize_textarea_field( $reason ) );
+    if ( strlen( $reason ) > 3000 || ( 'reject' === $decision && strlen( $reason ) < 3 ) ) { return 'invalid'; }
+    if ( ! crmb_work_manage_team() && ! ( function_exists( 'crmb_seo_can_manage_task' ) && crmb_seo_can_manage_task( $id ) ) ) {
+        return 'denied';
+    }
+    global $wpdb;
+    $tables = crmb_progress_tables();
+    if ( false === $wpdb->query( 'START TRANSACTION' ) ) { return 'error'; }
+    $task = crmb_progress_task( $id, true );
+    if ( ! $task ) { return crmb_progress_fail( $wpdb->last_error ? 'error' : 'denied' ); }
+    if ( 'review' !== $task->status ) { return crmb_progress_fail( 'changed' ); }
+    $approve = 'approve' === $decision;
+    $now = gmdate( 'Y-m-d H:i:s' );
+    $values = array(
+        'status' => $approve ? 'done' : 'todo',
+        'completed_utc' => $approve ? $now : null,
+        'updated_utc' => $now,
+    );
+    $event_type = $approve ? 'review_approved' : 'review_rejected';
+    if ( false === $wpdb->update( $tables['tasks'], $values, array( 'id' => $id, 'status' => 'review' ) )
+        || ! crmb_progress_event( $id, $event_type, $reason ) ) {
+        return crmb_progress_fail();
+    }
+    $event_id = (int) $wpdb->insert_id;
+    $result = crmb_progress_commit();
+    if ( 'saved' === $result && function_exists( 'do_action' ) ) {
+        do_action( 'crmb_task_review_decided', $id, (int) $task->assigned_to, get_current_user_id(), $event_id, $approve );
+        if ( $approve ) {
+            do_action( 'crmb_task_completed', $id, (int) $task->created_by, get_current_user_id(), $event_id );
+        }
+    }
+    return 'saved' === $result ? ( $approve ? 'approved' : 'rejected' ) : $result;
 }
 /** Editing is serialized with timer writes; reassigning a running task is refused. */
 function crmb_progress_edit_task( $id, $values ) {
@@ -175,4 +223,4 @@ function crmb_progress_seconds( $task ) {
     return (int) $task->tracked_seconds + ( $task->timer_started_utc ? max( 0, time() - strtotime( $task->timer_started_utc . ' UTC' ) ) : 0 );
 }
 function crmb_progress_duration( $seconds ) { return sprintf( '%02d:%02d:%02d', floor( $seconds / 3600 ), floor( $seconds / 60 ) % 60, $seconds % 60 ); }
-function crmb_progress_event_labels() { return array( 'doing' => 'شروع / ادامه کار', 'paused' => 'توقف موقت', 'todo' => 'بازگشت به انجام‌نشده', 'done' => 'پایان کار', 'cancelled' => 'لغو توسط مدیر', 'note' => 'گزارش پیشرفت', 'blocker' => 'مانع / مشکل', 'rich_note' => 'گزارش پیشرفت', 'rich_blocker' => 'مانع / مشکل', 'manager_note' => 'راهنمایی مدیر', 'edited' => 'ویرایش توسط مدیر', 'deleted' => 'حذف از فهرست توسط مدیر' ); }
+function crmb_progress_event_labels() { return array( 'doing' => 'شروع / ادامه کار', 'paused' => 'توقف موقت', 'todo' => 'بازگشت به انجام‌نشده', 'done' => 'پایان کار', 'review' => 'ارسال برای تأیید مدیر', 'review_approved' => 'تأیید نهایی مدیر', 'review_rejected' => 'برگشت برای اصلاح', 'cancelled' => 'لغو توسط مدیر', 'note' => 'گزارش پیشرفت', 'blocker' => 'مانع / مشکل', 'rich_note' => 'گزارش پیشرفت', 'rich_blocker' => 'مانع / مشکل', 'manager_note' => 'راهنمایی مدیر', 'edited' => 'ویرایش توسط مدیر', 'deleted' => 'حذف از فهرست توسط مدیر' ); }

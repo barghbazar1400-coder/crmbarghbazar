@@ -1,0 +1,56 @@
+name: CRM Task Review Approval
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/progress.php'
+      - 'inc/work.php'
+      - 'inc/daily-reports.php'
+      - 'inc/notifications.php'
+      - 'inc/leadership.php'
+      - 'template-parts/tasks.php'
+      - 'template-parts/task-progress.php'
+      - 'template-parts/leadership.php'
+      - 'template-parts/manager-control.php'
+      - 'tests/progress.php'
+      - 'tests/task-review.php'
+      - 'tests/work.php'
+      - 'tests/tasks-view.php'
+      - 'tests/leadership.php'
+      - 'tests/leadership-view.php'
+      - 'tests/manager-control-view.php'
+      - 'style.css'
+      - '.github/workflows/task-review-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  task-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring
+          coverage: none
+      - name: PHP syntax
+        run: |
+          for f in inc/progress.php inc/work.php inc/daily-reports.php inc/notifications.php inc/leadership.php template-parts/tasks.php template-parts/task-progress.php template-parts/leadership.php template-parts/manager-control.php tests/progress.php tests/task-review.php tests/work.php tests/tasks-view.php tests/leadership.php tests/leadership-view.php tests/manager-control-view.php; do php -l "$f" || exit 1; done
+      - name: Existing task and timer regression
+        run: php tests/progress.php
+      - name: Employee submission and manager approval regression
+        run: php tests/task-review.php
+      - name: Existing task list and permissions regression
+        run: |
+          php tests/work.php
+          php tests/tasks-view.php
+          php tests/tasks-recurring.php
+          php tests/task-guidance.php
+          php tests/notifications.php
+      - name: Executive manager views
+        run: |
+          php tests/leadership.php
+          php tests/leadership-view.php
+          php tests/manager-control-view.php

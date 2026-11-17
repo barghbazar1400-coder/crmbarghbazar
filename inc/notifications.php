@@ -123,6 +123,21 @@ add_action( 'crmb_task_completed', function ( $task_id, $creator, $actor, $event
     crmb_notice_add( $creator, 'task_done', 'وظیفه تکمیل شد', 'یکی از وظایف واگذارشده تکمیل شده است.',
         crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ), 'completed:' . $event_id, $actor );
 }, 10, 4 );
+add_action( 'crmb_task_review_requested', function ( $task_id, $manager, $actor, $event_id ) {
+    if ( (int) $manager === (int) $actor ) { return; }
+    crmb_notice_add( $manager, 'task', 'کار در انتظار تأیید شماست',
+        'مسئول کار درخواست تأیید نهایی فرستاده است.',
+        crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ),
+        'task_review_request:' . $event_id, $actor );
+}, 10, 4 );
+add_action( 'crmb_task_review_decided', function ( $task_id, $owner, $actor, $event_id, $approved ) {
+    if ( (int) $owner === (int) $actor ) { return; }
+    crmb_notice_add( $owner, 'task', $approved ? 'کار شما تأیید شد' : 'کار برای اصلاح برگشت',
+        $approved ? 'مدیر انجام کار شما را تأیید نهایی کرد.' : 'دلیل بازگشت کار در تاریخچه همان وظیفه ثبت شده است.',
+        crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ),
+        'task_review_decision:' . $event_id, $actor );
+}, 10, 5 );
+
 add_action( 'crmb_task_status_updated', function ( $task_id, $owner, $actor, $event_id ) {
     if ( (int) $owner === (int) $actor ) { return; }
     crmb_notice_add( $owner, 'task', 'وضعیت وظیفه تغییر کرد', 'مدیر وضعیت یکی از کارهای شما را تغییر داده است.',

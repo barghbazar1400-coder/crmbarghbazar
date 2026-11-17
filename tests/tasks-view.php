@@ -5,7 +5,7 @@ $as_manager = false; $checks = 0;
 function is_user_logged_in() { return true; }
 function crmb_work_manage_team() { global $as_manager; return $as_manager; }
 function crmb_work_task_counts( $team ) {
-    return array( 'ready' => true, 'all' => 2, 'open' => 1, 'done' => 1 );
+    return array( 'ready' => true, 'all' => 2, 'open' => 1, 'review' => 0, 'done' => 1 );
 }
 function crmb_work_list( $kind, $page, $limit, $team, $sent = false, $active = false, $focus = 0, $view = 'all' ) {
     if ( $kind !== 'tasks' ) { throw new RuntimeException( 'Unexpected list' ); }
@@ -21,11 +21,11 @@ function crmb_work_list( $kind, $page, $limit, $team, $sent = false, $active = f
     );
     $rows = array_values( array_filter( $rows, static function ( $r ) use ( $view ) {
         return 'all' === $view || ( 'open' === $view && in_array( $r->status, array( 'todo', 'doing', 'paused' ), true ) )
-            || ( 'done' === $view && 'done' === $r->status );
+            || ( 'done' === $view && 'done' === $r->status ) || ( 'review' === $view && 'review' === $r->status );
     } ) );
     return array( 'ready' => true, 'total' => count( $rows ), 'rows' => $rows );
 }
-function crmb_work_statuses() { return array( 'todo' => 'انجام‌نشده', 'doing' => 'در حال انجام', 'paused' => 'توقف موقت', 'done' => 'انجام‌شده', 'cancelled' => 'لغوشده' ); }
+function crmb_work_statuses() { return array( 'todo' => 'انجام‌نشده', 'doing' => 'در حال انجام', 'paused' => 'توقف موقت', 'review' => 'در انتظار تأیید مدیر', 'done' => 'انجام‌شده', 'cancelled' => 'لغوشده' ); }
 function crmb_work_priorities() { return array( 'normal' => 'عادی', 'high' => 'مهم', 'urgent' => 'فوری' ); }
 function crmb_work_user_name( $id ) { return (int) $id === 1 ? 'مدیر' : 'کارمند'; }
 function crmb_att_today() { return '2026-11-14'; }
@@ -68,6 +68,9 @@ verify( str_contains( $employee, 'crmb-tasks-overview' ), 'Filter navigation exi
 verify( str_contains( $employee, 'aria-current="page"' ), 'Active filter accessible' );
 verify( str_contains( $employee, 'کارهای باز' ), 'Open filter label' );
 verify( str_contains( $employee, 'کارهای تکمیل‌شده' ), 'Completed archive label' );
+verify( str_contains( $employee, 'در انتظار تأیید' ), 'Review filter available' );
+verify( str_contains( $employee, 'ارسال برای تأیید مدیر' ), 'Employee completion label' );
+verify( ! str_contains( $employee, 'value="review"' ), 'Cannot force review as a generic status' );
 verify( substr_count( $employee, '<article class="crmb-task-card' ) === 1, 'Default excludes completed task' );
 verify( str_contains( $employee, 'مانیتورهای سوزوکی' ), 'Open task present' );
 verify( ! str_contains( $employee, 'تکمیل گزارش' ), 'Completed task absent' );

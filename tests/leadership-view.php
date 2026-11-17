@@ -23,7 +23,7 @@ function crmb_att_jdate( $day ) { return '1405/08/24'; }
 function crmb_work_user_name( $id ) { return 'همکار آزمایشی'; }
 function crmb_work_statuses() { return array( 'todo' => 'انجام‌نشده', 'doing' => 'در حال انجام', 'paused' => 'توقف موقت' ); }
 $stats = array_fill_keys( array(
-    'tasks_open','tasks_overdue','tasks_done','timers_active','reports_pending',
+    'tasks_open','tasks_overdue','tasks_review','tasks_done','timers_active','reports_pending',
     'leaves_pending','sales_followups','seo_projects','seo_review','recent',
 ), null );
 $stats['recent'] = array( (object) array(
@@ -39,6 +39,7 @@ function verify_view( $ok, $name ) {
 function render_leadership() { ob_start(); include __DIR__ . '/../template-parts/leadership.php'; return ob_get_clean(); }
 $html = render_leadership();
 verify_view( str_contains( $html, 'crmb-leadership-priorities' ), 'Independent priorities section' );
+verify_view( str_contains( $html, 'در انتظار تأیید مدیر' ), 'Review metric' );
 verify_view( str_contains( $html, 'crmb-priorities-list' ), 'Compact list exists' );
 verify_view( substr_count( $html, 'class="crmb-priority-item"' ) === 1, 'One row per task' );
 verify_view( str_contains( $html, 'عقب‌افتاده' ), 'Overdue label' );

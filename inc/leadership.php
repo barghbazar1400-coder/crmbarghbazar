@@ -30,7 +30,7 @@ function crmb_leadership_count( $sql ) {
 
 function crmb_leadership_data() {
     $empty = array(
-        'tasks_open' => null, 'tasks_overdue' => null, 'tasks_done' => null,
+        'tasks_open' => null, 'tasks_overdue' => null, 'tasks_review' => null, 'tasks_done' => null,
         'timers_active' => null, 'reports_pending' => null, 'leaves_pending' => null,
         'seo_review' => null, 'seo_projects' => null, 'recent' => null,
         'sales_customers' => null, 'sales_quotes' => null, 'sales_followups' => null,
@@ -41,15 +41,16 @@ function crmb_leadership_data() {
         $work = crmb_work_tables();
         $not_deleted = function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready()
             ? ' AND deleted_utc IS NULL' : '';
-        $empty['tasks_open'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$work['tasks']} WHERE status IN ('todo','doing','paused'){$not_deleted}" );
+        $empty['tasks_open'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$work['tasks']} WHERE status IN ('todo','doing','paused','review'){$not_deleted}" );
+        $empty['tasks_review'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$work['tasks']} WHERE status='review'{$not_deleted}" );
         $empty['tasks_done'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$work['tasks']} WHERE status = 'done'{$not_deleted}" );
         $empty['tasks_overdue'] = crmb_leadership_count( $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$work['tasks']} WHERE status IN ('todo','doing','paused') AND due_day < %s{$not_deleted}",
+            "SELECT COUNT(*) FROM {$work['tasks']} WHERE status IN ('todo','doing','paused','review') AND due_day < %s{$not_deleted}",
             crmb_att_today()
         ) );
         $rows = $wpdb->get_results(
             "SELECT id,title,assigned_to,status,due_day FROM {$work['tasks']}
-             WHERE status IN ('todo','doing','paused'){$not_deleted}
+             WHERE status IN ('todo','doing','paused','review'){$not_deleted}
              ORDER BY due_day IS NULL,due_day ASC,id DESC LIMIT 8"
         );
         $empty['recent'] = $wpdb->last_error ? null : ( $rows ?: array() );
@@ -134,7 +135,7 @@ function crmb_leadership_control_day_bounds() {
 function crmb_leadership_control_data() {
     if ( ! crmb_leadership_can_operate() ) { return null; }
     $result = array(
-        'overdue' => null, 'stalled' => null, 'activity' => null,
+        'overdue' => null, 'stalled' => null, 'reviews' => null, 'activity' => null,
         'sales_access' => false, 'sales_ready' => false,
         'calls_today' => null, 'calls' => null, 'followups' => null,
     );
@@ -145,9 +146,14 @@ function crmb_leadership_control_data() {
         $tasks = crmb_work_tables()['tasks'];
         $deleted = function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready()
             ? ' AND t.deleted_utc IS NULL' : '';
+        $result['reviews'] = crmb_leadership_control_rows(
+            "SELECT t.id,t.title,t.assigned_to,t.due_day
+               FROM {$tasks} t WHERE t.status='review'{$deleted}
+              ORDER BY t.updated_utc ASC,t.id ASC LIMIT 10"
+        );
         $result['overdue'] = crmb_leadership_control_rows( $wpdb->prepare(
             "SELECT t.id,t.title,t.assigned_to,t.status,t.due_day
-               FROM {$tasks} t WHERE t.status IN ('todo','doing','paused')
+               FROM {$tasks} t WHERE t.status IN ('todo','doing','paused','review')
                  AND t.due_day < %s{$deleted}
               ORDER BY t.due_day ASC,t.id DESC LIMIT 10",
             crmb_att_today()
