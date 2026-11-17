@@ -8,6 +8,8 @@ function is_user_logged_in() { global $logged; return $logged; }
 function current_user_can($cap) { global $admin; return $admin; }
 function get_option($key) { global $ready; return $ready ? '1' : false; }
 function get_current_user_id() { return 7; }
+function crmb_progress_ready() { return true; }
+function crmb_progress_tables() { return array( 'events' => 'wp_crmb_task_events' ); }
 function absint($s) { return abs((int)$s); }
 function sanitize_text_field($s) { return strip_tags($s); }
 function sanitize_textarea_field($s) { return strip_tags($s); }
@@ -79,6 +81,17 @@ $wpdb->queries=array(); crmb_work_list('tasks',1,20,false,false,false,0,'open');
 check(true,str_contains($wpdb->queries[0], "status IN ('todo','doing','paused','review')"));
 $wpdb->queries=array(); crmb_work_list('tasks',1,20,false,false,false,0,'review');
 check(true,str_contains($wpdb->queries[0], "status = 'review'"));
+check(true,str_contains($wpdb->queries[0], "created_by = 7"));
+check(true,str_contains($wpdb->queries[0], "review_rejected"));
+check(true,str_contains($wpdb->queries[0], "assigned_to = 7 OR"));
+$wpdb->queries=array(); crmb_work_review_state( 0, false );
+check(true,str_contains($wpdb->queries[0], "t.created_by = 7"));
+check(true,str_contains($wpdb->queries[1], "e.event_type IN ('review','review_approved','review_rejected')"));
+$admin=false; $wpdb->queries=array();
+crmb_work_list('tasks',1,20,false,false,false,0,'review');
+check(false,str_contains($wpdb->queries[0], "created_by = 7"));
+check(true,str_contains($wpdb->queries[0], "assigned_to = 7"));
+$admin=true;
 $wpdb->queries=array(); crmb_work_list('tasks',1,20,false,false,false,0,'done');
 check(true,str_contains($wpdb->queries[0], "status = 'done'"));
 check(true,str_contains($wpdb->queries[1], 'updated_utc DESC'));

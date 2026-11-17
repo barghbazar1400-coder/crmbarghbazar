@@ -7,6 +7,7 @@
     var nonce = watch.dataset.nonce;
     var endpoint = watch.dataset.endpoint;
     var assigned = watch.dataset.assignee || '0';
+    var scope = watch.dataset.scope === 'mine' ? 'mine' : 'team';
     var version = Number(watch.dataset.version) || 0;
     var count = Number(watch.dataset.count) || 0;
     var busy = false;
@@ -24,6 +25,7 @@
         body.set('action', 'crmb_work_review_poll');
         body.set('nonce', nonce);
         body.set('assigned_to', assigned);
+        body.set('scope', scope);
         fetch(endpoint, {
             method: 'POST',
             credentials: 'same-origin',

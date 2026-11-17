@@ -175,6 +175,43 @@ function crmb_work_handle_post() {
 }
 add_action( 'admin_post_crmb_work', 'crmb_work_handle_post' );
 
+/**
+ * A review item can be personal *approval work* without changing the
+ * employee assigned to execute it. Review is routed to the task creator or
+ * the manager who most recently requested corrections.
+ *
+ * Non-managers only see their own assigned tasks. Manager review visibility
+ * is limited to status=review and cannot expose other employees' open/done
+ * tasks. Keep the same predicate for rows, counts and live review polling.
+ */
+function crmb_work_task_scope_where( $team = false, $assigned_filter = 0, $alias = '' ) {
+    global $wpdb;
+    $uid = get_current_user_id();
+    $column = $alias ? $alias . '.' : '';
+    $manage = crmb_work_manage_team();
+    if ( $team && $manage ) {
+        $where = '1=1';
+        if ( (int) $assigned_filter > 0 ) {
+            $where .= $wpdb->prepare( ' AND ' . $column . 'assigned_to = %d', (int) $assigned_filter );
+        }
+        return $where;
+    }
+    $own = $wpdb->prepare( $column . 'assigned_to = %d', $uid );
+    if ( ! $manage ) { return $own; }
+
+    $reviewer = $wpdb->prepare( $column . 'created_by = %d', $uid );
+    if ( function_exists( 'crmb_progress_ready' ) && crmb_progress_ready() ) {
+        $events = crmb_progress_tables()['events'];
+        $task_id = $column ? $column . 'id' : crmb_work_tables()['tasks'] . '.id';
+        $reviewer .= $wpdb->prepare(
+            " OR (SELECT e.actor_id FROM {$events} e
+                    WHERE e.task_id={$task_id} AND e.event_type='review_rejected'
+                    ORDER BY e.id DESC LIMIT 1) = %d", $uid
+        );
+    }
+    return '(' . $own . ' OR (' . $column . "status = 'review' AND (" . $reviewer . ')))';
+}
+
 /** Fixed-scope lists; team tasks are explicitly administrator-only. */
 function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = false, $active = false, $focus = 0, $status_view = 'all', $assigned_filter = 0 ) {
     $empty = array( 'rows' => array(), 'total' => 0, 'ready' => false );
@@ -183,11 +220,7 @@ function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = f
     $t = crmb_work_tables(); $uid = get_current_user_id();
     $limit = max( 1, min( 20, (int) $limit ) ); $page = max( 1, min( 100000, (int) $page ) );
     if ( 'tasks' === $kind ) {
-        $can_view_team = $team && crmb_work_manage_team();
-        $where = $can_view_team ? '1=1' : $wpdb->prepare( 'assigned_to = %d', $uid );
-        if ( $can_view_team && $assigned_filter > 0 ) {
-            $where .= $wpdb->prepare( ' AND assigned_to = %d', (int) $assigned_filter );
-        }
+        $where = crmb_work_task_scope_where( $team, $assigned_filter );
         if ( function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready() ) {
             $where .= ' AND deleted_utc IS NULL';
         }
@@ -214,7 +247,7 @@ function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = f
  * the same task ownership/deletion constraints. New review/rejection decisions
  * always create a fresh event ID, including second and later submissions.
  */
-function crmb_work_review_state( $assigned_filter = 0 ) {
+function crmb_work_review_state( $assigned_filter = 0, $team = true ) {
     if ( ! is_user_logged_in() || ! crmb_work_manage_team()
         || '1' !== get_option( 'crmb_work_schema_v1' )
         || ! function_exists( 'crmb_progress_ready' ) || ! crmb_progress_ready() ) {
@@ -224,12 +257,9 @@ function crmb_work_review_state( $assigned_filter = 0 ) {
     global $wpdb;
     $tables = crmb_work_tables();
     $events = crmb_progress_tables()['events'];
-    $where = '1=1';
+    $where = crmb_work_task_scope_where( $team, $team ? $assigned_filter : 0, 't' );
     if ( function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready() ) {
         $where .= ' AND t.deleted_utc IS NULL';
-    }
-    if ( $assigned_filter > 0 ) {
-        $where .= $wpdb->prepare( ' AND t.assigned_to=%d', $assigned_filter );
     }
     $count = $wpdb->get_var(
         "SELECT COUNT(*) FROM {$tables['tasks']} t WHERE t.status='review' AND {$where}"
@@ -254,7 +284,8 @@ function crmb_work_review_poll() {
     if ( $assigned && ! get_userdata( $assigned ) ) {
         wp_send_json_error( array( 'message' => 'invalid' ), 400 );
     }
-    $state = crmb_work_review_state( $assigned );
+    $team = ! isset( $_POST['scope'] ) || 'mine' !== $_POST['scope'];
+    $state = crmb_work_review_state( $team ? $assigned : 0, $team );
     if ( null === $state ) { wp_send_json_error( array( 'message' => 'unavailable' ), 503 ); }
     wp_send_json_success( $state );
 }
@@ -269,11 +300,7 @@ function crmb_work_task_counts( $team = false, $assigned_filter = 0 ) {
     if ( ! is_user_logged_in() || '1' !== get_option( 'crmb_work_schema_v1' ) ) { return $empty; }
     global $wpdb;
     $t = crmb_work_tables();
-    $can_view_team = $team && crmb_work_manage_team();
-    $where = $can_view_team ? '1=1' : $wpdb->prepare( 'assigned_to = %d', get_current_user_id() );
-    if ( $can_view_team && $assigned_filter > 0 ) {
-        $where .= $wpdb->prepare( ' AND assigned_to = %d', (int) $assigned_filter );
-    }
+    $where = crmb_work_task_scope_where( $team, $assigned_filter );
     if ( function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready() ) {
         $where .= ' AND deleted_utc IS NULL';
     }

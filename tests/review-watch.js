@@ -4,9 +4,9 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const source=fs.readFileSync(__dirname+'/../assets/js/crmb-review-watch.js','utf8');
-function setup(draftOpen=false) {
+function setup(draftOpen=false,scope='team') {
   const requests=[],timers=[],listeners={},watch={
-    dataset:{nonce:'nonce',endpoint:'/wp-admin/admin-ajax.php',assignee:'7',version:'2',count:'0'}
+    dataset:{nonce:'nonce',endpoint:'/wp-admin/admin-ajax.php',assignee:scope==='mine'?'0':'7',scope:scope,version:'2',count:'0'}
   },reloads=[];
   const link={hidden:true};
   let reply={version:2,count:0};
@@ -23,7 +23,8 @@ function setup(draftOpen=false) {
       const p=new URLSearchParams(options.body);
       assert.equal(p.get('action'),'crmb_work_review_poll');
       assert.equal(p.get('nonce'),'nonce');
-      assert.equal(p.get('assigned_to'),'7');
+      assert.equal(p.get('assigned_to'),scope==='mine'?'0':'7');
+      assert.equal(p.get('scope'),scope);
       requests.push(p.get('action'));
       return Promise.resolve({ok:true,json:()=>Promise.resolve({success:true,data:reply})});
     },
@@ -54,6 +55,12 @@ function setup(draftOpen=false) {
   await n.flush();
   assert.equal(n.reloads.length,0,'unsaved editor is preserved');
   assert.equal(n.link.hidden,false,'visible refresh link if editing');
+  const mine=setup(false,'mine');
+  await mine.flush();
+  mine.setResponse({version:6,count:2});
+  mine.timers[0].cb();
+  await mine.flush();
+  assert.equal(mine.reloads.length,1,'manager personal inbox refreshes when approvals are routed to them');
   const hidden=setup();
   await hidden.flush();
   hidden.doc.hidden=true;

@@ -67,6 +67,13 @@ check( $id, (int) $manager_review_list['rows'][0]->id );
 check( 1, crmb_work_task_counts( true )['review'] );
 check( 1, crmb_work_review_state( 7 )['count'] );
 check( 0, crmb_work_review_state( 8 )['count'] );
+// Review sent to this manager also appears under their PERSONAL "My work"
+// approval filter, even though the employee remains the task assignee.
+$my_review = crmb_work_list( 'tasks', 1, 20, false, false, false, 0, 'review' );
+check( 1, $my_review['total'] );
+check( $id, (int) $my_review['rows'][0]->id );
+check( 1, crmb_work_task_counts( false )['review'] );
+check( 1, crmb_work_review_state( 0, false )['count'] );
 // The manager who rejected the task must get a new resubmission signal,
 // even if a different user originally created the task.
 $review_resubmit_hooks = array_values( array_filter( $review_actions, static function ( $event ) {
@@ -77,6 +84,10 @@ check( $id, (int) $review_resubmit_hooks[0][1][0] );
 check( 8, (int) $review_resubmit_hooks[0][1][1] );
 $uid = 7; $admin = false;
 check( null, crmb_work_review_state() ); // Team review state isn't public.
+$uid = 9; $admin = true;
+check( 0, crmb_work_list( 'tasks', 1, 20, false, false, false, 0, 'review' )['total'] );
+check( 0, crmb_work_task_counts( false )['review'] );
+check( 0, crmb_work_review_state( 0, false )['count'] );
 $uid = 9; $admin = false;
 check( 'denied', crmb_task_review_decide( $id, 'approve' ) );
 $admin = true;
@@ -119,6 +130,34 @@ $wpdb->insert( 'wp_crmb_tasks', array(
 $team_task_id = (int) $wpdb->insert_id;
 check( 'denied', crmb_progress_transition( $team_task_id, 'done' ) );
 check( 'todo', crmb_progress_task( $team_task_id )->status );
+
+// First submission goes into the personal approval inbox of the manager
+// who created the assignment, not every other manager's inbox.
+$wpdb->insert( 'wp_crmb_tasks', array(
+    'title' => 'Approval routed to manager eight',
+    'description' => '', 'assigned_to' => 7, 'created_by' => 8,
+    'priority' => 'normal', 'status' => 'todo',
+    'created_utc' => gmdate( 'Y-m-d H:i:s' ), 'updated_utc' => gmdate( 'Y-m-d H:i:s' ),
+) );
+$routed_id = (int) $wpdb->insert_id;
+$uid = 7; $admin = false;
+check( 'submitted', crmb_progress_transition( $routed_id, 'done' ) );
+$uid = 8; $admin = true;
+$personal = crmb_work_list( 'tasks', 1, 20, false, false, false, 0, 'review' );
+check( 1, $personal['total'] );
+check( $routed_id, (int) $personal['rows'][0]->id );
+check( 1, crmb_work_task_counts( false )['review'] );
+$uid = 9; $admin = true;
+check( 0, crmb_work_task_counts( false )['review'] );
+$uid = 8; $admin = true;
+check( 'rejected', crmb_task_review_decide( $routed_id, 'reject', 'Please fix it' ) );
+$uid = 7; $admin = false;
+check( 'submitted', crmb_progress_transition( $routed_id, 'done' ) );
+$uid = 8; $admin = true;
+check( 1, crmb_work_task_counts( false )['review'] );
+check( $routed_id, (int) crmb_work_list( 'tasks', 1, 20, false, false, false, 0, 'review' )['rows'][0]->id );
+check( 'approved', crmb_task_review_decide( $routed_id, 'approve' ) );
+check( 0, crmb_work_task_counts( false )['review'] );
 $logged = false;
 check( 'denied', crmb_task_review_decide( $id, 'approve' ) );
 

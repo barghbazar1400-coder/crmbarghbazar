@@ -8,6 +8,9 @@ function get_current_user_id() { global $as_manager; return $as_manager ? 1 : 3;
 function crmb_work_task_counts( $team, $assigned_filter = 0 ) {
     global $count_filter;
     $count_filter = $assigned_filter;
+    if ( ! $team && $GLOBALS['as_manager'] ) {
+        return array( 'ready'=>true, 'all'=>3, 'open'=>2, 'review'=>1, 'done'=>1 );
+    }
     return array( 'ready' => true, 'all' => $assigned_filter === 4 ? 0 : 2, 'open' => $assigned_filter === 4 ? 0 : 1, 'review' => 0, 'done' => $assigned_filter === 4 ? 0 : 1 );
 }
 function crmb_work_list( $kind, $page, $limit, $team, $sent = false, $active = false, $focus = 0, $view = 'all', $assigned_filter = 0 ) {
@@ -24,6 +27,12 @@ function crmb_work_list( $kind, $page, $limit, $team, $sent = false, $active = f
             'priority' => 'normal', 'status' => 'done', 'due_day' => null,
             'assigned_to' => 3, 'created_by' => 1, 'timer_started_utc' => null ),
     );
+    if ( $GLOBALS['as_manager'] && ! $team ) {
+        $rows[] = (object) array( 'id'=>44, 'title'=>'گزارش کارکنان برای تأیید',
+            'description'=>'در انتظار تصمیم مدیر', 'priority'=>'normal',
+            'status'=>'review', 'due_day'=>null,
+            'assigned_to'=>3, 'created_by'=>1, 'timer_started_utc'=>null );
+    }
     $rows = array_values( array_filter( $rows, static function ( $r ) use ( $view, $assigned_filter, $team ) {
         if ( $team && $assigned_filter && (int) $r->assigned_to !== $assigned_filter ) { return false; }
         return 'all' === $view || ( 'open' === $view && in_array( $r->status, array( 'todo', 'doing', 'paused', 'review' ), true ) )
@@ -54,15 +63,20 @@ function crmb_work_form_fields( $name, $id = 0 ) {
     echo '<input type="hidden" name="task" value="' . esc_attr( $name ) . '"><input type="hidden" name="id" value="' . esc_attr( $id ) . '">';
 }
 function crmb_work_notice() {}
+function crmb_work_review_state( $assigned_filter = 0, $team = true ) {
+    return array( 'count'=>1, 'version'=>5 );
+}
+function wp_create_nonce( $action ) { return 'test-nonce'; }
+function get_template_directory() { return __DIR__ . '/absent-assets'; }
 function get_template_part( $name ) { throw new RuntimeException( 'Unexpected include ' . $name ); }
 function verify( $condition, $name ) {
     global $checks;
     ++$checks;
     if ( ! $condition ) { throw new RuntimeException( 'Task template assertion ' . $checks . ': ' . $name ); }
 }
-function render( $team = false, $view = null, $assignee = 0, $new = false ) {
+function render( $team = false, $view = null, $assignee = 0, $new = false, $managerPersonal = false ) {
     global $as_manager;
-    $as_manager = $team;
+    $as_manager = $team || $managerPersonal;
     $_GET = $team ? array( 'scope' => 'team' ) : array();
     if ( $assignee ) { $_GET['assigned_to'] = (string) $assignee; }
     if ( $new ) { $_GET['new_task'] = '1'; }
@@ -127,4 +141,12 @@ verify( str_contains( $empty_member, 'فعلاً کار بازی ندارید' )
 $own = render( false, 'open', 3 );
 verify( 0 === $list_filter && 0 === $count_filter, 'Forged employee filter ignored for non-managers' );
 verify( ! str_contains( $own, 'تسک جدید برای' ), 'No employee creation UI' );
+$managerInbox = render( false, 'review', 0, false, true );
+verify( str_contains( $managerInbox, 'گزارش کارکنان برای تأیید' ), 'Manager personal review queue includes employee work' );
+verify( str_contains( $managerInbox, 'نیازمند تأیید شما' ), 'Personal review distinguishes assigned employee from manager' );
+verify( str_contains( $managerInbox, 'بررسی و تأیید یا درخواست اصلاح' ), 'Review card has manager review action' );
+verify( str_contains( $managerInbox, 'name="scope"' ) === false, 'No team selector hidden in personal view' );
+verify( str_contains( $managerInbox, 'data-scope="mine"' ), 'Personal review queue uses its own refresh scope' );
+verify( ! str_contains( $managerInbox, 'name="status"' ), 'Manager cannot change employee task status in personal review' );
+verify( ! str_contains( $managerInbox, 'value="delete_task"' ), 'Review inbox does not expose task deletion controls' );
 echo "$checks task view checks passed\n";

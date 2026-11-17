@@ -111,13 +111,14 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
             </a>
         <?php endforeach; ?>
     </nav>
-    <?php if ( $team && 'review' === $view && function_exists( 'crmb_work_review_state' ) ) :
-        $review_watch_state = crmb_work_review_state( $assigned_filter );
+    <?php if ( $work_admin && 'review' === $view && function_exists( 'crmb_work_review_state' ) ) :
+        $review_watch_state = crmb_work_review_state( $assigned_filter, $team );
         if ( null !== $review_watch_state ) : ?>
         <div id="crmb-review-watch"
             data-version="<?php echo esc_attr( $review_watch_state['version'] ); ?>"
             data-count="<?php echo esc_attr( $review_watch_state['count'] ); ?>"
             data-assignee="<?php echo esc_attr( $assigned_filter ); ?>"
+            data-scope="<?php echo $team ? 'team' : 'mine'; ?>"
             data-endpoint="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>"
             data-nonce="<?php echo esc_attr( wp_create_nonce( 'crmb_work_review_poll' ) ); ?>"
             class="crmb-review-watch" role="status">
@@ -129,7 +130,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
     <section class="crmb-tasks-section" aria-labelledby="crmb-tasks-list-title">
         <div class="crmb-tasks-section-heading">
             <div><h2 id="crmb-tasks-list-title"><?php echo esc_html( $views[ $view ]['label'] ); ?><?php echo $team ? ( $selected_member ? ' — ' . esc_html( $selected_member->display_name ) : ' تیم' ) : ''; ?></h2>
-                <p><?php echo 'done' === $view ? 'فقط کارهای تأیید نهایی‌شده در بایگانی قرار می‌گیرند.' : ( 'review' === $view ? 'کارهایی که تحویل داده شده‌اند و منتظر تصمیم مدیر هستند.' : ( 'open' === $view ? 'کارهای در حال انجام و منتظر تأیید، تا تصمیم نهایی باز می‌مانند.' : 'تمام کارها، شامل موارد بایگانی‌شده و لغوشده.' ) ); ?></p></div>
+                <p><?php echo 'done' === $view ? 'فقط کارهای تأیید نهایی‌شده در بایگانی قرار می‌گیرند.' : ( 'review' === $view ? ( $work_admin && ! $team ? 'تسک‌های خودتان و کارهای کارکنان که برای تصمیم نهایی به شما ارجاع شده‌اند.' : 'کارهایی که تحویل داده شده‌اند و منتظر تصمیم مدیر هستند.' ) : ( 'open' === $view ? 'کارهای در حال انجام و منتظر تأیید، تا تصمیم نهایی باز می‌مانند.' : 'تمام کارها، شامل موارد بایگانی‌شده و لغوشده.' ) ); ?></p></div>
             <span class="crmb-tasks-section-count"><?php echo $tasks['ready'] ? esc_html( (string) count( $tasks['rows'] ) ) : '—'; ?> مورد در این صفحه</span>
         </div>
         <?php if ( ! $tasks['ready'] ) : ?>
@@ -148,6 +149,8 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                 $overdue = $task->due_day && $task->due_day < crmb_att_today() && $is_open;
                 $due_today = $task->due_day && $task->due_day === crmb_att_today() && $is_open;
                 $task_url = add_query_arg( 'task_id', $task->id, $base );
+                $review_for_me = ! $team && $work_admin && 'review' === $task->status
+                    && (int) $task->assigned_to !== get_current_user_id();
                 ?>
                 <article class="crmb-task-card is-status-<?php echo esc_attr( $status_key ); ?>" id="task-<?php echo esc_attr( $task->id ); ?>">
                     <div class="crmb-task-card-top">
@@ -158,6 +161,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                             <?php endif; ?>
                             <span class="crmb-task-card-priority is-priority-<?php echo esc_attr( $priority_key ); ?>"><?php echo esc_html( $priority_labels[ $priority_key ] ); ?></span>
                             <span class="crmb-task-card-status is-<?php echo esc_attr( $status_key ); ?>"><?php echo esc_html( $status_labels[ $status_key ] ); ?></span>
+                            <?php if ( $review_for_me ) : ?><span class="crmb-task-review-assigned">نیازمند تأیید شما</span><?php endif; ?>
                         </div>
                     </div>
                     <h3 class="crmb-task-card-title"><a href="<?php echo esc_url( $task_url ); ?>"><?php echo esc_html( $task->title ); ?></a></h3>
@@ -167,7 +171,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                             <strong class="<?php echo $overdue ? 'crmb-work-overdue' : ''; ?>"><?php echo esc_html( $task->due_day ? crmb_att_jdate( $task->due_day ) : 'تعیین نشده' ); ?></strong></span>
                         </div>
                         <div><i class="fa-solid fa-user-check" aria-hidden="true"></i>
-                            <span><?php echo $team ? 'مسئول: ' : 'واگذارکننده: '; ?><strong><?php echo esc_html( crmb_work_user_name( $team ? $task->assigned_to : $task->created_by ) ); ?></strong></span>
+                            <span><?php echo $team || $review_for_me ? 'مسئول: ' : 'واگذارکننده: '; ?><strong><?php echo esc_html( crmb_work_user_name( $team || $review_for_me ? $task->assigned_to : $task->created_by ) ); ?></strong></span>
                         </div>
                     </div>
                     <?php if ( ! empty( $task->timer_started_utc ) ) : ?>
@@ -176,7 +180,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                     <div class="crmb-task-card-footer">
                         <a class="crmb-task-card-action" href="<?php echo esc_url( $task_url ); ?>">
                             <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
-                            مشاهده جزئیات و ثبت پیشرفت
+                            <?php echo $review_for_me ? 'بررسی و تأیید یا درخواست اصلاح' : 'مشاهده جزئیات و ثبت پیشرفت'; ?>
                         </a>
                         <?php if ( 'review' !== $task->status && ( $work_admin || ! in_array( $task->status, array( 'cancelled', 'done' ), true ) ) ) : ?>
                             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="crmb-task-card-status-form">
@@ -196,7 +200,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
                             </form>
                         <?php endif; ?>
                     </div>
-                    <?php if ( $work_admin ) : ?>
+                    <?php if ( $work_admin && ! $review_for_me ) : ?>
                         <div class="crmb-task-admin-actions">
                             <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
                                 class="crmb-task-delete-form" onsubmit="return confirm('این وظیفه از فهرست کارمندان حذف شود؟ سوابق برای بررسی مدیریتی نگه داشته می‌شود.');">
@@ -223,7 +227,7 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
     </section>
 </section>
 
-<?php if ( $team && 'review' === $view && isset( $review_watch_state ) && null !== $review_watch_state ) :
+<?php if ( $work_admin && 'review' === $view && isset( $review_watch_state ) && null !== $review_watch_state ) :
     $review_client = get_template_directory() . '/assets/js/crmb-review-watch.js';
     if ( is_readable( $review_client ) ) : ?>
         <script id="crmb-review-watch-client"><?php readfile( $review_client ); ?></script>
