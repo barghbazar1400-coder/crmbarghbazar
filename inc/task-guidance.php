@@ -127,5 +127,10 @@ function crmb_task_guidance_ack( $task_id, $event_id ) {
     ) );
     if ( false === $new ) { return crmb_progress_fail(); }
     if ( false === $wpdb->query( 'COMMIT' ) ) { return crmb_progress_fail(); }
+    // Notification-inbox read state remains independent until the user presses
+    // «خواندم». Seeing/opening a notice must not silently acknowledge guidance.
+    if ( function_exists( 'crmb_notice_read_guidance' ) ) {
+        crmb_notice_read_guidance( $event_id, $uid );
+    }
     return 1 === $new ? 'read' : 'changed';
 }
