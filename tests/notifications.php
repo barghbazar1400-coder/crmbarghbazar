@@ -55,6 +55,20 @@ check(false, crmb_notice_add(8,'message','bad','summary','https://evil.example.c
 check(false, crmb_notice_add(8,'unknown','bad','summary',$target,'bad:2',7));
 check(false, crmb_notice_add(111,'message','bad','summary',$target,'bad:3',7));
 
+// Explicitly acknowledging a manager note clears only the matching user's bell.
+$guidance_url = crmb_notice_url('tasks', array('task_id'=>5));
+check(true, crmb_notice_add(8,'manager','راهنمایی مدیر','راهنمایی ثبت شد',$guidance_url,'guide:52',7));
+$uid=8; check(1, crmb_notice_count());
+check(true, crmb_notice_read_guidance(52,8));
+check(0, crmb_notice_count());
+$uid=7;
+check(true, crmb_notice_add(8,'manager','راهنمایی مدیر','راهنمایی ثبت شد',$guidance_url,'guide:53',7));
+check(true, crmb_notice_read_guidance(53,7));
+$uid=8; check(1, crmb_notice_count());
+check(true, crmb_notice_read_guidance(53,8));
+check(0, crmb_notice_count());
+$uid=7;
+
 $admin = false;
 check('denied', crmb_notice_announce('اطلاعیه','متن','all',0));
 $admin = true;
