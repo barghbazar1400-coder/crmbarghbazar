@@ -4,10 +4,14 @@ define( 'ABSPATH', __DIR__ );
 $as_manager = false; $checks = 0;
 function is_user_logged_in() { return true; }
 function crmb_work_manage_team() { global $as_manager; return $as_manager; }
-function crmb_work_task_counts( $team ) {
-    return array( 'ready' => true, 'all' => 2, 'open' => 1, 'review' => 0, 'done' => 1 );
+function crmb_work_task_counts( $team, $assigned_filter = 0 ) {
+    global $count_filter;
+    $count_filter = $assigned_filter;
+    return array( 'ready' => true, 'all' => $assigned_filter === 4 ? 0 : 2, 'open' => $assigned_filter === 4 ? 0 : 1, 'review' => 0, 'done' => $assigned_filter === 4 ? 0 : 1 );
 }
-function crmb_work_list( $kind, $page, $limit, $team, $sent = false, $active = false, $focus = 0, $view = 'all' ) {
+function crmb_work_list( $kind, $page, $limit, $team, $sent = false, $active = false, $focus = 0, $view = 'all', $assigned_filter = 0 ) {
+    global $list_filter;
+    $list_filter = $assigned_filter;
     if ( $kind !== 'tasks' ) { throw new RuntimeException( 'Unexpected list' ); }
     $rows = array(
         (object) array( 'id' => 42, 'title' => 'مانیتورهای سوزوکی',
@@ -19,8 +23,9 @@ function crmb_work_list( $kind, $page, $limit, $team, $sent = false, $active = f
             'priority' => 'normal', 'status' => 'done', 'due_day' => null,
             'assigned_to' => 3, 'created_by' => 1, 'timer_started_utc' => null ),
     );
-    $rows = array_values( array_filter( $rows, static function ( $r ) use ( $view ) {
-        return 'all' === $view || ( 'open' === $view && in_array( $r->status, array( 'todo', 'doing', 'paused' ), true ) )
+    $rows = array_values( array_filter( $rows, static function ( $r ) use ( $view, $assigned_filter, $team ) {
+        if ( $team && $assigned_filter && (int) $r->assigned_to !== $assigned_filter ) { return false; }
+        return 'all' === $view || ( 'open' === $view && in_array( $r->status, array( 'todo', 'doing', 'paused', 'review' ), true ) )
             || ( 'done' === $view && 'done' === $r->status ) || ( 'review' === $view && 'review' === $r->status );
     } ) );
     return array( 'ready' => true, 'total' => count( $rows ), 'rows' => $rows );
@@ -42,7 +47,8 @@ function esc_html( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES
 function esc_url( $text ) { return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' ); }
 function esc_textarea( $text ) { return esc_html( $text ); }
 function selected( $actual, $expected ) { if ( (string) $actual === (string) $expected ) { echo 'selected="selected"'; } }
-function get_users( $args ) { return array( (object) array( 'ID' => 3, 'display_name' => 'کارمند' ) ); }
+function get_users( $args ) { return array( (object) array( 'ID' => 3, 'display_name' => 'کارمند اول' ), (object) array( 'ID' => 4, 'display_name' => 'کارمند دوم' ) ); }
+function get_userdata( $id ) { return in_array( (int) $id, array( 3, 4 ), true ) ? (object) array( 'ID' => (int) $id, 'display_name' => (int) $id === 3 ? 'کارمند اول' : 'کارمند دوم' ) : false; }
 function crmb_work_form_fields( $name, $id = 0 ) {
     echo '<input type="hidden" name="task" value="' . esc_attr( $name ) . '"><input type="hidden" name="id" value="' . esc_attr( $id ) . '">';
 }
@@ -53,10 +59,12 @@ function verify( $condition, $name ) {
     ++$checks;
     if ( ! $condition ) { throw new RuntimeException( 'Task template assertion ' . $checks . ': ' . $name ); }
 }
-function render( $team = false, $view = null ) {
+function render( $team = false, $view = null, $assignee = 0, $new = false ) {
     global $as_manager;
     $as_manager = $team;
     $_GET = $team ? array( 'scope' => 'team' ) : array();
+    if ( $assignee ) { $_GET['assigned_to'] = (string) $assignee; }
+    if ( $new ) { $_GET['new_task'] = '1'; }
     if ( null !== $view ) { $_GET['view'] = $view; }
     ob_start();
     include __DIR__ . '/../template-parts/tasks.php';
@@ -88,7 +96,7 @@ verify( ! str_contains( $archive, 'مانیتورهای سوزوکی' ), 'Archiv
 $all = render( false, 'all' );
 verify( substr_count( $all, '<article class="crmb-task-card' ) === 2, 'All tasks shows both' );
 $manager = render( true );
-verify( str_contains( $manager, '<details class="crm-access-card crmb-tasks-editor"' ), 'Manager assignment form' );
+verify( str_contains( $manager, 'class="crm-access-card crmb-tasks-editor"' ), 'Manager assignment form' );
 verify( str_contains( $manager, 'کارهای تیم' ), 'Team navigation' );
 verify( str_contains( $manager, 'value="cancelled"' ), 'Manager status rights' );
 verify( str_contains( $manager, 'مسئول:' ), 'Manager sees assignee' );
@@ -97,4 +105,19 @@ verify( str_contains( $manager, '>هر روز</option>' ), 'Daily repeat choice'
 verify( str_contains( $manager, 'value="delete_task"' ), 'Manager sees delete action' );
 verify( str_contains( $manager, 'حذف وظیفه' ), 'Manager sees clear delete button' );
 verify( str_contains( $manager, 'ویرایش وظیفه' ), 'Manager sees task edit button' );
+verify( str_contains( $manager, 'فیلتر کارهای کارکنان' ), 'Manager-only assignee filter' );
+verify( ! str_contains( $employee, 'فیلتر کارهای کارکنان' ), 'Employee cannot access team filter' );
+$filtered = render( true, 'open', 3, true );
+verify( 3 === $list_filter && 3 === $count_filter, 'Both list and counters use selected employee' );
+verify( str_contains( $filtered, 'تسک جدید برای کارمند اول' ), 'Employee-specific quick create link' );
+verify( str_contains( $filtered, 'id="crmb-task-editor" class="crm-access-card crmb-tasks-editor" open' ), 'Quick create opens form' );
+verify( str_contains( $filtered, 'name="return_assignee" value="3"' ), 'Creation remembers filter' );
+verify( str_contains( $filtered, 'name="assigned_to"' ), 'Assignee is editable before creating' );
+verify( str_contains( $filtered, 'assigned_to=3' ), 'Status links preserve selected employee' );
+$empty_member = render( true, 'open', 4 );
+verify( 4 === $list_filter && 4 === $count_filter, 'Second employee selects own tasks' );
+verify( str_contains( $empty_member, 'فعلاً کار بازی ندارید' ), 'No results for selected assignee' );
+$own = render( false, 'open', 3 );
+verify( 0 === $list_filter && 0 === $count_filter, 'Forged employee filter ignored for non-managers' );
+verify( ! str_contains( $own, 'تسک جدید برای' ), 'No employee creation UI' );
 echo "$checks task view checks passed\n";

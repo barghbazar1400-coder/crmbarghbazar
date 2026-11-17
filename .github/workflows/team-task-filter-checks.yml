@@ -1,0 +1,39 @@
+name: CRM Team Task Filters and Responsive Cards
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/work.php'
+      - 'template-parts/tasks.php'
+      - 'style.css'
+      - 'tests/work.php'
+      - 'tests/tasks-view.php'
+      - '.github/workflows/team-task-filter-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  task-team-filter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite
+          coverage: none
+      - name: PHP syntax
+        run: |
+          php -l inc/work.php
+          php -l template-parts/tasks.php
+          php -l tests/work.php
+          php -l tests/tasks-view.php
+      - name: Task ownership, assignee SQL filters and counts
+        run: php tests/work.php
+      - name: Team task filter, preselection and employee access
+        run: php tests/tasks-view.php
+      - name: Four desktop cards and responsive layout present
+        run: |
+          grep -Fq 'grid-template-columns:repeat(4,minmax(0,1fr))' style.css
+          grep -Fq 'crmb-team-task-filter-form' style.css

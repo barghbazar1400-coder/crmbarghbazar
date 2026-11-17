@@ -4303,3 +4303,39 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
 .crmb-task-card-status.is-review, .crmb-priority-status.is-review { background:#fff1cb; color:#7b520b; }
 .crmb-control-review-panel { border-color:#e6d5a6; }
 @media (max-width:820px) { .crmb-task-review-controls { grid-template-columns:minmax(0,1fr); } }
+
+/* Manager task UX: employee selector and four balanced status cards. */
+.crmb-tasks-page .crmb-team-task-filter {
+  margin: 10px 0 18px;
+  padding: 17px 20px;
+  border: 1px solid #e6ddf3;
+  border-radius: 15px;
+  background: #fff;
+  box-shadow: 0 6px 19px rgba(62,37,111,.035);
+}
+.crmb-team-task-filter-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+.crmb-team-task-filter-heading h2 { margin:0 0 3px; font-size:16px; color:#37275b; }
+.crmb-team-task-filter-heading p { margin:0; color:#7d718f; font-size:12px; line-height:1.7; }
+.crmb-team-task-add { display:inline-flex; align-items:center; gap:7px; padding:10px 13px; background:#6841bf; border-radius:9px; color:#fff; font-size:12px; font-weight:750; text-decoration:none; }
+.crmb-team-task-add:hover { background:#5331a8; color:#fff; }
+.crmb-team-task-filter-form { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.crmb-team-task-filter-form label { color:#504166; font-size:13px; font-weight:700; }
+.crmb-team-task-filter-form select { min-width:min(260px,100%); flex:1; max-width:380px; border:1px solid #d9cce9; background:#fff; color:#422d65; border-radius:9px; padding:9px 11px; font:inherit; }
+.crmb-team-task-filter-form button { flex:0 0 auto; padding:10px 17px; }
+.crmb-team-task-filter-form > a { color:#765a9a; font-size:12px; text-decoration:underline; }
+@media (min-width:760px) {
+  .crmb-tasks-page .crmb-tasks-overview { grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+  .crmb-tasks-page .crmb-tasks-overview-item { min-width:0; padding:12px 10px; gap:9px; }
+  .crmb-tasks-page .crmb-tasks-overview-icon { width:34px; height:34px; flex:0 0 34px; font-size:14px; }
+  .crmb-tasks-page .crmb-tasks-overview-copy > span { font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
+  .crmb-tasks-page .crmb-tasks-overview-copy > strong { font-size:22px; }
+  .crmb-tasks-page .crmb-tasks-overview-arrow { display:none; }
+}
+@media (min-width:521px) and (max-width:759px) {
+  .crmb-tasks-page .crmb-tasks-overview { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:520px) {
+  .crmb-team-task-filter-form { flex-direction:column; align-items:stretch; }
+  .crmb-team-task-filter-form select { width:100%; max-width:none; flex:auto; }
+  .crmb-team-task-filter-heading .crmb-team-task-add { width:100%; justify-content:center; }
+}

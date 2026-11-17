@@ -161,20 +161,33 @@ function crmb_work_handle_post() {
     if ( 'task_status' === $task ) { $args['task_id'] = crmb_work_id( $data, 'id' ); }
     if ( in_array( $task, array( 'save_task', 'delete_task' ), true ) && crmb_work_manage_team() ) {
         $args['scope'] = 'team';
+        // Keep the manager's employee/status selection after creating a task.
+        $return_assignee = crmb_work_id( $data, 'return_assignee' );
+        if ( $return_assignee && get_userdata( $return_assignee ) ) {
+            $args['assigned_to'] = $return_assignee;
+        }
+        $return_view = crmb_work_text( $data, 'return_view' );
+        if ( in_array( $return_view, array( 'all', 'open', 'review', 'done' ), true ) ) {
+            $args['view'] = $return_view;
+        }
     }
     wp_safe_redirect( add_query_arg( $args, home_url( '/main/' ) ) ); exit;
 }
 add_action( 'admin_post_crmb_work', 'crmb_work_handle_post' );
 
 /** Fixed-scope lists; team tasks are explicitly administrator-only. */
-function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = false, $active = false, $focus = 0, $status_view = 'all' ) {
+function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = false, $active = false, $focus = 0, $status_view = 'all', $assigned_filter = 0 ) {
     $empty = array( 'rows' => array(), 'total' => 0, 'ready' => false );
     if ( ! is_user_logged_in() || '1' !== get_option( 'crmb_work_schema_v1' ) || ! in_array( $kind, array( 'tasks', 'messages' ), true ) ) { return $empty; }
     global $wpdb;
     $t = crmb_work_tables(); $uid = get_current_user_id();
     $limit = max( 1, min( 20, (int) $limit ) ); $page = max( 1, min( 100000, (int) $page ) );
     if ( 'tasks' === $kind ) {
-        $where = $team && crmb_work_manage_team() ? '1=1' : $wpdb->prepare( 'assigned_to = %d', $uid );
+        $can_view_team = $team && crmb_work_manage_team();
+        $where = $can_view_team ? '1=1' : $wpdb->prepare( 'assigned_to = %d', $uid );
+        if ( $can_view_team && $assigned_filter > 0 ) {
+            $where .= $wpdb->prepare( ' AND assigned_to = %d', (int) $assigned_filter );
+        }
         if ( function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready() ) {
             $where .= ' AND deleted_utc IS NULL';
         }
@@ -197,15 +210,19 @@ function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = f
     return array( 'rows' => $rows ?: array(), 'total' => (int) $total, 'ready' => true );
 }
 /**
- * Scope-safe totals for the three employee task filters.
+ * Scope-safe totals for all four task status filters and optional manager assignee.
  * Cancelled tasks remain discoverable through "all" but not open/done.
  */
-function crmb_work_task_counts( $team = false ) {
+function crmb_work_task_counts( $team = false, $assigned_filter = 0 ) {
     $empty = array( 'ready' => false, 'all' => null, 'open' => null, 'review' => null, 'done' => null );
     if ( ! is_user_logged_in() || '1' !== get_option( 'crmb_work_schema_v1' ) ) { return $empty; }
     global $wpdb;
     $t = crmb_work_tables();
-    $where = $team && crmb_work_manage_team() ? '1=1' : $wpdb->prepare( 'assigned_to = %d', get_current_user_id() );
+    $can_view_team = $team && crmb_work_manage_team();
+    $where = $can_view_team ? '1=1' : $wpdb->prepare( 'assigned_to = %d', get_current_user_id() );
+    if ( $can_view_team && $assigned_filter > 0 ) {
+        $where .= $wpdb->prepare( ' AND assigned_to = %d', (int) $assigned_filter );
+    }
     if ( function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready() ) {
         $where .= ' AND deleted_utc IS NULL';
     }
