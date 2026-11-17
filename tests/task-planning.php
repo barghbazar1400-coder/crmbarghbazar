@@ -136,17 +136,7 @@ check( 'error', plan_action( $parent, 'toggle', array( 'step_id'=>$second, 'is_d
 $ready=true;
 
 // Template contains real, escaped data and cannot expose another employee's parent.
-function esc_html( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ); }
-function esc_attr( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ); }
-function esc_url( $s ) { return htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' ); }
-function home_url( $s ) { return $s; }
-function admin_url( $s ) { return $s; }
-function add_query_arg( $key, $value, $url = '' ) {
-    return is_array( $key ) ? $value . '?' . http_build_query( $key )
-        : $url . '?' . $key . '=' . $value;
-}
-function wp_nonce_field( $a, $b ) { echo '<input type="hidden" name="' . $b . '" value="test">'; }
-function selected( $a, $b ) { if ( (string) $a === (string) $b ) { echo 'selected="selected"'; } }
+// Presentation stubs are defined in tests/progress.php.
 $uid=9; $admin=true;
 $task = crmb_progress_task( $parent );
 $id = $parent; $owner = false; $is_open = true;
