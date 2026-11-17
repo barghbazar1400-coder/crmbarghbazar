@@ -138,15 +138,30 @@ if ( ! empty( $crm_user->roles ) ) {
         <header class="crm-topbar" aria-label="نوار اعلان‌های پنل">
             <div class="crm-topbar-group">
                 <?php $crm_unread = crmb_notice_count(); ?>
-                <a class="crm-topbar-bell" href="<?php echo esc_url( add_query_arg( 'crm_section', 'notifications', home_url( '/main/' ) ) ); ?>"
-                   aria-label="<?php echo esc_attr( null === $crm_unread ? 'مرکز اعلان‌ها' : $crm_unread . ' اعلان خوانده‌نشده' ); ?>" title="مرکز اعلان‌ها">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
-                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/>
-                        <path d="M10 21h4"/>
-                    </svg>
-                    <?php if ( $crm_unread ) : ?><span class="crmb-unread-badge"><?php echo esc_html( $crm_unread > 99 ? '99+' : $crm_unread ); ?></span><?php endif; ?>
-                </a>
+                <div class="crmb-notice-bell-wrap">
+                    <a class="crm-topbar-bell" href="<?php echo esc_url( add_query_arg( 'crm_section', 'notifications', home_url( '/main/' ) ) ); ?>"
+                       aria-label="<?php echo esc_attr( null === $crm_unread ? 'نمایش اعلان‌های اخیر' : $crm_unread . ' اعلان خوانده‌نشده، نمایش اعلان‌ها' ); ?>"
+                       aria-controls="crmb-notice-popover" aria-expanded="false" title="نمایش اعلان‌های اخیر">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/>
+                            <path d="M10 21h4"/>
+                        </svg>
+                        <?php if ( $crm_unread ) : ?><span class="crmb-unread-badge"><?php echo esc_html( $crm_unread > 99 ? '99+' : $crm_unread ); ?></span><?php endif; ?>
+                    </a>
+                    <section class="crmb-notice-popover" id="crmb-notice-popover" aria-label="آخرین اعلان‌ها" hidden>
+                        <header class="crmb-notice-popover-header">
+                            <div><h2>آخرین اعلان‌ها</h2><span id="crmb-notice-popover-count" class="crm-access-muted"></span></div>
+                            <button type="button" class="crmb-notice-popover-close" aria-label="بستن اعلان‌ها">×</button>
+                        </header>
+                        <div id="crmb-notice-popover-list" class="crmb-notice-popover-list" aria-live="polite">
+                            <p class="crmb-notice-popover-state">در حال دریافت اعلان‌ها...</p>
+                        </div>
+                        <footer class="crmb-notice-popover-footer">
+                            <a href="<?php echo esc_url( add_query_arg( 'crm_section', 'notifications', home_url( '/main/' ) ) ); ?>">همه اعلان‌ها و تنظیمات <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+                        </footer>
+                    </section>
+                </div>
                 <div class="crm-topbar-datetime"
                      data-clock-timezone="<?php echo esc_attr( crmb_att_timezone()->getName() ); ?>"
                      data-clock-offset="<?php echo esc_attr( crmb_att_now_local()->getOffset() ); ?>"

@@ -6,6 +6,12 @@
 
     var bell = document.querySelector('.crm-topbar-bell');
     var badge = document.querySelector('.crmb-unread-badge');
+    var noticeWrap = document.querySelector('.crmb-notice-bell-wrap');
+    var popover = document.getElementById('crmb-notice-popover');
+    var popoverList = document.getElementById('crmb-notice-popover-list');
+    var popoverCount = document.getElementById('crmb-notice-popover-count');
+    var popoverClose = popover && popover.querySelector('.crmb-notice-popover-close');
+    var latestPopoverData = null;
     var status = document.getElementById('crmb-push-status');
     var enable = document.getElementById('crmb-push-enable');
     var disable = document.getElementById('crmb-push-disable');
@@ -210,6 +216,115 @@
             return '/main/?crm_section=notifications';
         }
     }
+    /**
+     * The bell is a fast, private view of the existing 10s notification poll.
+     * Use textContent exclusively for server text and validate every destination.
+     * Keep manager guidance unread until acknowledged inside the actual task.
+     */
+    function renderNoticePopover() {
+        if (!popover || !popoverList || !latestPopoverData) return;
+        var data = latestPopoverData;
+        var entries = Array.isArray(data.items) ? data.items.slice(0, 8) : [];
+        if (popoverCount) {
+            var count = Math.max(0, Number(data.count) || 0);
+            popoverCount.textContent = count ? count + ' خوانده‌نشده' : 'همه اعلان‌ها خوانده شده‌اند';
+        }
+        popoverList.replaceChildren();
+        if (!entries.length) {
+            var empty = document.createElement('p');
+            empty.className = 'crmb-notice-popover-state';
+            empty.textContent = 'هنوز اعلانی ثبت نشده است.';
+            popoverList.appendChild(empty);
+            return;
+        }
+        var labels = {
+            message: 'پیام داخلی', task: 'وظیفه', manager: 'راهنمایی مدیر',
+            task_done: 'تکمیل وظیفه', announcement: 'اطلاعیه'
+        };
+        entries.forEach(function (item) {
+            var row = document.createElement('article');
+            row.className = 'crmb-notice-popover-item' + (item.read ? '' : ' is-unread');
+            var heading = document.createElement('div');
+            heading.className = 'crmb-notice-popover-item-heading';
+            var type = document.createElement('span');
+            type.className = 'crmb-notice-popover-type';
+            type.textContent = labels[item.kind] || 'اعلان';
+            var state = document.createElement('span');
+            state.className = 'crmb-notice-popover-readstate';
+            state.textContent = item.read ? 'خوانده‌شده' : 'جدید';
+            heading.appendChild(type);
+            heading.appendChild(state);
+            row.appendChild(heading);
+            var title = document.createElement('a');
+            title.className = 'crmb-notice-popover-link';
+            title.href = safeDestination(item.href);
+            title.textContent = String(item.title || 'مشاهده اعلان');
+            row.appendChild(title);
+            if (item.summary) {
+                var summary = document.createElement('p');
+                summary.className = 'crmb-notice-popover-summary';
+                summary.textContent = String(item.summary);
+                row.appendChild(summary);
+            }
+            var foot = document.createElement('div');
+            foot.className = 'crmb-notice-popover-item-foot';
+            var date = document.createElement('small');
+            date.textContent = String(item.created || '');
+            foot.appendChild(date);
+            if (!item.read && item.kind !== 'manager') {
+                var readButton = document.createElement('button');
+                readButton.type = 'button';
+                readButton.className = 'crmb-notice-popover-read';
+                readButton.textContent = 'خواندم';
+                readButton.addEventListener('click', function () {
+                    readButton.disabled = true;
+                    post('crmb_notice', 'read', {id: Number(item.id) || 0}).then(function (result) {
+                        item.read = true;
+                        latestPopoverData.count = Math.max(0, Number(result.count) || 0);
+                        showCount(latestPopoverData.count);
+                        renderNoticePopover();
+                        poll();
+                    }).catch(function () {
+                        readButton.disabled = false;
+                        readButton.textContent = 'تلاش دوباره';
+                    });
+                });
+                foot.appendChild(readButton);
+            }
+            row.appendChild(foot);
+            popoverList.appendChild(row);
+        });
+    }
+    function setNoticePopover(open) {
+        if (!popover || !bell) return;
+        popover.hidden = !open;
+        bell.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) {
+            renderNoticePopover();
+            poll(); // Refresh on demand as well as every ten seconds.
+        }
+    }
+    if (bell && popover && popoverList) {
+        bell.addEventListener('click', function (event) {
+            event.preventDefault();
+            setNoticePopover(popover.hidden);
+        });
+        if (popoverClose) popoverClose.addEventListener('click', function () {
+            setNoticePopover(false);
+            bell.focus();
+        });
+        document.addEventListener('click', function (event) {
+            if (!popover.hidden && noticeWrap && !noticeWrap.contains(event.target)) {
+                setNoticePopover(false);
+            }
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && !popover.hidden) {
+                setNoticePopover(false);
+                bell.focus();
+            }
+        });
+    }
     function notificationTitle(kind) {
         var types = {
             message: 'پیام جدید داری',
@@ -255,7 +370,7 @@
     }
     function showCount(count) {
         count = Math.max(0, Number(count) || 0);
-        if (bell) bell.setAttribute('aria-label', count ? count + ' اعلان خوانده‌نشده' : 'مرکز اعلان‌ها');
+        if (bell) bell.setAttribute('aria-label', count ? count + ' اعلان خوانده‌نشده، نمایش اعلان‌ها' : 'نمایش اعلان‌های اخیر');
         if (badge) {
             badge.textContent = count > 99 ? '99+' : String(count);
             badge.hidden = !count;
@@ -288,6 +403,8 @@
         }, 0);
         var count = Number(data.count) || 0;
         showCount(count);
+        latestPopoverData = data;
+        if (popover && !popover.hidden) renderNoticePopover();
         if (seenId === null) {
             // Baseline existing unread records: opening/reloading a tab should not flood Windows.
             seenId = latest;

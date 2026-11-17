@@ -245,7 +245,9 @@ function crmb_notice_ajax() {
         $items = array();
         foreach ( crmb_notice_list( 20 ) as $item ) {
             $items[] = array( 'id' => (int) $item->id, 'kind' => $item->kind,
-                'title' => $item->title, 'href' => $item->href, 'read' => (bool) $item->read_utc );
+                'title' => $item->title, 'summary' => $item->summary,
+                'created' => crmb_work_date( $item->created_utc ),
+                'href' => $item->href, 'read' => (bool) $item->read_utc );
         }
         wp_send_json_success( array( 'count' => crmb_notice_count(), 'items' => $items ) );
     }
