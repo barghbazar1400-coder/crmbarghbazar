@@ -1,0 +1,45 @@
+name: CRM Staff Performance Dashboard
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/employee-performance.php'
+      - 'template-parts/employee-performance.php'
+      - 'template-parts/leadership.php'
+      - 'functions.php'
+      - 'tests/employee-performance.php'
+      - 'tests/progress.php'
+      - 'style.css'
+      - '.github/workflows/employee-performance-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  employee-performance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring
+          coverage: none
+      - name: PHP lint
+        run: |
+          php -l inc/employee-performance.php
+          php -l template-parts/employee-performance.php
+          php -l template-parts/leadership.php
+          php -l functions.php
+          php -l tests/employee-performance.php
+          php -l tests/progress.php
+      - name: Real SQLite aggregates, date boundaries, access and escape tests
+        run: php tests/employee-performance.php
+      - name: Existing executive dashboards, activity and task workflows
+        run: |
+          php tests/leadership.php
+          php tests/leadership-view.php
+          php tests/manager-control-view.php
+          php tests/progress.php
+          php tests/task-review.php
+          php tests/control-queue.php

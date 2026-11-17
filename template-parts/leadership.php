@@ -107,4 +107,7 @@ $metrics = array(
     <?php if ( function_exists( 'crmb_leadership_control_data' ) ) : ?>
         <?php get_template_part( 'template-parts/manager-control' ); ?>
     <?php endif; ?>
+    <?php if ( function_exists( 'crmb_performance_data' ) ) : ?>
+        <?php get_template_part( 'template-parts/employee-performance' ); ?>
+    <?php endif; ?>
 </section>

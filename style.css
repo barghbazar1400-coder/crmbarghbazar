@@ -4717,3 +4717,46 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   .crmb-reminder-grid {grid-template-columns:minmax(0,1fr);}
   .crmb-reminder-heading {align-items:flex-start;}
 }
+
+
+/* CEO/COO employee performance: factual trends and workload, not rankings. */
+.crmb-employee-performance{margin:22px 0;display:grid;gap:13px}
+.crmb-performance-heading{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.crmb-performance-heading h2{display:flex;align-items:center;gap:9px;color:#482b76;font-size:20px;margin:0 0 5px}
+.crmb-performance-heading p{margin:0;color:#857594;font-size:12px;line-height:1.85}
+.crmb-performance-periods{display:flex;flex-wrap:wrap;gap:7px}
+.crmb-performance-periods a{display:inline-flex;padding:8px 13px;min-height:36px;align-items:center;justify-content:center;background:#fff;border:1px solid #e0d5ed;border-radius:9px;color:#614b80;font-weight:700;font-size:12px;text-decoration:none}
+.crmb-performance-periods a.is-current{background:#62409e;color:#fff;border-color:#62409e}
+.crmb-performance-context{margin:0;color:#887b96;font-size:12px;line-height:1.9}
+.crmb-performance-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.crmb-performance-kpis>div{border:1px solid #e6def2;border-radius:12px;background:#fff;padding:15px;display:grid;gap:7px}
+.crmb-performance-kpis span{color:#786a8b;font-size:12px}
+.crmb-performance-kpis strong{color:#573592;font-size:24px;font-variant-numeric:tabular-nums}
+.crmb-performance-board{min-width:0;display:grid;gap:15px}
+.crmb-performance-board-head,.crmb-performance-detail-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px}
+.crmb-performance-board-head h3,.crmb-performance-detail-head h3{color:#4d327b;font-size:17px;margin:0 0 7px}
+.crmb-performance-board-head p,.crmb-performance-detail-head p{color:#857592;font-size:12px;margin:0;line-height:1.85}
+.crmb-performance-select{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.crmb-performance-select label{font-size:12px;color:#735e90;font-weight:750}
+.crmb-performance-select select{min-width:160px;max-width:230px;padding:8px 10px;border:1px solid #d6cbe5;border-radius:9px}
+.crmb-performance-select button{background:#62409e;border:0;border-radius:9px;color:#fff;padding:9px 13px;cursor:pointer}
+.crmb-performance-table-scroll{width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+.crmb-performance-table{width:100%;min-width:1050px;border-collapse:collapse;text-align:right;font-size:12px}
+.crmb-performance-table th,.crmb-performance-table td{padding:12px 10px;border-bottom:1px solid #eee8f3;white-space:nowrap}
+.crmb-performance-table thead th{background:#f8f5fc;color:#674c91;font-weight:750}
+.crmb-performance-table tbody th{color:#47316c}
+.crmb-performance-table tbody tr.is-selected{background:#f5edff}
+.crmb-performance-table tbody tr:hover{background:#faf7ff}
+.crmb-performance-table td a{color:#62409e;text-decoration:none;font-weight:800}
+.crmb-performance-method{margin:0;color:#887a97;font-size:11px;line-height:2}
+.crmb-performance-detail{display:grid;gap:16px}
+.crmb-performance-detail-head a{font-size:12px;color:#62409e;font-weight:800;text-decoration:none}
+.crmb-performance-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.crmb-performance-detail-section{min-width:0;background:#faf8fd;border:1px solid #ece5f2;border-radius:12px;padding:14px}
+.crmb-performance-detail-section h4{margin:0 0 10px;color:#5d4189;font-size:13px}
+.crmb-performance-detail-section ol{padding:0;margin:0;list-style:none;display:grid;gap:8px}
+.crmb-performance-detail-section li{padding:10px;border-radius:8px;background:#fff;border:1px solid #eee7f3;display:grid;gap:5px}
+.crmb-performance-detail-section li a{font-size:12px;font-weight:700;color:#554087;text-decoration:none}
+.crmb-performance-detail-section small,.crmb-performance-detail-section p{font-size:11px;color:#90839d}
+@media(max-width:850px){.crmb-performance-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.crmb-performance-detail-grid{grid-template-columns:1fr}}
+@media(max-width:480px){.crmb-performance-heading{align-items:stretch}.crmb-performance-periods{width:100%}.crmb-performance-periods a{flex:1}.crmb-performance-kpis{gap:8px}.crmb-performance-kpis>div{padding:12px}.crmb-performance-select{width:100%}.crmb-performance-select select{flex:1;min-width:0}}
