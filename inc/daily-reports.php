@@ -113,10 +113,11 @@ function crmb_progress_handle_post() {
             : ( 'blocker' === $note_type ? 'rich_blocker' : ( 'note' === $note_type ? 'rich_note' : 'invalid' ) );
         $raw_note = isset( $data['note_body'] ) && is_string( $data['note_body'] ) ? $data['note_body'] : '';
         $notice = crmb_task_rich_save( $id, $type, $raw_note, $_FILES ?? array() );
+        if ( 'image_error' === $notice ) { $notice = 'task_image_error'; }
         $args = array( 'crm_section' => 'tasks', 'task_id' => $id );
         $retry_key = 'crmb_task_note_retry_' . get_current_user_id() . '_' . $id;
         if ( 'saved' === $notice ) { delete_transient( $retry_key ); }
-        elseif ( in_array( $notice, array( 'invalid', 'image_error', 'error' ), true ) ) {
+        elseif ( in_array( $notice, array( 'invalid', 'image_error', 'task_image_error', 'error' ), true ) ) {
             set_transient( $retry_key, array(
                 'body' => crmb_task_note_html( substr( $raw_note, 0, 30000 ) ),
                 'type' => $type,
@@ -175,7 +176,7 @@ function crmb_progress_form_fields( $task, $id = 0 ) {
 }
 function crmb_progress_notice() {
     $key = isset( $_GET['progress_notice'] ) && is_string( $_GET['progress_notice'] ) ? $_GET['progress_notice'] : '';
-    $messages = array( 'saved' => 'اطلاعات ذخیره شد.', 'invalid' => 'اطلاعات معتبر نیست؛ تاریخ و متن را بررسی کنید.', 'denied' => 'اجازه این عملیات را ندارید.', 'error' => 'ثبت انجام نشد؛ دوباره تلاش کنید.', 'locked' => 'گزارش ارسال‌شده قابل تغییر نیست.', 'image_error' => 'حداکثر ۳ عکس JPG، PNG یا WebP، هرکدام تا ۱ مگابایت و ۱۶ میلیون پیکسل مجاز است. متن شما حفظ شده؛ عکس‌ها را دوباره انتخاب کنید.', 'changed' => 'این مورد قبلاً تغییر کرده است.', 'read' => 'راهنمایی مدیر به‌عنوان خوانده‌شده ثبت شد.', 'read_revision' => 'درخواست اصلاح مدیر به‌عنوان خوانده‌شده ثبت شد.', 'running' => 'تا پایان زمان‌سنج فعال نمی‌توانید مسئول را تغییر دهید.', 'approved' => 'کار تأیید نهایی شد و به بایگانی رفت.', 'rejected' => 'کار برای اصلاح به مسئول برگشت و دلیل در تاریخچه ثبت شد.' );
+    $messages = array( 'saved' => 'اطلاعات ذخیره شد.', 'invalid' => 'اطلاعات معتبر نیست؛ تاریخ و متن را بررسی کنید.', 'denied' => 'اجازه این عملیات را ندارید.', 'error' => 'ثبت انجام نشد؛ دوباره تلاش کنید.', 'locked' => 'گزارش ارسال‌شده قابل تغییر نیست.', 'image_error' => 'حداکثر ۳ عکس JPG، PNG یا WebP، هرکدام تا ۱ مگابایت و ۱۶ میلیون پیکسل مجاز است. متن شما حفظ شده؛ عکس‌ها را دوباره انتخاب کنید.', 'task_image_error' => 'ارسال یکی از عکس‌های وظیفه انجام نشد؛ فقط JPG، PNG و WebP مجاز هستند. محدودیت‌های آپلود PHP سرور را بررسی کنید. متن شما حفظ شده؛ عکس‌ها را دوباره انتخاب کنید.', 'changed' => 'این مورد قبلاً تغییر کرده است.', 'read' => 'راهنمایی مدیر به‌عنوان خوانده‌شده ثبت شد.', 'read_revision' => 'درخواست اصلاح مدیر به‌عنوان خوانده‌شده ثبت شد.', 'running' => 'تا پایان زمان‌سنج فعال نمی‌توانید مسئول را تغییر دهید.', 'approved' => 'کار تأیید نهایی شد و به بایگانی رفت.', 'rejected' => 'کار برای اصلاح به مسئول برگشت و دلیل در تاریخچه ثبت شد.' );
     if ( isset( $messages[$key] ) ) { echo '<p class="crm-access-notice" role="status">' . esc_html( $messages[$key] ) . '</p>'; }
 }
 function crmb_report_image_list( $report ) {

@@ -130,7 +130,7 @@ function crmb_task_note_is_manager( $task_id ) {
  * All-or-nothing history and attachments, with task authorization rechecked
  * under the same InnoDB lock used by timer/status transitions.
  */
-function crmb_task_rich_save( $id, $type, $raw_body, $files = array() ) {
+function crmb_task_rich_save( $id, $type, $raw_body, $files = array(), &$created_event_id = null ) {
     if ( ! is_user_logged_in() || ! crmb_progress_ready() ) { return 'denied'; }
     if ( ! crmb_task_notes_ready() ) { return 'error'; }
     if ( ! $id || ! in_array( $type, array( 'rich_note', 'rich_blocker', 'manager_note' ), true )
@@ -141,9 +141,9 @@ function crmb_task_rich_save( $id, $type, $raw_body, $files = array() ) {
     $body = crmb_task_note_html( $raw_body );
     if ( strlen( $body ) > 30000 ) { return 'invalid'; }
 
-    // Matches the existing private daily-report upload guard:
-    // JPG/PNG/WebP only; max three files and one megabyte each.
-    $images = crmb_report_uploads( $files );
+    // Task images use their own validated upload flow, independent from
+    // daily-report limits. AJAX uploads individual images after this note.
+    $images = crmb_task_photo_files( $files );
     if ( is_wp_error( $images ) ) { return 'image_error'; }
     if ( '' === trim( wp_strip_all_tags( $body ) ) && ! $images ) { return 'invalid'; }
 
@@ -168,6 +168,7 @@ function crmb_task_rich_save( $id, $type, $raw_body, $files = array() ) {
         }
     }
     $result = crmb_progress_commit();
+    if ( 'saved' === $result ) { $created_event_id = $event_id; }
     if ( 'saved' === $result && 'manager_note' === $type && function_exists( 'do_action' ) ) {
         do_action( 'crmb_manager_guidance', $id, (int) $task->assigned_to, get_current_user_id(), $event_id );
     }

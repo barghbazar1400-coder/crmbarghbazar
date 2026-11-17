@@ -160,7 +160,8 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
             <p class="crm-access-notice" role="status">متن گزارش پس از خطا بازیابی شد. تصاویر را دوباره انتخاب کنید.</p>
         <?php endif; ?>
         <form method="post" enctype="multipart/form-data" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"
-              class="crm-access-form crmb-task-rich-form" id="crmb-task-progress-form">
+              class="crm-access-form crmb-task-rich-form" id="crmb-task-progress-form"
+              data-photo-ajax="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>">
             <?php crmb_progress_form_fields( 'task_note', $id ); ?>
             <label for="note-type">نوع گزارش</label>
             <select id="note-type" name="note_type">
@@ -188,7 +189,7 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
             <label for="crmb-task-images">تصاویر گزارش پیشرفت</label>
             <input type="file" id="crmb-task-images" name="images[]" accept="image/jpeg,image/png,image/webp" multiple>
             <p class="crm-access-muted crmb-task-paste-hint"><i class="fa-solid fa-paste" aria-hidden="true"></i> <strong>افزودن سریع اسکرین‌شات:</strong> تصویر را با Win + Shift + S بگیرید، داخل کادر «شرح پیشرفت» کلیک کنید و <kbd>Ctrl</kbd> + <kbd>V</kbd> بزنید. تصویر به پیوست‌های پایین اضافه می‌شود و نیازی به ذخیره دستی فایل نیست.</p>
-            <p class="crm-access-muted">تا ۳ تصویر JPG، PNG یا WebP (هرکدام حداکثر ۱ مگابایت). تصاویر بزرگ چسبانده‌شده در صورت امکان کم‌حجم می‌شوند. تصاویر فقط برای افراد مجاز همین کار قابل مشاهده‌اند و همراه گزارش در تاریخچه نمایش داده می‌شوند.</p>
+            <p class="crm-access-muted">تعداد تصاویر گزارش محدود به ۳ عکس نیست و شرط ۱ مگابایت حذف شده است. عکس‌ها با حجم اصلی، یکی‌یکی به‌صورت امن ارسال می‌شوند؛ فقط تنظیمات آپلود PHP/وب‌سرور و کنترل نوع فایل و ابعاد تصویر اعمال می‌شوند. تصاویر فقط برای افراد مجاز همین کار قابل مشاهده‌اند.</p>
             <div id="crmb-task-image-feedback" class="crmb-task-image-feedback" role="status" aria-live="polite"></div>
             <div id="crmb-task-image-preview" class="crmb-task-image-preview" aria-label="تصاویر آماده ثبت"></div>
             <button type="submit" class="crm-access-primary">ثبت گزارش در تاریخچه</button>

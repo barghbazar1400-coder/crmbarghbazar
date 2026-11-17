@@ -4,6 +4,11 @@ on:
     branches: [main]
     paths:
       - 'template-parts/task-progress.php'
+      - 'inc/task-photo-uploads.php'
+      - 'inc/task-rich-notes.php'
+      - 'inc/daily-reports.php'
+      - 'functions.php'
+      - 'tests/task-photo-uploads.php'
       - 'assets/js/crmb-task-image-paste.js'
       - 'tests/task-image-paste.js'
       - 'tests/progress.php'
@@ -29,9 +34,15 @@ jobs:
       - name: Lint task progress and screenshot script
         run: |
           php -l template-parts/task-progress.php
+          php -l inc/task-photo-uploads.php
+          php -l inc/task-rich-notes.php
+          php -l inc/daily-reports.php
+          php -l tests/task-photo-uploads.php
           node --check assets/js/crmb-task-image-paste.js
           node --check tests/task-image-paste.js
       - name: Run existing report storage regressions
         run: php tests/progress.php
-      - name: Verify screenshot paste and file input
+      - name: Private task image upload and authorization tests
+        run: php tests/task-photo-uploads.php
+      - name: Verify unlimited image selection, per-photo AJAX and retries
         run: node tests/task-image-paste.js

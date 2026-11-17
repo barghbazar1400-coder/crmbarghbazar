@@ -28,7 +28,7 @@ class Element {
     setAttribute(key,value) { this.attributes[key]=value; }
     contains(target) { return target === this || target?.parent === this; }
 }
-function build() {
+function build(options = {}) {
     let urlCount = 0;
     const revoked = [];
     const editorDocument = new Element('iframeDocument');
@@ -46,7 +46,33 @@ function build() {
     ]);
     const form = nodes.get('crmb-task-progress-form');
     const button = new Element('button');
-    form.querySelector = selector => selector === 'button[type="submit"]' ? button : null;
+    const values = {
+        'input[name="crmb_progress_nonce"]': 'valid-test-nonce',
+        'input[name="id"]': '42',
+        'select[name="note_type"]': 'note',
+        'textarea[name="note_body"]': '<p>Progress with photos</p>'
+    };
+    form.querySelector = selector => selector === 'button[type="submit"]' ? button
+        : (values[selector] === undefined ? null : {value: values[selector]});
+    form.getAttribute = key => key === 'data-photo-ajax' && options.ajax ? '/wp-admin/admin-ajax.php' : '';
+    const calls = [];
+    let firstImageFail = !!options.failFirstImage;
+    class FormData {
+        constructor() { this.parts = []; }
+        append(key,value) { this.parts.push([key,value]); }
+        get(key) { return (this.parts.find(p=>p[0]===key)||[])[1]; }
+    }
+    function fetch(url, request) {
+        const action = request.body.get('action');
+        calls.push({url, action, request, photo: request.body.get('image')});
+        if (action === 'crmb_task_photo_upload' && firstImageFail) {
+            firstImageFail = false;
+            return Promise.resolve({ok:false,json:async()=>({success:false,data:{message:'temporary image error'}})});
+        }
+        return Promise.resolve({ok:true,json:async()=>({
+            success:true, data:action === 'crmb_task_photo_save' ? {event_id:77} : {saved:true}
+        })});
+    }
     const document = new Element('document');
     document.getElementById = name => nodes.get(name) || null;
     document.createElement = name => {
@@ -71,7 +97,9 @@ function build() {
         revokeObjectURL(url) {revoked.push(url);}
     };
     const intervals = [];
+    let reloads = 0;
     const window = {
+        location: { reload() { reloads++; } },
         tinymce: {
             get(id) { return id==='crmbtaskeditor' ? editor : null; },
             on() {}
@@ -82,12 +110,19 @@ function build() {
     };
     vm.runInNewContext(source, {
         document,window,File,Blob,DataTransfer,URL:originalURL,Date,Math,Promise,console,
-        createImageBitmap: async () => ({width:4200,height:2800,close(){}})
+        createImageBitmap: async () => ({width:4200,height:2800,close(){}}),
+        FormData, fetch
     });
     const field=nodes.get('crmb-task-images');
     return {
         form, document, field, button, feedback:nodes.get('crmb-task-image-feedback'),
-        preview:nodes.get('crmb-task-image-preview'), editorDocument, revoked,
+        preview:nodes.get('crmb-task-image-preview'), editorDocument, revoked, calls,
+        get reloads() { return reloads; },
+        submit() {
+            const ev={defaultPrevented:false,preventDefault(){this.defaultPrevented=true;}};
+            form.dispatch('submit',ev);
+            return ev;
+        },
         async flush() {
             for(let i=0;i<12;i++)await new Promise(resolve=>setImmediate(resolve));
         },
@@ -140,16 +175,21 @@ function makePng(name='image.png',size=450) {
     assert.equal(third.defaultPrevented,true);
     await ui.flush();
     assert.equal(ui.field.files.length,3);
-    assert.equal(ui.field.files[2].type,'image/webp','large screenshot should be resized for server 1MB limit');
-    assert.ok(ui.field.files[2].size<=1048576);
+    assert.equal(ui.field.files[2].type,'image/png','large screenshot should retain original format and quality');
+    assert.ok(ui.field.files[2].size>1048576,'image larger than 1 MiB is now allowed');
 
     ui.paste(ui.editorDocument,[imageItem(png)]);
     await ui.flush();
-    assert.equal(ui.field.files.length,3,'maximum three images');
+    assert.equal(ui.field.files.length,4,'fourth image must be allowed');
+    const many=Array.from({length:25},(_,i)=>makePng('extra-'+i+'.png',100+i));
+    ui.field.files=many;
+    ui.field.dispatch('change',{target:ui.field});
+    await ui.flush();
+    assert.equal(ui.field.files.length,29,'more than 20 selected images all stay in the same queue');
 
     const removeButton=ui.preview.children[0].children[2];
     removeButton.dispatch('click',{});
-    assert.equal(ui.field.files.length,2,'removed image deleted from actual file input');
+    assert.equal(ui.field.files.length,28,'removed image deleted from actual file input');
     assert.ok(ui.revoked.length>=1,'thumbnail URL cleaned up');
 
     // Invalid file picker should never be present in multipart payload.
@@ -157,7 +197,7 @@ function makePng(name='image.png',size=450) {
     ui.field.files=[invalid];
     ui.field.dispatch('change',{target:ui.field});
     await ui.flush();
-    assert.equal(ui.field.files.length,2,'invalid selected file discarded');
+    assert.equal(ui.field.files.length,28,'invalid selected file discarded');
     assert.match(ui.feedback.textContent,/JPG|PNG|WebP/);
 
     // Form outside paste should not be intercepted.
@@ -165,6 +205,38 @@ function makePng(name='image.png',size=450) {
     const outside = ui.paste(elsewhere,[imageItem(png)]);
     assert.equal(outside.defaultPrevented,false);
     await ui.flush();
-    assert.equal(ui.field.files.length,2);
-    console.log('PASS: TinyMCE screenshot Ctrl+V, native FormData input, text paste, image compression, 3-image limit, remove, picker merge and invalid images');
+    assert.equal(ui.field.files.length,28);
+    const ajax = build({ajax:true,failFirstImage:true});
+    ajax.field.files=[makePng('first.png'),makePng('second.png')];
+    ajax.field.dispatch('change',{target:ajax.field});
+    await ajax.flush();
+    assert.equal(ajax.field.files.length,2);
+    assert.equal(ajax.submit().defaultPrevented,true,'AJAX submission intercepts normal POST');
+    await ajax.flush();
+    assert.equal(ajax.calls.filter(c=>c.action==='crmb_task_photo_save').length,1,'one progress note created');
+    assert.equal(ajax.calls.filter(c=>c.action==='crmb_task_photo_upload').length,2,'photos sent as individual requests');
+    assert.equal(ajax.field.files.length,1,'only failed photo stays in queue');
+    assert.equal(ajax.reloads,0,'do not reload with failed photos');
+    assert.match(ajax.feedback.textContent,/temporary image error/);
+    ajax.submit();
+    await ajax.flush();
+    assert.equal(ajax.calls.filter(c=>c.action==='crmb_task_photo_save').length,1,
+        'retry must not create a second progress note');
+    assert.equal(ajax.calls.filter(c=>c.action==='crmb_task_photo_upload').length,3,
+        'retry only the one failed photo');
+    assert.equal(ajax.field.files.length,0);
+    assert.equal(ajax.reloads,1,'reload when all photos have been stored');
+
+    const bulk=build({ajax:true});
+    const largeFiles=Array.from({length:25},(_,i)=>makePng('bulk-'+i+'.png',1048596));
+    bulk.field.files=largeFiles;
+    bulk.field.dispatch('change',{target:bulk.field});
+    await bulk.flush();
+    assert.equal(bulk.field.files.length,25);
+    bulk.submit();
+    await bulk.flush();
+    assert.equal(bulk.calls.filter(c=>c.action==='crmb_task_photo_upload').length,25);
+    assert.equal(bulk.calls.filter(c=>c.action==='crmb_task_photo_save').length,1);
+    assert.equal(bulk.reloads,1);
+    console.log('PASS: TinyMCE paste, original images >1 MiB, 29-image selection, remove, picker merge and validation');
 })().catch(error=>{console.error(error);process.exitCode=1;});

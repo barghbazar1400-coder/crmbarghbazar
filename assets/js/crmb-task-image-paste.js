@@ -7,8 +7,14 @@
     var feedback = document.getElementById('crmb-task-image-feedback');
     if (!form || !input || !preview) return;
 
-    var MAX_FILES = 3;
-    var MAX_BYTES = 1048576; // Match crmb_report_uploads on the server.
+    // No application-level photo count limit. Protect the PHP/database server
+    // from an accidentally enormous single image; server upload_max_filesize
+    // and post_max_size may be lower than this 64 MiB defensive ceiling.
+    var SAFETY_IMAGE_BYTES = 64 * 1024 * 1024;
+    var uploadEndpoint = typeof form.getAttribute === 'function'
+        ? form.getAttribute('data-photo-ajax') : '';
+    var savedEventId = 0;
+    var uploading = false;
     var allowed = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp' };
     var selected = [];
     var processing = 0;
@@ -22,7 +28,8 @@
         feedback.classList.toggle('is-error', !!error);
     }
     function sizeLabel(size) {
-        return Math.ceil(size / 1024) + ' کیلوبایت';
+        return size >= 1048576 ? (size / 1048576).toFixed(1) + ' مگابایت'
+            : Math.ceil(size / 1024) + ' کیلوبایت';
     }
     function validImage(file) {
         return !!file && Object.prototype.hasOwnProperty.call(allowed, file.type) &&
@@ -61,9 +68,9 @@
             remove.className = 'crmb-task-pasted-remove';
             remove.setAttribute('aria-label', 'حذف تصویر ' + (index + 1));
             remove.textContent = '×';
-            remove.disabled = processing > 0;
+            remove.disabled = processing > 0 || uploading;
             remove.addEventListener('click', function () {
-                if (processing) return;
+                if (processing || uploading) return;
                 var deleted = selected.splice(index, 1)[0];
                 if (!syncInput()) { selected.splice(index, 0, deleted); return; }
                 URL.revokeObjectURL(deleted.url);
@@ -74,39 +81,6 @@
             preview.appendChild(card);
         });
     }
-    function optimiseScreenshot(file) {
-        if (file.size <= MAX_BYTES) return Promise.resolve(file);
-        if (file.size > 25 * 1024 * 1024 || typeof createImageBitmap !== 'function') {
-            return Promise.reject(new Error('تصویر بیش از ۱ مگابایت است و امکان بهینه‌سازی آن وجود ندارد.'));
-        }
-        say('اسکرین‌شات بزرگ است؛ در حال کم‌حجم کردن برای گزارش…', false);
-        return createImageBitmap(file).then(async function (bitmap) {
-            try {
-                var scale = Math.min(1, 2400 / Math.max(bitmap.width, bitmap.height),
-                    Math.sqrt(16000000 / (bitmap.width * bitmap.height)));
-                for (var attempt = 0; attempt < 4; attempt++) {
-                    var canvas = document.createElement('canvas');
-                    canvas.width = Math.max(1, Math.floor(bitmap.width * scale));
-                    canvas.height = Math.max(1, Math.floor(bitmap.height * scale));
-                    var context = canvas.getContext('2d');
-                    if (!context) break;
-                    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-                    var blob = await new Promise(function (resolve) {
-                        canvas.toBlob(resolve, 'image/webp', Math.max(0.58, 0.88 - attempt * 0.09));
-                    });
-                    canvas.width = 0; canvas.height = 0;
-                    if (blob && blob.type === 'image/webp' && blob.size > 0 && blob.size <= MAX_BYTES) {
-                        return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.webp',
-                            { type: 'image/webp', lastModified: Date.now() });
-                    }
-                    scale *= 0.75;
-                }
-                throw new Error('حجم اسکرین‌شات پس از بهینه‌سازی هنوز بیش از ۱ مگابایت است.');
-            } finally {
-                if (typeof bitmap.close === 'function') bitmap.close();
-            }
-        });
-    }
     function addImages(files, pasted) {
         var additions = Array.from(files || []);
         if (!additions.length) return;
@@ -115,23 +89,15 @@
         working = working.then(async function () {
             for (var i = 0; i < additions.length; i++) {
                 var original = additions[i];
-                if (selected.length >= MAX_FILES) {
-                    say('حداکثر ۳ تصویر برای هر گزارش مجاز است.', true);
-                    break;
-                }
                 if (!validImage(original)) {
                     say('تنها تصاویر JPG، PNG و WebP قابل ثبت هستند.', true);
                     continue;
                 }
-                var file;
-                try {
-                    file = pasted ? await optimiseScreenshot(original) : original;
-                } catch (error) {
-                    say(error.message || 'بهینه‌سازی تصویر انجام نشد.', true);
-                    continue;
-                }
-                if (file.size < 1 || file.size > MAX_BYTES) {
-                    say('هر تصویر باید حداکثر ۱ مگابایت باشد.', true);
+                // Preserve original quality and file size; send each picture
+                // separately so a large selection never creates one huge POST.
+                var file = original;
+                if (file.size < 1 || file.size > SAFETY_IMAGE_BYTES) {
+                    say('این تک‌عکس بیش از حد ایمنی ۶۴ مگابایت است.', true);
                     continue;
                 }
                 var exists = selected.some(function (entry) {
@@ -155,7 +121,7 @@
             // The native picker temporarily replaces input.files, including
             // when a chosen file was rejected. Restore ONLY validated items.
             syncInput();
-            if (fileButton) fileButton.disabled = processing > 0;
+            if (fileButton) fileButton.disabled = processing > 0 || uploading;
             render();
         });
     }
@@ -231,10 +197,102 @@
         if (watchEditor() || attempts >= 60) window.clearInterval(editorWatcher);
     }, 250);
 
+    /**
+     * Save the text FIRST, then append each photo to the same immutable event.
+     * Failures leave unsent photos visible for retry and never create a
+     * duplicate progress note. Non-JS browsers retain native multipart POST.
+     */
+    function postAjax(action, values, file) {
+        var payload = new FormData();
+        payload.append('action', action);
+        Object.keys(values).forEach(function (key) { payload.append(key, values[key]); });
+        if (file) payload.append('image', file, file.name);
+        return fetch(uploadEndpoint, {
+            method: 'POST', credentials: 'same-origin',
+            cache: 'no-store', body: payload
+        }).then(function (response) {
+            return response.json().then(function (json) {
+                if (!response.ok || !json || !json.success) {
+                    throw new Error((json && json.data && json.data.message) || 'خطای دریافت پاسخ سرور');
+                }
+                return json.data || {};
+            });
+        });
+    }
+    function fieldValue(selector) {
+        var node = form.querySelector(selector);
+        return node && typeof node.value === 'string' ? node.value : '';
+    }
     form.addEventListener('submit', function (event) {
-        if (!processing) return;
+        if (processing || uploading) {
+            event.preventDefault();
+            say('در حال آماده‌سازی یا ارسال تصاویر هستیم؛ تا پایان ارسال صبر کنید.', true);
+            return;
+        }
+        // Progressive enhancement; never require JS for ordinary form use.
+        if (!uploadEndpoint || typeof fetch !== 'function' || typeof FormData !== 'function'
+            || !fieldValue('input[name="crmb_progress_nonce"]')) {
+            return;
+        }
         event.preventDefault();
-        say('ابتدا پردازش تصویر را کامل کنید؛ سپس گزارش را ثبت کنید.', true);
+        if (window.tinymce && typeof window.tinymce.triggerSave === 'function') {
+            window.tinymce.triggerSave();
+        }
+        var nonce = fieldValue('input[name="crmb_progress_nonce"]');
+        var taskId = fieldValue('input[name="id"]');
+        var noteType = fieldValue('select[name="note_type"]');
+        var noteBody = fieldValue('textarea[name="note_body"]');
+        uploading = true;
+        input.disabled = true;
+        if (fileButton) fileButton.disabled = true;
+        (async function () {
+            if (!savedEventId) {
+                say('در حال ثبت متن گزارش پیشرفت…', false);
+                var result = await postAjax('crmb_task_photo_save', {
+                    nonce: nonce, id: taskId, note_type: noteType,
+                    note_body: noteBody, has_images: selected.length ? '1' : '0'
+                });
+                savedEventId = Number(result.event_id) || 0;
+                if (!savedEventId) throw new Error('شناسه گزارش ذخیره‌شده دریافت نشد.');
+            }
+            var total = selected.length, uploaded = 0, failures = [];
+            // Exactly one image per HTTP request: no max_file_uploads limit
+            // from bundling dozens of files into a single native form.
+            for (var i = 0, queue = selected.slice(); i < queue.length; i++) {
+                var entry = queue[i];
+                try {
+                    say('در حال ارسال عکس ' + (i + 1) + ' از ' + total + '…', false);
+                    await postAjax('crmb_task_photo_upload', {
+                        nonce: nonce, id: taskId, event_id: String(savedEventId)
+                    }, entry.file);
+                    uploaded++;
+                    var index = selected.indexOf(entry);
+                    if (index !== -1) selected.splice(index, 1);
+                    URL.revokeObjectURL(entry.url);
+                } catch (error) {
+                    failures.push(error.message || 'ارسال تصویر انجام نشد.');
+                }
+            }
+            syncInput();
+            render();
+            if (failures.length) {
+                say('متن گزارش ذخیره شد و ' + uploaded + ' عکس ارسال شد، اما ' +
+                    failures.length + ' عکس باقی مانده است. ' +
+                    failures[0] + ' برای تلاش مجدد «ثبت گزارش» را بزنید.', true);
+                return;
+            }
+            say('گزارش و همه ' + uploaded + ' عکس با موفقیت ثبت شدند.', false);
+            if (window.location && typeof window.location.reload === 'function') {
+                window.location.reload();
+            }
+        })().catch(function (error) {
+            say(error.message || 'ذخیره گزارش انجام نشد؛ دوباره تلاش کنید.', true);
+        }).finally(function () {
+            uploading = false;
+            input.disabled = false;
+            if (fileButton) fileButton.disabled = processing > 0;
+            render();
+        });
     }, true);
     window.addEventListener('pagehide', function () {
         selected.forEach(function (entry) { URL.revokeObjectURL(entry.url); });

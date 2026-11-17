@@ -48,6 +48,7 @@ require __DIR__.'/../inc/work.php';
 require __DIR__.'/../inc/progress.php';
 require __DIR__.'/../inc/daily-reports.php';
 require __DIR__.'/../inc/task-rich-notes.php';
+require __DIR__.'/../inc/task-photo-uploads.php';
 require __DIR__.'/../inc/task-guidance.php';
 require __DIR__.'/../inc/task-revision-reads.php';
 function check($a,$b) { global $checks; if($a!==$b) throw new RuntimeException('Check '.($checks+1).' expected '.var_export($a,true).' got '.var_export($b,true)); $checks++; }
