@@ -122,6 +122,15 @@ function crmb_progress_handle_post() {
                 'type' => $type,
             ), HOUR_IN_SECONDS );
         }
+    } elseif ( 'ack_guidance' === $task ) {
+        $event_id = crmb_work_id( $data, 'event_id' );
+        $notice = function_exists( 'crmb_task_guidance_ack' )
+            ? crmb_task_guidance_ack( $id, $event_id ) : 'error';
+        $args = array( 'crm_section' => 'tasks', 'task_id' => $id );
+        // Redirect back to the confirmed entry even on later history pages.
+        if ( 'read' === $notice || 'changed' === $notice ) {
+            $args['history_page'] = crmb_task_guidance_history_page( $id, $event_id );
+        }
     } elseif ( 'save_report' === $task ) {
         $notice = crmb_report_save( $data, $_FILES );
         $day = crmb_leave_parse_day( crmb_work_text( $data, 'report_day' ) );
@@ -146,7 +155,7 @@ function crmb_progress_form_fields( $task, $id = 0 ) {
 }
 function crmb_progress_notice() {
     $key = isset( $_GET['progress_notice'] ) && is_string( $_GET['progress_notice'] ) ? $_GET['progress_notice'] : '';
-    $messages = array( 'saved' => 'اطلاعات ذخیره شد.', 'invalid' => 'اطلاعات معتبر نیست؛ تاریخ و متن را بررسی کنید.', 'denied' => 'اجازه این عملیات را ندارید.', 'error' => 'ثبت انجام نشد؛ دوباره تلاش کنید.', 'locked' => 'گزارش ارسال‌شده قابل تغییر نیست.', 'image_error' => 'حداکثر ۳ عکس JPG، PNG یا WebP، هرکدام تا ۱ مگابایت و ۱۶ میلیون پیکسل مجاز است. متن شما حفظ شده؛ عکس‌ها را دوباره انتخاب کنید.', 'changed' => 'این مورد قبلاً تغییر کرده است.' );
+    $messages = array( 'saved' => 'اطلاعات ذخیره شد.', 'invalid' => 'اطلاعات معتبر نیست؛ تاریخ و متن را بررسی کنید.', 'denied' => 'اجازه این عملیات را ندارید.', 'error' => 'ثبت انجام نشد؛ دوباره تلاش کنید.', 'locked' => 'گزارش ارسال‌شده قابل تغییر نیست.', 'image_error' => 'حداکثر ۳ عکس JPG، PNG یا WebP، هرکدام تا ۱ مگابایت و ۱۶ میلیون پیکسل مجاز است. متن شما حفظ شده؛ عکس‌ها را دوباره انتخاب کنید.', 'changed' => 'این مورد قبلاً تغییر کرده است.', 'read' => 'راهنمایی مدیر به‌عنوان خوانده‌شده ثبت شد.' );
     if ( isset( $messages[$key] ) ) { echo '<p class="crm-access-notice" role="status">' . esc_html( $messages[$key] ) . '</p>'; }
 }
 function crmb_report_image_list( $report ) {
