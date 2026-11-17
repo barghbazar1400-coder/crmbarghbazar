@@ -14,6 +14,8 @@ on:
       - 'template-parts/manager-control.php'
       - 'tests/progress.php'
       - 'tests/task-review.php'
+      - 'assets/js/crmb-review-watch.js'
+      - 'tests/review-watch.js'
       - 'tests/work.php'
       - 'tests/tasks-view.php'
       - 'tests/leadership.php'
@@ -35,9 +37,17 @@ jobs:
           php-version: '8.4'
           extensions: pdo_sqlite,mbstring
           coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: PHP syntax
         run: |
           for f in inc/progress.php inc/work.php inc/daily-reports.php inc/notifications.php inc/leadership.php template-parts/tasks.php template-parts/task-progress.php template-parts/leadership.php template-parts/manager-control.php tests/progress.php tests/task-review.php tests/work.php tests/tasks-view.php tests/leadership.php tests/leadership-view.php tests/manager-control-view.php; do php -l "$f" || exit 1; done
+      - name: Live manager queue syntax and poll regression
+        run: |
+          node --check assets/js/crmb-review-watch.js
+          node --check tests/review-watch.js
+          node tests/review-watch.js
       - name: Existing task and timer regression
         run: php tests/progress.php
       - name: Employee submission and manager approval regression

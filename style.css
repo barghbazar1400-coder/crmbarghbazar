@@ -4463,3 +4463,9 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   .crmb-notice-popover { position:fixed; top:50px; right:12px; left:12px; width:auto; max-height:calc(100dvh - 66px); }
   .crmb-notice-popover-header { padding:12px 15px; }
 }
+
+
+/* Automatic manager review queue refresh; editing drafts remain untouched. */
+.crmb-review-watch { margin:0 0 14px; padding:9px 13px; background:#f7f3fe; border:1px solid #e3d7f4; border-radius:10px; color:#66547d; font-size:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+.crmb-review-watch a { background:#6b3dc1; border-radius:8px; padding:7px 11px; color:white; font-weight:750; text-decoration:none; }
+.crmb-review-watch a[hidden] { display:none; }

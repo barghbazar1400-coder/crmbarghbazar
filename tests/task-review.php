@@ -3,6 +3,11 @@
  * SQLite test: employee submission, manager approval/rejection, revisions,
  * permissions, immutable history and transaction rollback.
  */
+// Capture commit-success hooks without invoking real notification handlers.
+$review_actions = array();
+function do_action( $name, ...$args ) {
+    $GLOBALS['review_actions'][] = array( $name, $args );
+}
 define( 'CRMB_TEST_BOOTSTRAP_ONLY', true );
 require __DIR__ . '/progress.php';
 
@@ -38,6 +43,10 @@ $wpdb->fail_table = '';
 check( 'rejected', crmb_task_review_decide( $id, 'reject', '<script>bad</script>Fix and resend' ) );
 check( 'todo', crmb_progress_task( $id )->status );
 check( null, crmb_progress_task( $id )->completed_utc );
+// The manager's real team review list is empty after rejection.
+$empty_review_state = crmb_work_review_state();
+check( 0, $empty_review_state['count'] );
+check( 0, crmb_work_list( 'tasks', 1, 20, true, false, false, 0, 'review' )['total'] );
 $event = $wpdb->get_row( "SELECT * FROM wp_crmb_task_events WHERE task_id={$id} AND event_type='review_rejected' LIMIT 1" );
 check( true, (bool) $event );
 check( 8, (int) $event->actor_id );
@@ -46,6 +55,28 @@ check( 'changed', crmb_task_review_decide( $id, 'reject', 'Already returned' ) )
 $admin = false; $uid = 7;
 check( 'submitted', crmb_progress_transition( $id, 'done' ) );
 check( 'review', crmb_progress_task( $id )->status );
+// Regression for the reported bug: a *second* employee submission must
+// reappear in the manager's SQL list, filtered list and approval count.
+$uid = 8; $admin = true;
+$resubmitted_state = crmb_work_review_state();
+check( 1, $resubmitted_state['count'] );
+check( true, $resubmitted_state['version'] > $empty_review_state['version'] );
+$manager_review_list = crmb_work_list( 'tasks', 1, 20, true, false, false, 0, 'review' );
+check( 1, $manager_review_list['total'] );
+check( $id, (int) $manager_review_list['rows'][0]->id );
+check( 1, crmb_work_task_counts( true )['review'] );
+check( 1, crmb_work_review_state( 7 )['count'] );
+check( 0, crmb_work_review_state( 8 )['count'] );
+// The manager who rejected the task must get a new resubmission signal,
+// even if a different user originally created the task.
+$review_resubmit_hooks = array_values( array_filter( $review_actions, static function ( $event ) {
+    return 'crmb_task_review_resubmitted' === $event[0];
+} ) );
+check( 1, count( $review_resubmit_hooks ) );
+check( $id, (int) $review_resubmit_hooks[0][1][0] );
+check( 8, (int) $review_resubmit_hooks[0][1][1] );
+$uid = 7; $admin = false;
+check( null, crmb_work_review_state() ); // Team review state isn't public.
 $uid = 9; $admin = false;
 check( 'denied', crmb_task_review_decide( $id, 'approve' ) );
 $admin = true;

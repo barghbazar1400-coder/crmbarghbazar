@@ -130,6 +130,14 @@ add_action( 'crmb_task_review_requested', function ( $task_id, $manager, $actor,
         crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ),
         'task_review_request:' . $event_id, $actor );
 }, 10, 4 );
+// The last rejecting manager may be different from the original task creator.
+add_action( 'crmb_task_review_resubmitted', function ( $task_id, $reviewer, $actor, $event_id ) {
+    if ( ! $reviewer || (int) $reviewer === (int) $actor ) { return; }
+    crmb_notice_add( $reviewer, 'task', 'اصلاحات کار برای تأیید مجدد ارسال شد',
+        'کارمند پس از اصلاح، وظیفه را دوباره برای بازبینی شما فرستاده است.',
+        crmb_notice_url( 'tasks', array( 'task_id' => $task_id ) ),
+        'task_review_resubmitted:' . $event_id, $actor );
+}, 10, 4 );
 add_action( 'crmb_task_review_decided', function ( $task_id, $owner, $actor, $event_id, $approved ) {
     if ( (int) $owner === (int) $actor ) { return; }
     crmb_notice_add( $owner, 'task', $approved ? 'کار شما تأیید شد' : 'کار برای اصلاح برگشت',

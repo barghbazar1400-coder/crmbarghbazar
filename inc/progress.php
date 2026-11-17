@@ -126,7 +126,19 @@ function crmb_progress_transition( $id, $status ) {
     if ( $is_review_submission && ! in_array( $task->status, array( 'todo', 'doing', 'paused' ), true ) ) {
         return crmb_progress_fail( 'denied' );
     }
-    if ( $is_review_submission ) { $status = 'review'; }
+    $last_reviewer = 0;
+    if ( $is_review_submission ) {
+        // On a second or later submission, notify the manager who actually
+        // requested the most recent revision, even if they did not create
+        // the task. The first request still goes to the task creator.
+        $last_reviewer = (int) $wpdb->get_var( $wpdb->prepare(
+            "SELECT actor_id FROM {$t['events']}
+              WHERE task_id=%d AND event_type='review_rejected'
+              ORDER BY id DESC LIMIT 1", $id
+        ) );
+        if ( $wpdb->last_error ) { return crmb_progress_fail(); }
+        $status = 'review';
+    }
     if ( $task->status === $status && ( 'doing' !== $status || $task->timer_started_utc ) ) { return crmb_progress_fail( 'changed' ); }
     $now = gmdate( 'Y-m-d H:i:s' );
     $values = array( 'status' => $status, 'updated_utc' => $now );
@@ -151,6 +163,10 @@ function crmb_progress_transition( $id, $status ) {
     if ( 'saved' === $result && function_exists( 'do_action' ) ) {
         if ( 'review' === $status ) {
             do_action( 'crmb_task_review_requested', $id, (int) $task->created_by, $uid, $event_id );
+            if ( $last_reviewer && $last_reviewer !== (int) $task->created_by
+                && $last_reviewer !== $uid ) {
+                do_action( 'crmb_task_review_resubmitted', $id, $last_reviewer, $uid, $event_id );
+            }
         } elseif ( 'done' === $status ) {
             do_action( 'crmb_task_completed', $id, (int) $task->created_by, $uid, $event_id );
         }

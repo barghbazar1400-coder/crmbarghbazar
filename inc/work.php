@@ -210,6 +210,57 @@ function crmb_work_list( $kind, $page = 1, $limit = 20, $team = false, $sent = f
     return array( 'rows' => $rows ?: array(), 'total' => (int) $total, 'ready' => true );
 }
 /**
+ * Manager-only review queue signature. Both approval-list and live watcher use
+ * the same task ownership/deletion constraints. New review/rejection decisions
+ * always create a fresh event ID, including second and later submissions.
+ */
+function crmb_work_review_state( $assigned_filter = 0 ) {
+    if ( ! is_user_logged_in() || ! crmb_work_manage_team()
+        || '1' !== get_option( 'crmb_work_schema_v1' )
+        || ! function_exists( 'crmb_progress_ready' ) || ! crmb_progress_ready() ) {
+        return null;
+    }
+    $assigned_filter = (int) $assigned_filter;
+    global $wpdb;
+    $tables = crmb_work_tables();
+    $events = crmb_progress_tables()['events'];
+    $where = '1=1';
+    if ( function_exists( 'crmb_task_repeat_ready' ) && crmb_task_repeat_ready() ) {
+        $where .= ' AND t.deleted_utc IS NULL';
+    }
+    if ( $assigned_filter > 0 ) {
+        $where .= $wpdb->prepare( ' AND t.assigned_to=%d', $assigned_filter );
+    }
+    $count = $wpdb->get_var(
+        "SELECT COUNT(*) FROM {$tables['tasks']} t WHERE t.status='review' AND {$where}"
+    );
+    if ( $wpdb->last_error ) { return null; }
+    $version = $wpdb->get_var(
+        "SELECT MAX(e.id) FROM {$events} e
+           JOIN {$tables['tasks']} t ON t.id=e.task_id
+          WHERE e.event_type IN ('review','review_approved','review_rejected')
+            AND {$where}"
+    );
+    return $wpdb->last_error ? null
+        : array( 'count' => (int) $count, 'version' => (int) $version );
+}
+function crmb_work_review_poll() {
+    if ( ! is_user_logged_in() || ! crmb_work_manage_team() ) {
+        wp_send_json_error( array( 'message' => 'denied' ), 403 );
+    }
+    check_ajax_referer( 'crmb_work_review_poll', 'nonce' );
+    nocache_headers();
+    $assigned = crmb_work_id( wp_unslash( $_POST ), 'assigned_to' );
+    if ( $assigned && ! get_userdata( $assigned ) ) {
+        wp_send_json_error( array( 'message' => 'invalid' ), 400 );
+    }
+    $state = crmb_work_review_state( $assigned );
+    if ( null === $state ) { wp_send_json_error( array( 'message' => 'unavailable' ), 503 ); }
+    wp_send_json_success( $state );
+}
+add_action( 'wp_ajax_crmb_work_review_poll', 'crmb_work_review_poll' );
+
+/**
  * Scope-safe totals for all four task status filters and optional manager assignee.
  * Cancelled tasks remain discoverable through "all" but not open/done.
  */

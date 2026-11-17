@@ -111,6 +111,21 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
             </a>
         <?php endforeach; ?>
     </nav>
+    <?php if ( $team && 'review' === $view && function_exists( 'crmb_work_review_state' ) ) :
+        $review_watch_state = crmb_work_review_state( $assigned_filter );
+        if ( null !== $review_watch_state ) : ?>
+        <div id="crmb-review-watch"
+            data-version="<?php echo esc_attr( $review_watch_state['version'] ); ?>"
+            data-count="<?php echo esc_attr( $review_watch_state['count'] ); ?>"
+            data-assignee="<?php echo esc_attr( $assigned_filter ); ?>"
+            data-endpoint="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>"
+            data-nonce="<?php echo esc_attr( wp_create_nonce( 'crmb_work_review_poll' ) ); ?>"
+            class="crmb-review-watch" role="status">
+            <span>فهرست تأیید مدیر هنگام دریافت درخواست جدید به‌روزرسانی می‌شود.</span>
+            <a id="crmb-review-watch-refresh" href="<?php echo esc_url( $base ); ?>" hidden>درخواست جدید؛ تازه‌سازی فهرست</a>
+        </div>
+        <?php endif; ?>
+    <?php endif; ?>
     <section class="crmb-tasks-section" aria-labelledby="crmb-tasks-list-title">
         <div class="crmb-tasks-section-heading">
             <div><h2 id="crmb-tasks-list-title"><?php echo esc_html( $views[ $view ]['label'] ); ?><?php echo $team ? ( $selected_member ? ' — ' . esc_html( $selected_member->display_name ) : ' تیم' ) : ''; ?></h2>
@@ -207,3 +222,10 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
         <?php endif; ?>
     </section>
 </section>
+
+<?php if ( $team && 'review' === $view && isset( $review_watch_state ) && null !== $review_watch_state ) :
+    $review_client = get_template_directory() . '/assets/js/crmb-review-watch.js';
+    if ( is_readable( $review_client ) ) : ?>
+        <script id="crmb-review-watch-client"><?php readfile( $review_client ); ?></script>
+    <?php endif; ?>
+<?php endif; ?>
