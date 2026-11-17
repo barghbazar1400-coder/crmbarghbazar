@@ -87,10 +87,27 @@ function crmb_leadership_data() {
         $scope = crmb_sales_scope();
         $empty['sales_customers'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$sales['customers']} WHERE 1=1{$scope}" );
         $empty['sales_quotes'] = crmb_leadership_count( "SELECT COUNT(*) FROM {$sales['quotes']} WHERE 1=1{$scope}" );
-        $empty['sales_followups'] = crmb_leadership_count( $wpdb->prepare(
-            "SELECT COUNT(*) FROM {$sales['opportunities']} WHERE followup_day<=%s AND stage IN ('lead','contacted','quoted'){$scope}",
-            crmb_att_today()
-        ) );
+        if ( function_exists( 'crmb_sales_ops_ready' ) && crmb_sales_ops_ready()
+            && '1' === get_option( 'crmb_sales_calls_v2' ) ) {
+            // Align the headline KPI with the customer-first sales desk:
+            // only the latest call for each customer can be outstanding.
+            $calls = crmb_sales_ops_tables()['calls'];
+            $call_scope = crmb_sales_scope( 'x' );
+            $empty['sales_followups'] = crmb_leadership_count( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$calls} x WHERE x.outcome='followup'
+                    AND x.next_followup_day<=%s
+                    AND x.id=(SELECT MAX(y.id) FROM {$calls} y WHERE y.customer_id=x.customer_id)
+                    {$call_scope}",
+                crmb_att_today()
+            ) );
+        } else {
+            // Legacy installations that have not migrated calls yet.
+            $empty['sales_followups'] = crmb_leadership_count( $wpdb->prepare(
+                "SELECT COUNT(*) FROM {$sales['opportunities']} WHERE followup_day<=%s
+                    AND stage IN ('lead','contacted','quoted'){$scope}",
+                crmb_att_today()
+            ) );
+        }
     }
     return $empty;
 }
