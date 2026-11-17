@@ -120,6 +120,7 @@ $logged=true; $ready=false; check('error',crmb_progress_transition($other,'doing
 
 $ready=true; $uid=9; $admin=false;
 $wpdb->fail_table='wp_crmb_daily_reports'; check('error',crmb_report_save($report)); check(0,(int)$wpdb->get_var('SELECT COUNT(*) FROM wp_crmb_daily_reports WHERE user_id=9')); $wpdb->fail_table='';
+function number_format_i18n($number) { return number_format((int)$number); }
 function esc_html($s) { return htmlspecialchars((string)$s); }
 function esc_attr($s) { return htmlspecialchars((string)$s); }
 function esc_url($s) { return htmlspecialchars((string)$s); }
