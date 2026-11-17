@@ -3,6 +3,7 @@
 defined( 'ABSPATH' ) || exit;
 if ( ! is_user_logged_in() ) { return; }
 if ( isset( $_GET['task_id'] ) ) { get_template_part( 'template-parts/task-progress' ); return; }
+if ( isset( $_GET['subtask_id'] ) ) { get_template_part( 'template-parts/task-plan-child' ); return; }
 $work_admin = crmb_work_manage_team();
 $team = $work_admin && isset( $_GET['scope'] ) && 'team' === $_GET['scope'];
 $page = isset( $_GET['work_page'] ) && is_scalar( $_GET['work_page'] ) ? max( 1, absint( $_GET['work_page'] ) ) : 1;
@@ -33,6 +34,31 @@ if ( $work_admin && isset( $_GET['edit_task'] ) ) {
 <section class="crm-access-screen crmb-work crmb-tasks-page" aria-labelledby="crmb-tasks-title">
     <header class="crm-access-header"><h1 id="crmb-tasks-title"><?php echo $team ? 'کارهای تیم' : 'کارهای من'; ?></h1><p>کارهای باز را پیگیری کنید؛ کارهای تکمیل‌شده در بایگانی باقی می‌مانند.</p></header>
     <?php crmb_work_notice(); ?>
+    <?php if ( ! $team && function_exists( 'crmb_task_plan_my_subtasks' ) && crmb_task_plan_ready() ) :
+        $my_subtasks = crmb_task_plan_my_subtasks(); ?>
+        <section class="crm-access-card crmb-plan-personal" aria-labelledby="crmb-my-subtasks-title">
+            <h2 id="crmb-my-subtasks-title">زیرتسک‌های واگذارشده به من</h2>
+            <p class="crm-access-muted">مراحل مستقلی که ممکن است متعلق به تسک اصلی یک همکار باشند؛ جزئیات کار اصلی فقط برای افراد مجاز قابل مشاهده است.</p>
+            <?php if ( null === $my_subtasks ) : ?>
+                <p role="status">دریافت زیرتسک‌ها ممکن نشد.</p>
+            <?php elseif ( ! $my_subtasks ) : ?>
+                <p class="crm-access-muted">زیرتسک بازی ندارید.</p>
+            <?php else : ?>
+                <ul class="crmb-plan-personal-list">
+                    <?php foreach ( $my_subtasks as $subtask ) : ?>
+                    <li>
+                        <a href="<?php echo esc_url( add_query_arg(
+                            array( 'crm_section'=>'tasks', 'subtask_id'=>$subtask->id ), home_url( '/main/' )
+                        ) ); ?>"><?php echo esc_html( $subtask->title ); ?></a>
+                        <small><?php echo esc_html( $subtask->parent_title ); ?>
+                            <?php if ( $subtask->due_day ) : ?> · <?php echo esc_html( crmb_att_jdate( $subtask->due_day ) ); ?><?php endif; ?>
+                        </small>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </section>
+    <?php endif; ?>
     <?php if ( $work_admin ) : ?>
         <nav class="crm-access-tabs" aria-label="نمای کارهای شخصی و تیم"><a class="<?php echo $team ? '' : 'is-active'; ?>" href="<?php echo esc_url( add_query_arg( array( 'crm_section' => 'tasks', 'scope' => 'mine', 'view' => $view, 'work_page' => 1 ), home_url( '/main/' ) ) ); ?>">کارهای من</a><a class="<?php echo $team ? 'is-active' : ''; ?>" href="<?php echo esc_url( add_query_arg( array( 'crm_section' => 'tasks', 'scope' => 'team', 'view' => $view ), home_url( '/main/' ) ) ); ?>">کارهای تیم</a></nav>
         <?php if ( $team ) : ?>

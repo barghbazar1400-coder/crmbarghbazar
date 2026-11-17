@@ -4551,3 +4551,37 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
  .crmb-control-active-filter a {width:100%;}
  .crmb-sales-queue-head a {width:100%;text-align:center;}
 }
+
+
+/* Task planning: independent subtasks, checklist items and reusable templates. */
+.crmb-plan-panel{display:grid;gap:15px}
+.crmb-plan-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.crmb-plan-heading h2{margin:0;font-size:18px;color:#3c2476;display:flex;gap:9px;align-items:center}
+.crmb-plan-heading p{margin:7px 0 0}
+.crmb-plan-percent{font-size:22px;color:#6142b7}
+.crmb-plan-progress{height:11px;overflow:hidden;border-radius:14px;background:#eee9f8}
+.crmb-plan-progress span{height:100%;display:block;background:#47a883;border-radius:inherit;transition:width .2s}
+.crmb-plan-list{display:grid;gap:10px}
+.crmb-plan-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;border:1px solid #e6dcf4;padding:13px;border-radius:12px;background:#fff}
+.crmb-plan-row.is-done{background:#f3fbf6;border-color:#c4e5d1}
+.crmb-plan-row-body{display:grid;gap:6px;flex:1;min-width:220px}
+.crmb-plan-row-body strong{font-size:13px;color:#3c286a}
+.crmb-plan-row.is-done .crmb-plan-row-body strong{color:#3d7963}
+.crmb-plan-row-body small{color:#827797;line-height:1.75}
+.crmb-plan-step-kind{font-size:10px;font-weight:800;color:#6b4eaa}
+.crmb-plan-row-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.crmb-plan-toggle,.crmb-plan-remove{border-radius:9px;border:1px solid #d5c4f0;padding:8px 12px;background:#f8f5ff;color:#5736a0;font-weight:700;cursor:pointer}
+.crmb-plan-remove{border-color:#f4d1d1;background:#fff7f7;color:#a33c3c}
+.crmb-plan-editor{padding:11px 14px;border:1px solid #e2d7f1;border-radius:12px}
+.crmb-plan-editor summary{cursor:pointer;font-weight:800;color:#5834aa}
+.crmb-plan-editor form{margin-top:15px}
+.crmb-plan-apply{border-top:1px solid #e8e3ef;padding-top:14px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.crmb-plan-apply label{width:100%;font-weight:700}
+.crmb-plan-apply select{min-width:200px;flex:1}
+.crmb-plan-personal{margin:15px 0}
+.crmb-plan-personal h2{font-size:17px;color:#432781;margin:0 0 7px}
+.crmb-plan-personal-list{list-style:none;padding:0;margin:12px 0 0;display:grid;gap:9px}
+.crmb-plan-personal-list li{border:1px solid #e5dcf4;border-radius:10px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 13px}
+.crmb-plan-personal-list a{font-weight:800;color:#6240ac;text-decoration:none}
+.crmb-plan-personal-list small{color:#887b98}
+@media(max-width:700px){.crmb-plan-heading{align-items:flex-start}.crmb-plan-row-body{min-width:0}.crmb-plan-row-actions{width:100%}.crmb-plan-row-actions form{flex:1}.crmb-plan-row-actions button{width:100%}}

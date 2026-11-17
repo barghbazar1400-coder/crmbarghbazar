@@ -139,6 +139,12 @@ function crmb_progress_handle_post() {
         if ( in_array( $notice, array( 'read_revision', 'changed' ), true ) ) {
             $args['history_page'] = crmb_task_guidance_history_page( $id, $event_id );
         }
+    } elseif ( 'plan_action' === $task ) {
+        $notice = function_exists( 'crmb_task_plan_mutate' ) ? crmb_task_plan_mutate( $data ) : 'error';
+        $args = array( 'crm_section' => 'tasks', 'task_id' => $id );
+        if ( isset( $data['return_step'] ) && '1' === (string) $data['return_step'] ) {
+            $args = array( 'crm_section' => 'tasks', 'subtask_id' => crmb_work_id( $data, 'step_id' ) );
+        }
     } elseif ( 'review_task' === $task ) {
         $decision = crmb_work_text( $data, 'decision' );
         $reason = crmb_work_text( $data, 'review_reason', true );
@@ -169,7 +175,7 @@ function crmb_progress_form_fields( $task, $id = 0 ) {
 }
 function crmb_progress_notice() {
     $key = isset( $_GET['progress_notice'] ) && is_string( $_GET['progress_notice'] ) ? $_GET['progress_notice'] : '';
-    $messages = array( 'saved' => 'اطلاعات ذخیره شد.', 'invalid' => 'اطلاعات معتبر نیست؛ تاریخ و متن را بررسی کنید.', 'denied' => 'اجازه این عملیات را ندارید.', 'error' => 'ثبت انجام نشد؛ دوباره تلاش کنید.', 'locked' => 'گزارش ارسال‌شده قابل تغییر نیست.', 'image_error' => 'حداکثر ۳ عکس JPG، PNG یا WebP، هرکدام تا ۱ مگابایت و ۱۶ میلیون پیکسل مجاز است. متن شما حفظ شده؛ عکس‌ها را دوباره انتخاب کنید.', 'changed' => 'این مورد قبلاً تغییر کرده است.', 'read' => 'راهنمایی مدیر به‌عنوان خوانده‌شده ثبت شد.', 'read_revision' => 'درخواست اصلاح مدیر به‌عنوان خوانده‌شده ثبت شد.', 'approved' => 'کار تأیید نهایی شد و به بایگانی رفت.', 'rejected' => 'کار برای اصلاح به مسئول برگشت و دلیل در تاریخچه ثبت شد.' );
+    $messages = array( 'saved' => 'اطلاعات ذخیره شد.', 'invalid' => 'اطلاعات معتبر نیست؛ تاریخ و متن را بررسی کنید.', 'denied' => 'اجازه این عملیات را ندارید.', 'error' => 'ثبت انجام نشد؛ دوباره تلاش کنید.', 'locked' => 'گزارش ارسال‌شده قابل تغییر نیست.', 'image_error' => 'حداکثر ۳ عکس JPG، PNG یا WebP، هرکدام تا ۱ مگابایت و ۱۶ میلیون پیکسل مجاز است. متن شما حفظ شده؛ عکس‌ها را دوباره انتخاب کنید.', 'changed' => 'این مورد قبلاً تغییر کرده است.', 'read' => 'راهنمایی مدیر به‌عنوان خوانده‌شده ثبت شد.', 'read_revision' => 'درخواست اصلاح مدیر به‌عنوان خوانده‌شده ثبت شد.', 'running' => 'تا پایان زمان‌سنج فعال نمی‌توانید مسئول را تغییر دهید.', 'approved' => 'کار تأیید نهایی شد و به بایگانی رفت.', 'rejected' => 'کار برای اصلاح به مسئول برگشت و دلیل در تاریخچه ثبت شد.' );
     if ( isset( $messages[$key] ) ) { echo '<p class="crm-access-notice" role="status">' . esc_html( $messages[$key] ) . '</p>'; }
 }
 function crmb_report_image_list( $report ) {

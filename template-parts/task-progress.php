@@ -129,6 +129,9 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
         <?php endif; ?>
         <?php if ( $owner || $admin ) : ?><p class="crm-access-muted">برای بازگشایی یا تغییر دیگر وضعیت‌ها از فهرست کارهای من استفاده کنید؛ شروع زمان‌سنج فقط توسط مسئول انجام می‌شود.</p><?php endif; ?>
     </section>
+    <?php if ( function_exists( 'crmb_task_plan_ready' ) && crmb_task_plan_ready() ) : ?>
+        <?php include get_template_directory() . '/template-parts/task-plan.php'; ?>
+    <?php endif; ?>
     <?php if ( $admin && $is_open ) : ?>
     <section class="crm-access-card crmb-task-manager-note">
         <div class="crmb-task-note-heading">

@@ -1,0 +1,41 @@
+name: CRM Task Planning / Subtasks and Templates
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'inc/task-planning.php'
+      - 'inc/daily-reports.php'
+      - 'inc/progress.php'
+      - 'functions.php'
+      - 'template-parts/tasks.php'
+      - 'template-parts/task-progress.php'
+      - 'template-parts/task-plan.php'
+      - 'template-parts/task-plan-child.php'
+      - 'tests/task-planning.php'
+      - 'style.css'
+      - '.github/workflows/task-planning-checks.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  task-planning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite,mbstring
+          coverage: none
+      - name: PHP syntax
+        run: |
+          for f in inc/task-planning.php inc/daily-reports.php inc/progress.php functions.php template-parts/tasks.php template-parts/task-progress.php template-parts/task-plan.php template-parts/task-plan-child.php tests/task-planning.php; do php -l "$f" || exit 1; done
+      - name: Subtasks, steps, templates, permissions and audit rollback
+        run: php tests/task-planning.php
+      - name: Existing progress and task review
+        run: |
+          php tests/progress.php
+          php tests/task-review.php
+          php tests/work.php
+          php tests/tasks-view.php
