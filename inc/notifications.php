@@ -203,6 +203,19 @@ function crmb_notice_read_guidance( $event_id, $user_id ) {
     return false !== $result;
 }
 
+/** Explicit acknowledgement of a correction request also resolves its bell notice. */
+function crmb_notice_read_revision( $event_id, $user_id ) {
+    if ( ! crmb_notice_ready() || ! $event_id || ! $user_id ) { return false; }
+    global $wpdb;
+    $t = crmb_notice_tables();
+    $result = $wpdb->query( $wpdb->prepare(
+        "UPDATE {$t['notices']} SET read_utc=%s
+          WHERE user_id=%d AND source_key=%s AND read_utc IS NULL",
+        gmdate( 'Y-m-d H:i:s' ), $user_id, 'task_review_decision:' . $event_id
+    ) );
+    return false !== $result;
+}
+
 function crmb_notice_announce( $title, $body, $scope, $target ) {
     if ( ! current_user_can( 'manage_options' ) || ! crmb_notice_ready() ) { return 'denied'; }
     $title = trim( sanitize_text_field( $title ) );

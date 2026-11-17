@@ -4477,3 +4477,50 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   padding:5px 9px;border:1px solid #e9d4a5;border-radius:9px;
   background:#fff3d8;color:#78501a;font-size:10px;font-weight:800;
 }
+
+
+/* Returned-for-revision alert: distinct from manager guidance, same read-ack flow. */
+.crmb-task-revision-alert {
+  background:#fff5f3;
+  border-color:#efb4aa;
+  border-inline-start-color:#d45e4e;
+  color:#78352c;
+}
+.crmb-task-revision-alert .crmb-task-guidance-alert-icon {
+  background:#ffe0db;
+  color:#b44837;
+}
+.crmb-task-revision-alert .crmb-task-guidance-alert-content strong {color:#8d352e;}
+.crmb-task-revision-alert .crmb-task-guidance-alert-content p {color:#84524c;}
+.crmb-task-revision-alert .crmb-task-revision-preview {
+  display:-webkit-box;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+  overflow:hidden;
+  white-space:pre-wrap;
+  margin-top:9px;
+  padding:8px 11px;
+  border:1px solid #f1d0ca;
+  border-radius:9px;
+  background:#fff;
+  line-height:1.9;
+}
+.crmb-task-revision-alert .crmb-task-guidance-alert-link {
+  border-color:#dfaba2;
+  color:#973b32;
+}
+.crmb-task-revision-alert .crmb-task-guidance-alert-link:hover { background:#ffe8e4; }
+.crmb-task-timeline-entry.is-revision-request .crmb-task-timeline-icon {
+  color:#a83c32;
+  background:#ffe6e1;
+}
+.crmb-task-timeline-entry.is-revision-unread {
+  border-color:#e9a79d;
+  box-shadow:0 2px 12px rgba(171,72,58,.09);
+}
+.crmb-task-revision-read-action .crmb-task-guidance-ack {
+  border-color:#ce8c82;
+  color:#973c31;
+  background:#ffebe7;
+}
+.crmb-task-revision-read-action .crmb-task-guidance-ack:hover {background:#ffdbd3;}

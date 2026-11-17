@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'inc/task-guidance.php'
+      - 'inc/task-revision-reads.php'
+      - 'tests/task-revision-reads.php'
       - 'inc/daily-reports.php'
       - 'inc/notifications.php'
       - 'template-parts/task-progress.php'
@@ -31,6 +33,8 @@ jobs:
         run: |
           php -l functions.php
           php -l inc/task-guidance.php
+          php -l inc/task-revision-reads.php
+          php -l tests/task-revision-reads.php
           php -l inc/daily-reports.php
           php -l inc/notifications.php
           php -l template-parts/task-progress.php
@@ -40,3 +44,5 @@ jobs:
         run: php tests/progress.php
       - name: Per-note acknowledgement, access and unread counter
         run: php tests/task-guidance.php
+      - name: Per-correction read acknowledgement and history checks
+        run: php tests/task-revision-reads.php

@@ -43,7 +43,36 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
             $detail
         ) . '#crmb-task-guidance-' . (int) $guidance_state['latest_id']
         : '';
+    $revision_ready = function_exists( 'crmb_task_revision_ready' ) && crmb_task_revision_ready();
+    $revision_state = array( 'count' => 0, 'latest_id' => 0, 'latest_reason' => '', 'error' => true );
+    $revision_reads = array();
+    if ( $revision_ready ) {
+        $revision_state = crmb_task_revision_unread( $id, (int) $task->assigned_to );
+        $revision_reads = crmb_task_revision_reads( $events, (int) $task->assigned_to );
+    }
+    $revision_jump = $revision_state['latest_id']
+        ? add_query_arg(
+            'history_page',
+            crmb_task_guidance_history_page( $id, $revision_state['latest_id'] ),
+            $detail
+        ) . '#crmb-task-revision-' . (int) $revision_state['latest_id']
+        : '';
     ?>
+    <?php if ( $owner && $revision_ready && ! $revision_state['error'] && $revision_state['count'] > 0 ) : ?>
+    <section class="crmb-task-guidance-alert crmb-task-revision-alert" role="status" aria-label="درخواست‌های اصلاح خوانده‌نشده مدیر">
+        <span class="crmb-task-guidance-alert-icon"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i></span>
+        <div class="crmb-task-guidance-alert-content">
+            <strong><?php echo esc_html( number_format_i18n( $revision_state['count'] ) ); ?> درخواست اصلاح خوانده‌نشده از مدیر دارید</strong>
+            <p>مدیر این کار را برای اصلاح برگردانده است. دلیل درخواست را مطالعه کنید و کنار آن «خواندم» را بزنید.</p>
+            <?php if ( $revision_state['latest_reason'] ) : ?>
+                <p class="crmb-task-revision-preview"><?php echo esc_html( $revision_state['latest_reason'] ); ?></p>
+            <?php endif; ?>
+        </div>
+        <a class="crmb-task-guidance-alert-link" href="<?php echo esc_url( $revision_jump ); ?>">مشاهده درخواست اصلاح <i class="fa-solid fa-arrow-left" aria-hidden="true"></i></a>
+    </section>
+    <?php elseif ( $owner && ( ! $revision_ready || $revision_state['error'] ) ) : ?>
+        <p class="crm-access-notice" role="status">وضعیت مطالعه درخواست‌های اصلاح در دسترس نیست؛ دلایل اصلاح همچنان در تاریخچه ثبت هستند.</p>
+    <?php endif; ?>
     <?php if ( $owner && $guidance_ready && $guidance_state['count'] > 0 ) : ?>
     <section class="crmb-task-guidance-alert" role="status" aria-label="راهنمایی‌های خوانده‌نشده مدیر">
         <span class="crmb-task-guidance-alert-icon"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i></span>
@@ -171,12 +200,13 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
         <?php foreach ( $events as $event ) :
             $rich = in_array( $event->event_type, array( 'rich_note', 'rich_blocker', 'manager_note' ), true );
             $from_manager = 'manager_note' === $event->event_type;
+            $from_revision = 'review_rejected' === $event->event_type;
             ?>
-            <article class="crmb-work-item crmb-task-timeline-entry <?php echo $from_manager ? 'is-manager-note' : ''; ?><?php echo $from_manager && $guidance_ready && ! isset( $guidance_reads[(int)$event->id] ) ? ' is-guidance-unread' : ''; ?>"
-                <?php if ( $from_manager ) : ?>id="crmb-task-guidance-<?php echo esc_attr( $event->id ); ?>"<?php endif; ?>>
+            <article class="crmb-work-item crmb-task-timeline-entry <?php echo $from_manager ? 'is-manager-note' : ''; ?><?php echo $from_revision ? ' is-revision-request' : ''; ?><?php echo $from_manager && $guidance_ready && ! isset( $guidance_reads[(int)$event->id] ) ? ' is-guidance-unread' : ''; ?><?php echo $from_revision && $revision_ready && ! isset( $revision_reads[(int)$event->id] ) ? ' is-revision-unread' : ''; ?>"
+                <?php if ( $from_manager ) : ?>id="crmb-task-guidance-<?php echo esc_attr( $event->id ); ?>"<?php elseif ( $from_revision ) : ?>id="crmb-task-revision-<?php echo esc_attr( $event->id ); ?>"<?php endif; ?>>
                 <div class="crmb-task-timeline-head">
                     <span class="crmb-task-timeline-icon">
-                        <i class="fa-solid <?php echo $from_manager ? 'fa-lightbulb' : ( $rich ? 'fa-file-lines' : 'fa-clock' ); ?>" aria-hidden="true"></i>
+                        <i class="fa-solid <?php echo $from_manager ? 'fa-lightbulb' : ( $from_revision ? 'fa-rotate-left' : ( $rich ? 'fa-file-lines' : 'fa-clock' ) ); ?>" aria-hidden="true"></i>
                     </span>
                     <div class="crmb-task-timeline-info">
                         <h3><?php echo esc_html( crmb_progress_event_labels()[ $event->event_type ] ?? 'تغییر وضعیت' ); ?></h3>
@@ -198,6 +228,25 @@ $base = add_query_arg( 'crm_section', 'tasks', home_url( '/main/' ) );
                             </form>
                         <?php elseif ( $admin ) : ?>
                             <span class="crmb-task-guidance-read-label is-pending">هنوز توسط مسئول خوانده نشده</span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ( $from_revision && $revision_ready ) : ?>
+                    <div class="crmb-task-guidance-read-action crmb-task-revision-read-action">
+                        <?php if ( isset( $revision_reads[(int) $event->id] ) ) : ?>
+                            <span class="crmb-task-guidance-read-label is-read" title="تأیید مطالعه درخواست اصلاح توسط مسئول فعلی کار">
+                                <i class="fa-solid fa-check-circle" aria-hidden="true"></i> خوانده شد
+                            </span>
+                        <?php elseif ( $owner ) : ?>
+                            <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+                                <?php crmb_progress_form_fields( 'ack_revision', $id ); ?>
+                                <input type="hidden" name="event_id" value="<?php echo esc_attr( $event->id ); ?>">
+                                <button type="submit" class="crmb-task-guidance-ack">
+                                    <i class="fa-solid fa-check" aria-hidden="true"></i> خواندم
+                                </button>
+                            </form>
+                        <?php elseif ( $admin ) : ?>
+                            <span class="crmb-task-guidance-read-label is-pending">درخواست اصلاح هنوز توسط مسئول خوانده نشده</span>
                         <?php endif; ?>
                     </div>
                     <?php endif; ?>
