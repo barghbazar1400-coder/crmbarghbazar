@@ -4169,3 +4169,100 @@ div.crmb-priorities-empty { display: flex; flex-direction: column; align-items: 
   .crmb-task-delete-form {gap:9px;}
   .crmb-task-delete-future {width:100%;}
 }
+
+
+/* Employee acknowledgement of manager guidance in task details. */
+.crmb-task-guidance-alert {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:14px;
+  margin:0 0 16px;
+  padding:16px 18px;
+  border:1px solid #efc682;
+  border-inline-start:4px solid #d49a35;
+  border-radius:13px;
+  background:#fffaf0;
+  box-shadow:0 4px 18px rgba(141,94,32,.06);
+  color:#674821;
+}
+.crmb-task-guidance-alert-icon {
+  display:grid;
+  place-items:center;
+  flex:0 0 42px;
+  width:42px;
+  height:42px;
+  border-radius:12px;
+  color:#a96c1e;
+  background:#fff0cf;
+  font-size:19px;
+}
+.crmb-task-guidance-alert-content {flex:1 1 240px;min-width:0;}
+.crmb-task-guidance-alert-content strong {display:block;font-size:14px;color:#744815;}
+.crmb-task-guidance-alert-content p {margin:5px 0 0;color:#98794a;font-size:12px;line-height:1.9;}
+.crmb-task-guidance-alert-link {
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  justify-content:center;
+  min-height:39px;
+  padding:8px 13px;
+  border-radius:9px;
+  border:1px solid #d6ac61;
+  background:#fff;
+  color:#865718;
+  font-weight:800;
+  font-size:12px;
+  text-decoration:none;
+}
+.crmb-task-guidance-alert-link:hover {background:#fff2d8;}
+.crmb-task-guidance-alert-link:focus-visible,
+.crmb-task-guidance-ack:focus-visible {
+  outline:2px solid #8651ba;
+  outline-offset:3px;
+}
+.crmb-task-timeline-entry.is-guidance-unread {
+  border-color:#e9c586;
+  box-shadow:0 2px 12px rgba(146,97,28,.06);
+}
+.crmb-task-timeline-entry:target {
+  outline:2px solid #d69a3e;
+  outline-offset:4px;
+}
+.crmb-task-timeline-entry .crmb-task-timeline-info {flex:1 1 180px;min-width:0;}
+.crmb-task-guidance-read-action {display:flex;align-items:center;flex:0 0 auto;margin-inline-start:auto;}
+.crmb-task-guidance-read-action form {margin:0;}
+.crmb-task-guidance-ack {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  padding:8px 13px;
+  min-height:38px;
+  border:1px solid #aa7c40;
+  border-radius:9px;
+  color:#805016;
+  background:#fff2d7;
+  font:inherit;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.crmb-task-guidance-ack:hover {background:#ffe7b7;}
+.crmb-task-guidance-read-label {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 11px;
+  border-radius:9px;
+  font-size:11px;
+  font-weight:800;
+}
+.crmb-task-guidance-read-label.is-read {background:#e8f6ee;color:#28734c;}
+.crmb-task-guidance-read-label.is-pending {background:#fff0d8;color:#966624;}
+@media(max-width:670px) {
+  .crmb-task-guidance-alert {align-items:flex-start;padding:13px;}
+  .crmb-task-guidance-alert-link {width:100%;}
+  .crmb-task-timeline-head {flex-wrap:wrap;}
+  .crmb-task-guidance-read-action {margin-inline-start:46px;}
+}
